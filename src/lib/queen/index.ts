@@ -4,9 +4,11 @@
  * Usage:
  *   import { emitEvent, emitAgentEvent, processEvents } from '@/lib/queen'
  *   import { verifyWebhookSignature, getWebhookConfig } from '@/lib/queen'
+ *   import { transformEntity, getConnector } from '@/lib/queen'
  *
  * TASK-008 | Phase 1 Core Infrastructure
  * TASK-009 | Phase 2 Integration Layer (webhook utilities)
+ * TASK-010 | Phase 2 Entity Transformation Layer
  */
 
 // Event normalization & validation
@@ -55,3 +57,22 @@ export {
   getWebhookConfig,
   type WebhookTransformResult,
 } from './webhooks'
+
+// Entity transformation pipeline (TASK-010)
+export {
+  transformEntity,
+  transformWebhookEvent,
+} from './transform'
+
+// Connector registry (TASK-010)
+export {
+  registerConnector,
+  unregisterConnector,
+  getConnector,
+  findConnectorForPayload,
+  listConnectors,
+  hasConnector,
+  jiraConnector,
+  type EntityConnector,
+  type ConnectorRegistryEntry,
+} from './connectors'

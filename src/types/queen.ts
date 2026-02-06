@@ -93,3 +93,113 @@ export interface SyncState {
   last_synced_at: string
   metadata: Record<string, unknown>
 }
+
+// ── Entity Transformation Types (TASK-010) ──────────────
+
+/**
+ * Canonical internal entity — the universal format all external entities
+ * map to. This becomes the bridge between any external system and internal
+ * kanban cards / bender tasks / projects.
+ *
+ * Design:
+ * - Every field is optional except `external_id` and `source` — partial
+ *   extraction is always valid (extract what you can, flag what's missing)
+ * - `_meta` carries transformation diagnostics (warnings, extraction timestamp)
+ * - New fields can be added without breaking existing connectors (additive only)
+ */
+export interface InternalEntity {
+  /** External system's unique identifier (e.g., Jira issue key "PROJ-123") */
+  external_id: string
+  /** Source system identifier (e.g., "jira", "linear", "gcal") */
+  source: string
+  /** Human-readable title */
+  title?: string
+  /** Full description / body text */
+  description?: string
+  /** Mapped internal status (e.g., "proposed", "executing", "integrated") */
+  status?: string
+  /** Raw external status before mapping (preserved for debugging) */
+  raw_status?: string
+  /** Priority level (normalized to: "critical", "high", "medium", "low", "none") */
+  priority?: InternalPriority
+  /** Raw external priority before normalization */
+  raw_priority?: string
+  /** Tags / labels collected from the external entity */
+  tags?: string[]
+  /** Assignee name or identifier */
+  assignee?: string
+  /** Reporter / creator name or identifier */
+  reporter?: string
+  /** Project or workspace identifier in the external system */
+  project?: string
+  /** External URL to view the entity in its source system */
+  url?: string
+  /** When the external entity was created (ISO 8601) */
+  external_created_at?: string
+  /** When the external entity was last updated (ISO 8601) */
+  external_updated_at?: string
+  /** Target internal type for sync_state tracking */
+  internal_type?: 'kanban_card' | 'bender_task' | 'project'
+  /** Transformation metadata — diagnostics, not business data */
+  _meta: TransformMeta
+}
+
+export type InternalPriority = 'critical' | 'high' | 'medium' | 'low' | 'none'
+
+/**
+ * Metadata attached to every transformation result.
+ * Enables observability without polluting business fields.
+ */
+export interface TransformMeta {
+  /** Which connector produced this entity */
+  connector: string
+  /** ISO 8601 timestamp of when the transformation ran */
+  transformed_at: string
+  /** Fields that were expected but missing or had wrong types */
+  warnings: string[]
+  /** Whether the extraction was complete (no warnings) or partial */
+  partial: boolean
+}
+
+/**
+ * Configuration for a specific connector instance.
+ * Extends TransformConfig with connector-specific settings.
+ */
+export interface ConnectorConfig {
+  /** Connector identifier (e.g., "jira", "linear", "gcal") */
+  connector: string
+  /** Whether this connector is active */
+  enabled: boolean
+  /** Base transform config (field mappings from webhook_configs) */
+  transform: TransformConfig
+  /** Connector-specific settings (e.g., Jira cloud vs server, Linear workspace) */
+  settings?: Record<string, unknown>
+}
+
+/**
+ * Result of a connector's extraction step.
+ * Captures both the extracted entity and any issues encountered.
+ */
+export interface ExtractionResult {
+  /** Whether extraction succeeded (at least external_id was found) */
+  success: boolean
+  /** The extracted entity (may be partial) */
+  entity?: InternalEntity
+  /** Errors that prevented extraction entirely */
+  errors: string[]
+}
+
+/**
+ * Result of the full transformation pipeline.
+ * Wraps ExtractionResult with pipeline-level metadata.
+ */
+export interface TransformResult {
+  /** Whether the full pipeline succeeded */
+  success: boolean
+  /** The final internal entity */
+  entity?: InternalEntity
+  /** Pipeline-level errors */
+  errors: string[]
+  /** Source webhook event ID for traceability */
+  source_event_id?: string
+}
