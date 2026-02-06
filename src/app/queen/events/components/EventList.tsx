@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import type { QueenEvent } from '@/types/queen'
+import { useQueenEventsRealtime } from '@/hooks/useQueenEventsRealtime'
 import { useQueenEvents } from '@/hooks/useQueenEvents'
 import { EventCard } from './EventCard'
 import { EventDetail } from './EventDetail'
@@ -18,19 +19,20 @@ export function EventList() {
   const [selectedEvent, setSelectedEvent] = useState<QueenEvent | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
-  // Main event query
+  // Main event query with Realtime
   const {
     events,
     loading,
     error,
     refresh,
     lastUpdated,
-  } = useQueenEvents({
+    isLive,
+  } = useQueenEventsRealtime({
     type: selectedType || undefined,
     source: selectedSource || undefined,
     traceId: traceFilter,
     limit: PAGE_SIZE,
-    pollInterval: 10000,
+    pollInterval: 10000, // fallback if Realtime fails
   })
 
   // Related events for trace correlation (fetched separately when detail is open)
@@ -70,6 +72,7 @@ export function EventList() {
         onRefresh={refresh}
         lastUpdated={lastUpdated}
         loading={loading}
+        isLive={isLive}
       />
 
       {/* Active trace filter indicator */}

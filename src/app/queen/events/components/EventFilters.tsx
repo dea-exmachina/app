@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { EVENT_CATEGORIES, CATEGORY_COLORS } from './EventTypeBadge'
 import { RefreshCw } from 'lucide-react'
 
@@ -23,6 +24,7 @@ interface EventFiltersProps {
   onRefresh: () => void
   lastUpdated: Date | null
   loading: boolean
+  isLive?: boolean
 }
 
 export function EventFilters({
@@ -33,6 +35,7 @@ export function EventFilters({
   onRefresh,
   lastUpdated,
   loading,
+  isLive = false,
 }: EventFiltersProps) {
   return (
     <div className="space-y-3">
@@ -90,8 +93,21 @@ export function EventFilters({
           )
         })}
 
-        {/* Spacer + refresh */}
+        {/* Spacer + status + refresh */}
         <div className="ml-auto flex items-center gap-2">
+          {isLive ? (
+            <Badge
+              variant="outline"
+              className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1"
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">
+              Polling
+            </Badge>
+          )}
           {lastUpdated && (
             <span className="font-mono text-xs text-muted-foreground">
               {formatLastUpdated(lastUpdated)}
