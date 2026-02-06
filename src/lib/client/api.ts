@@ -6,8 +6,13 @@ import type { DashboardSummary } from '@/types/dashboard'
 import type { KanbanBoard, BoardSummary, HandoffSection } from '@/types/kanban'
 import type { Skill, SkillDetail } from '@/types/skill'
 import type { Workflow } from '@/types/workflow'
-import type { BenderPlatform, BenderTask, BenderTeam } from '@/types/bender'
-import type { Project, ProjectDetail } from '@/types/project'
+import type {
+  BenderPlatform,
+  BenderTask,
+  BenderTaskCreateRequest,
+  BenderTeam,
+} from '@/types/bender'
+import type { ProjectLegacy as Project, ProjectDetail } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
@@ -113,6 +118,21 @@ export async function getTask(taskId: string): Promise<{
   cached: boolean
 }> {
   return fetchApi<BenderTask>(`/api/benders/tasks/${taskId}`)
+}
+
+export async function createTask(
+  task: BenderTaskCreateRequest
+): Promise<{ data: BenderTask; cached: boolean }> {
+  const res = await fetch('/api/benders/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(task),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
 }
 
 export async function getRateLimit(): Promise<{

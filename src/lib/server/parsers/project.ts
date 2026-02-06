@@ -1,5 +1,5 @@
 import { parseFrontmatter, splitSections } from './common'
-import type { Project } from '@/types/project'
+import type { ProjectLegacy as Project } from '@/types/project'
 
 interface ProjectFrontmatter {
   type?: string

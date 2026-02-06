@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useProjects } from '@/hooks/useProjects'
 import { getStatusColor } from '@/lib/client/formatters'
-import type { Project } from '@/types/project'
+import type { ProjectLegacy as Project } from '@/types/project'
 
 function ProjectCard({ project }: { project: Project }) {
   return (

@@ -11,22 +11,16 @@ import type {
   ErrorResponse,
 } from '@/types/project'
 
-interface RouteParams {
-  params: {
-    slug: string
-  }
-}
-
 /**
  * GET /api/projects/:slug
  * Get single project with aggregated counts
  */
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<NextResponse<ProjectDetailResponse | ErrorResponse>> {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     // Fetch project
     const { data: project, error: projectError } = await tables.projects

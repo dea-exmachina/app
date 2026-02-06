@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Project } from '@/types/project'
+import type { ProjectLegacy as Project } from '@/types/project'
 import { getProjects } from '@/lib/client/api'
 
 export function useProjects() {

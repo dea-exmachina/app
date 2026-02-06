@@ -17,7 +17,8 @@ export interface DataSource {
   createFile?(
     path: string,
     content: string,
-    message: string
+    message: string,
+    sha?: string
   ): Promise<{ path: string; sha: string }>
 
   /** Delete a file (optional — not all data sources support writes) */

@@ -53,12 +53,20 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/benders"
-        className="font-mono text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to benders
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          href="/benders"
+          className="font-mono text-sm text-muted-foreground hover:text-foreground"
+        >
+          &larr; Back to benders
+        </Link>
+        <Link
+          href="/benders/tasks/new"
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-mono text-xs text-primary-foreground hover:bg-primary/90"
+        >
+          + Create Task
+        </Link>
+      </div>
       <Header title="Tasks" description="Bender task browser with filters" />
       <TaskBrowser tasks={tasks} />
     </div>

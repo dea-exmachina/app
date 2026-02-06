@@ -39,6 +39,18 @@ export interface BenderAgent {
   team: string | null
 }
 
+export interface BenderTaskCreateRequest {
+  title: string
+  overview: string
+  context?: string
+  requirements: string[]
+  acceptanceCriteria: string[]
+  references?: string[]
+  constraints?: string[]
+  priority?: 'focus' | 'normal'
+  branch?: string
+}
+
 export interface BenderTeam {
   name: string
   members: BenderAgent[]

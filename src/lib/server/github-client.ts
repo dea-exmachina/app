@@ -95,7 +95,8 @@ export class GitHubDataSource implements DataSource {
   async createFile(
     path: string,
     content: string,
-    message: string
+    message: string,
+    sha?: string
   ): Promise<{ path: string; sha: string }> {
     const response = await this.octokit.rest.repos.createOrUpdateFileContents({
       owner: this.owner,
@@ -103,6 +104,7 @@ export class GitHubDataSource implements DataSource {
       path,
       message,
       content: Buffer.from(content).toString('base64'),
+      ...(sha ? { sha } : {}),
     })
 
     return {
