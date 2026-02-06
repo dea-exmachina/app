@@ -3,8 +3,10 @@
  *
  * Usage:
  *   import { emitEvent, emitAgentEvent, processEvents } from '@/lib/queen'
+ *   import { verifyWebhookSignature, getWebhookConfig } from '@/lib/queen'
  *
  * TASK-008 | Phase 1 Core Infrastructure
+ * TASK-009 | Phase 2 Integration Layer (webhook utilities)
  */
 
 // Event normalization & validation
@@ -43,3 +45,13 @@ export {
   type EventConsumerOptions,
   type ProcessResult,
 } from './consumer'
+
+// Webhook utilities
+export {
+  verifyWebhookSignature,
+  extractSignature,
+  getNestedField,
+  transformWebhookPayload,
+  getWebhookConfig,
+  type WebhookTransformResult,
+} from './webhooks'
