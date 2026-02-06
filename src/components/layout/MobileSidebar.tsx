@@ -13,6 +13,7 @@ import {
   Workflow,
   Bot,
   Inbox,
+  MessageCircle,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: '/workflows', label: 'Workflows', icon: Workflow },
   { href: '/benders', label: 'Benders', icon: Bot },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
+  { href: '/chat', label: 'Chat', icon: MessageCircle },
 ]
 
 export function MobileSidebar() {
