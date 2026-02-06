@@ -65,6 +65,25 @@ export const tables = {
   webhook_configs: (db as any).from('webhook_configs') as ReturnType<typeof db.from>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sync_state: (db as any).from('sync_state') as ReturnType<typeof db.from>,
+  // NEXUS — Next-Gen Execution & Unified System (DEA-042)
+  // Note: These tables are not yet in the generated supabase.ts types.
+  // After running migration 011 and regenerating types, remove the casts.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_projects: (db as any).from('nexus_projects') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_cards: (db as any).from('nexus_cards') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_task_details: (db as any).from('nexus_task_details') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_comments: (db as any).from('nexus_comments') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_locks: (db as any).from('nexus_locks') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_events: (db as any).from('nexus_events') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_context_packages: (db as any).from('nexus_context_packages') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_agent_sessions: (db as any).from('nexus_agent_sessions') as ReturnType<typeof db.from>,
 }
 
 /**
