@@ -91,16 +91,16 @@ export function ChatWidget({ projectId, config, editMode }: WidgetProps) {
     setSending(true)
     setInput('')
 
-    try {
-      // Optimistically add user message
-      const optimisticMessage: Message = {
-        id: crypto.randomUUID(),
-        sender: 'user',
-        content,
-        created_at: new Date().toISOString(),
-      }
-      setMessages((prev) => [...prev, optimisticMessage])
+    // Optimistically add user message
+    const optimisticMessage: Message = {
+      id: crypto.randomUUID(),
+      sender: 'user',
+      content,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, optimisticMessage])
 
+    try {
       // Send to API
       const response = await fetch('/api/messages', {
         method: 'POST',
