@@ -1,55 +1,66 @@
+'use client'
+
 import { Header } from '@/components/layout/Header'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MissionBriefing } from '@/components/dashboard/MissionBriefing'
+import { QuickStats } from '@/components/dashboard/QuickStats'
+import { BoardSummaryCard } from '@/components/dashboard/BoardSummaryCard'
+import { BenderStatusWidget } from '@/components/dashboard/BenderStatusWidget'
+import { useDashboard } from '@/hooks/useDashboard'
 
 export default function DashboardPage() {
+  const { data, loading, error } = useDashboard()
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Header title="Dashboard" description="dea-exmachina control center" />
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <Header title="Dashboard" description="dea-exmachina control center" />
+        <div className="text-sm text-destructive">
+          Failed to load dashboard: {error || 'Unknown error'}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <Header
-        title="Dashboard"
-        description="dea-exmachina control center"
+      <Header title="Dashboard" description="dea-exmachina control center" />
+
+      {/* Quick Stats */}
+      <QuickStats
+        boardCount={data.boardStats.length}
+        skillCount={data.skillCount}
+        workflowCount={data.workflowCount}
+        benderCount={data.activeBenders.length}
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatusCard title="Boards" value="--" subtitle="kanban boards" />
-        <StatusCard title="Skills" value="--" subtitle="registered skills" />
-        <StatusCard title="Workflows" value="--" subtitle="active workflows" />
-        <StatusCard title="Benders" value="--" subtitle="agent platforms" />
+      {/* Mission Briefing */}
+      <MissionBriefing handoff={data.handoff} />
+
+      {/* Board Summaries */}
+      <div>
+        <h2 className="mb-4 font-mono text-sm font-semibold text-muted-foreground">
+          Kanban Boards
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {data.boardStats.map((board) => (
+            <BoardSummaryCard key={board.id} board={board} />
+          ))}
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-mono text-sm">Mission Briefing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Connect a data source to load the latest handoff context.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Bender Status */}
+      {data.activeBenders.length > 0 && (
+        <BenderStatusWidget benders={data.activeBenders} />
+      )}
     </div>
-  )
-}
-
-function StatusCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string
-  value: string
-  subtitle: string
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-mono text-xs text-muted-foreground">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="font-mono text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
-      </CardContent>
-    </Card>
   )
 }
