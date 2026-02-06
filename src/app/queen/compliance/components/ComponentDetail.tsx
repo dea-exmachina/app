@@ -1,7 +1,7 @@
 'use client'
 
 import type { ComplianceComponent } from '../types'
-import { SCORE_THRESHOLDS } from '../types'
+import { SCORE_THRESHOLDS, SCORE_LEVELS, MATURITY_CRITERIA } from '../types'
 import {
   Sheet,
   SheetContent,
@@ -125,18 +125,18 @@ export function ComponentDetail({ component, open, onClose }: ComponentDetailPro
               <div className="space-y-2">
                 <MaturityCriterion
                   label="Bronze"
-                  description="New or < 3 audits"
+                  description={`< ${MATURITY_CRITERIA.silver.audits} audits`}
                   met={true}
                 />
                 <MaturityCriterion
                   label="Silver"
-                  description="3+ audits, no Rework scores"
-                  met={component.audit_count >= 3}
+                  description={`${MATURITY_CRITERIA.silver.audits}+ audits, no Rework scores`}
+                  met={component.audit_count >= MATURITY_CRITERIA.silver.audits}
                 />
                 <MaturityCriterion
                   label="Gold"
-                  description="6+ audits, no Rework, health >= 85"
-                  met={component.audit_count >= 6 && component.health_score >= 85}
+                  description={`${MATURITY_CRITERIA.gold.audits}+ audits, no Rework, health >= ${MATURITY_CRITERIA.gold.minHealth}`}
+                  met={component.audit_count >= MATURITY_CRITERIA.gold.audits && component.health_score >= MATURITY_CRITERIA.gold.minHealth}
                 />
               </div>
             </div>
@@ -149,10 +149,14 @@ export function ComponentDetail({ component, open, onClose }: ComponentDetailPro
                 Score Interpretation
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                <ScoreTier label="Exemplary" range="90-100" active={component.health_score >= 90} />
-                <ScoreTier label="Solid" range="75-89" active={component.health_score >= 75 && component.health_score < 90} />
-                <ScoreTier label="Needs Work" range="60-74" active={component.health_score >= 60 && component.health_score < 75} />
-                <ScoreTier label="Rework" range="< 60" active={component.health_score < 60} />
+                {SCORE_LEVELS.map((tier, index) => {
+                  const nextMin = index > 0 ? SCORE_LEVELS[index - 1].min : 101
+                  const isActive = component.health_score >= tier.min && component.health_score < nextMin
+                  const range = index === 0 ? `${tier.min}-100` : index < SCORE_LEVELS.length - 1 ? `${tier.min}-${nextMin - 1}` : `< ${nextMin}`
+                  return (
+                    <ScoreTier key={tier.label} label={tier.label} range={range} active={isActive} />
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -224,10 +228,10 @@ function getScoreBarColor(score: number): string {
 }
 
 function getScoreLevel(score: number): string {
-  if (score >= 90) return 'Exemplary'
-  if (score >= 75) return 'Solid'
-  if (score >= 60) return 'Needs Work'
-  return 'Rework'
+  for (const tier of SCORE_LEVELS) {
+    if (score >= tier.min) return tier.label
+  }
+  return SCORE_LEVELS[SCORE_LEVELS.length - 1].label
 }
 
 function getLevelColors(level: string): string {

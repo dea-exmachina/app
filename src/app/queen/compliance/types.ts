@@ -39,8 +39,23 @@ export const COMPONENT_WEIGHTS: Record<ComponentCategory, number> = {
   frontend: 0.8,
 }
 
-/** Staleness threshold in days */
+/** Staleness threshold in days — component begins accruing penalty after this */
 export const STALENESS_THRESHOLD_DAYS = 90
+
+/** Score level boundaries and their labels */
+export const SCORE_LEVELS = [
+  { min: 90, label: 'Exemplary', action: 'Integrate. Extract learnings.' },
+  { min: 75, label: 'Solid', action: 'Minor fixes, then integrate.' },
+  { min: 60, label: 'Needs Work', action: 'Remediation required before integration.' },
+  { min: 0, label: 'Rework', action: 'Fundamental issues. Revisit task understanding.' },
+] as const
+
+/** Maturity level criteria for component promotion */
+export const MATURITY_CRITERIA: Record<MaturityLevel, { audits: number; minHealth: number }> = {
+  bronze: { audits: 0, minHealth: 0 },
+  silver: { audits: 3, minHealth: 0 },
+  gold: { audits: 6, minHealth: 85 },
+}
 
 // ── Core Data Types ─────────────────────────────────────
 
