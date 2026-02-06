@@ -47,6 +47,7 @@ export const tables = {
   kanban_cards: db.from('kanban_cards'),
   workflows: db.from('workflows'),
   user_learnings: db.from('user_learnings'),
+  messages: db.from('messages'),
 }
 
 /**
