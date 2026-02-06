@@ -46,8 +46,13 @@ export function parseBenderTask(
   )
   const review = reviewSection ? parseReview(reviewSection.content) : null
 
+  // Derive unique ID from filename (e.g. "TASK-001-2026-02-04-oauth-research")
+  // Frontmatter task_id can collide when multiple tasks share a date prefix
+  const filename = filePath.split('/').pop()?.replace(/\.md$/, '') || ''
+  const taskId = filename || data.task_id || ''
+
   return {
-    taskId: data.task_id || '',
+    taskId,
     title: data.title || '',
     created: data.created || '',
     bender: data.bender || '',

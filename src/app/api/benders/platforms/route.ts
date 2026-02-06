@@ -21,7 +21,7 @@ export async function GET(): Promise<
           'benders/context/shared/platform-registry.md'
         )
         if (!file) {
-          throw new Error('Platform registry not found')
+          return []
         }
 
         return parsePlatformRegistry(file.content)
