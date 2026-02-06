@@ -3,14 +3,13 @@ import type { DataSource, FileResult, DataSourceStatus } from '@/types/data-sour
 
 /**
  * GitHubDataSource — v1 implementation
- * Reads dea-exmachina repo content via GitHub REST API with ETag caching.
+ * Reads dea-exmachina repo content via GitHub REST API.
+ * Caching handled by withCache() in API routes — no ETag layer needed for v1.
  */
 export class GitHubDataSource implements DataSource {
   private octokit: Octokit
   private owner: string
   private repo: string
-  private etagCache: Map<string, { etag: string; data: FileResult }> =
-    new Map()
 
   constructor() {
     const token = process.env.GITHUB_TOKEN
@@ -25,25 +24,11 @@ export class GitHubDataSource implements DataSource {
 
   async getFile(path: string): Promise<FileResult | null> {
     try {
-      const cached = this.etagCache.get(path)
-      const headers: Record<string, string> = {}
-      if (cached) {
-        headers['If-None-Match'] = cached.etag
-      }
-
       const response = await this.octokit.rest.repos.getContent({
         owner: this.owner,
         repo: this.repo,
         path,
-        headers,
       })
-
-      // Handle 304 Not Modified (Octokit returns 304 as a thrown error,
-      // but with If-None-Match it may also return the cached data)
-      const status = response.status as number
-      if (status === 304 && cached) {
-        return cached.data
-      }
 
       const data = response.data
       if (Array.isArray(data) || data.type !== 'file') {
@@ -51,20 +36,12 @@ export class GitHubDataSource implements DataSource {
       }
 
       const content = Buffer.from(data.content, 'base64').toString('utf-8')
-      const result: FileResult = {
+      return {
         path: data.path,
         content,
         sha: data.sha,
         lastModified: null,
       }
-
-      // Cache with ETag
-      const etag = response.headers.etag
-      if (etag) {
-        this.etagCache.set(path, { etag, data: result })
-      }
-
-      return result
     } catch (error: unknown) {
       if (
         error instanceof Error &&
@@ -114,12 +91,17 @@ export class GitHubDataSource implements DataSource {
       return { connected: false, source: 'github' }
     }
   }
+
+  /** Expose Octokit for direct API calls (e.g., listCommits) */
+  getOctokit(): { octokit: Octokit; owner: string; repo: string } {
+    return { octokit: this.octokit, owner: this.owner, repo: this.repo }
+  }
 }
 
 // Singleton instance for the server
 let instance: GitHubDataSource | null = null
 
-export function getDataSource(): DataSource {
+export function getDataSource(): GitHubDataSource {
   if (!instance) {
     instance = new GitHubDataSource()
   }

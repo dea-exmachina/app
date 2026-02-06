@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { Octokit } from 'octokit'
 import { getDataSource } from '@/lib/server/github-client'
 import { withCache } from '@/lib/server/cache'
 import { parseKanbanBoard } from '@/lib/server/parsers/kanban'
@@ -115,12 +114,8 @@ export async function GET(): Promise<
             ).length,
           }))
 
-        // Get recent commits
-        const token = process.env.GITHUB_TOKEN
-        const owner = process.env.GITHUB_OWNER ?? 'george-a-ata'
-        const repo = process.env.GITHUB_REPO ?? 'dea-exmachina'
-
-        const octokit = new Octokit({ auth: token })
+        // Get recent commits via shared Octokit instance
+        const { octokit, owner, repo } = ds.getOctokit()
         const commitsResponse = await octokit.rest.repos.listCommits({
           owner,
           repo,
