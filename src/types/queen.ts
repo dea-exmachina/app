@@ -203,3 +203,65 @@ export interface TransformResult {
   /** Source webhook event ID for traceability */
   source_event_id?: string
 }
+
+// ── Sync Engine Types (TASK-011) ────────────────────────────
+
+export interface SyncResult {
+  pushed: number
+  failed: number
+  errors: Array<{ external_id: string; error: string }>
+}
+
+/**
+ * Result of an inbound sync operation.
+ * Returned by processInboundEvent() for observability.
+ */
+export interface InboundSyncResult {
+  /** Whether the inbound sync succeeded */
+  success: boolean
+  /** The sync state record that was created or updated */
+  sync_state?: SyncState
+  /** The internal entity produced by transformation */
+  entity?: InternalEntity
+  /** Errors encountered during the sync */
+  errors: string[]
+  /** Whether a conflict was detected */
+  conflict: boolean
+}
+
+/**
+ * Result of an outbound sync (status push-back) operation.
+ */
+export interface OutboundSyncResult {
+  /** Whether the push succeeded */
+  success: boolean
+  /** The external_id that was pushed to */
+  external_id: string
+  /** The source system */
+  source: string
+  /** Error message if failed */
+  error?: string
+}
+
+/**
+ * Circuit breaker state for a given source.
+ * Tracks consecutive failures and determines whether to allow requests.
+ */
+export type CircuitBreakerState = 'closed' | 'open' | 'half-open'
+
+export interface CircuitBreakerStatus {
+  /** The source this breaker protects */
+  source: string
+  /** Current state of the circuit */
+  state: CircuitBreakerState
+  /** Number of consecutive failures */
+  failure_count: number
+  /** Maximum failures before opening the circuit */
+  failure_threshold: number
+  /** When the circuit was last opened (ISO 8601), null if never opened */
+  last_failure_at: string | null
+  /** Cooldown period in milliseconds before transitioning from open to half-open */
+  cooldown_ms: number
+  /** When the circuit last transitioned to a new state */
+  last_transition_at: string
+}
