@@ -109,6 +109,7 @@ export async function POST(
     const fileContent = [
       '---',
       `type: ${body.type}`,
+      'status: pending',
       `created: ${now.toISOString()}`,
       'source: webapp',
       '---',
@@ -133,6 +134,7 @@ export async function POST(
       filename,
       title: body.title,
       type: body.type,
+      status: 'pending',
       created: now.toISOString(),
       source: 'webapp',
       content: body.content,

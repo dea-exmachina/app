@@ -1,8 +1,9 @@
 import { parseFrontmatter } from './common'
-import type { InboxItem, InboxItemType } from '@/types/inbox'
+import type { InboxItem, InboxItemType, InboxItemStatus } from '@/types/inbox'
 
 interface InboxFrontmatter {
   type?: string
+  status?: string
   created?: string
   source?: string
 }
@@ -39,10 +40,16 @@ export function parseInboxItem(
     ? (fm.type as InboxItemType)
     : 'note'
 
+  const validStatuses: InboxItemStatus[] = ['pending', 'processing', 'done']
+  const status: InboxItemStatus = validStatuses.includes(fm.status as InboxItemStatus)
+    ? (fm.status as InboxItemStatus)
+    : 'pending'
+
   return {
     filename,
     title,
     type,
+    status,
     created: fm.created ?? '',
     source: fm.source ?? 'unknown',
     content,

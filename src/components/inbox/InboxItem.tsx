@@ -13,6 +13,12 @@ const TYPE_COLORS: Record<string, string> = {
   file: '#9B8E7B',
 }
 
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  pending: { color: '#C99A6B', label: 'Pending' },
+  processing: { color: '#6AACB8', label: 'Processing' },
+  done: { color: '#7DB87D', label: 'Done' },
+}
+
 interface InboxItemProps {
   item: InboxItemType
   onDelete?: (filename: string) => void
@@ -36,6 +42,16 @@ export function InboxItemCard({ item, onDelete, deleting }: InboxItemProps) {
             }}
           >
             {item.type}
+          </Badge>
+          <Badge
+            variant="outline"
+            className="shrink-0 font-mono text-xs"
+            style={{
+              borderColor: STATUS_CONFIG[item.status]?.color ?? '#C99A6B',
+              color: STATUS_CONFIG[item.status]?.color ?? '#C99A6B',
+            }}
+          >
+            {STATUS_CONFIG[item.status]?.label ?? item.status}
           </Badge>
         </div>
         {item.content && (
