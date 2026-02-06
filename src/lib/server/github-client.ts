@@ -92,6 +92,39 @@ export class GitHubDataSource implements DataSource {
     }
   }
 
+  async createFile(
+    path: string,
+    content: string,
+    message: string
+  ): Promise<{ path: string; sha: string }> {
+    const response = await this.octokit.rest.repos.createOrUpdateFileContents({
+      owner: this.owner,
+      repo: this.repo,
+      path,
+      message,
+      content: Buffer.from(content).toString('base64'),
+    })
+
+    return {
+      path: response.data.content?.path ?? path,
+      sha: response.data.content?.sha ?? '',
+    }
+  }
+
+  async deleteFile(
+    path: string,
+    sha: string,
+    message: string
+  ): Promise<void> {
+    await this.octokit.rest.repos.deleteFile({
+      owner: this.owner,
+      repo: this.repo,
+      path,
+      message,
+      sha,
+    })
+  }
+
   /** Expose Octokit for direct API calls (e.g., listCommits) */
   getOctokit(): { octokit: Octokit; owner: string; repo: string } {
     return { octokit: this.octokit, owner: this.owner, repo: this.repo }

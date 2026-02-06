@@ -12,6 +12,16 @@ export interface DataSource {
 
   /** Check connectivity and rate limits */
   getStatus(): Promise<DataSourceStatus>
+
+  /** Create or update a file (optional — not all data sources support writes) */
+  createFile?(
+    path: string,
+    content: string,
+    message: string
+  ): Promise<{ path: string; sha: string }>
+
+  /** Delete a file (optional — not all data sources support writes) */
+  deleteFile?(path: string, sha: string, message: string): Promise<void>
 }
 
 export interface FileResult {

@@ -3,13 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
 import {
+  Menu,
+  X,
   LayoutDashboard,
   Columns3,
+  FolderOpen,
   Zap,
   Workflow,
   Bot,
+  Inbox,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -17,9 +20,11 @@ import { Button } from '@/components/ui/button'
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kanban', label: 'Kanban', icon: Columns3 },
+  { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/skills', label: 'Skills', icon: Zap },
   { href: '/workflows', label: 'Workflows', icon: Workflow },
   { href: '/benders', label: 'Benders', icon: Bot },
+  { href: '/inbox', label: 'Inbox', icon: Inbox },
 ]
 
 export function MobileSidebar() {
