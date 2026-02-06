@@ -39,7 +39,7 @@ export function KanbanWidget({ projectId, config, editMode }: WidgetProps) {
                 <div className="rounded border border-border bg-card p-2 text-sm">
                   <div className="font-medium">Sample Card</div>
                   <div className="text-xs text-muted-foreground">
-                    #{projectId.slice(0, 8)}
+                    #{projectId?.slice(0, 8)}
                   </div>
                 </div>
               </div>

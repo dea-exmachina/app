@@ -47,6 +47,18 @@ export const tables = {
   kanban_cards: db.from('kanban_cards'),
   workflows: db.from('workflows'),
   user_learnings: db.from('user_learnings'),
+  messages: db.from('messages'),
+  // QUEEN — External Orchestration (DEA-032)
+  // Note: These tables are not yet in the generated supabase.ts types.
+  // After running migration 005 and regenerating types, remove the casts.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queen_events: (db as any).from('queen_events') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  agent_health: (db as any).from('agent_health') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  webhook_configs: (db as any).from('webhook_configs') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sync_state: (db as any).from('sync_state') as ReturnType<typeof db.from>,
 }
 
 /**

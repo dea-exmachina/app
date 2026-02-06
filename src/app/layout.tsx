@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileSidebar } from '@/components/layout/MobileSidebar'
 import { LayoutProvider } from '@/contexts/LayoutContext'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import './globals.css'
 
 const geistSans = Geist({
@@ -26,32 +27,34 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LayoutProvider>
-          <div className="flex h-screen">
-            {/* Desktop Sidebar */}
-            <div className="hidden lg:flex">
-              <Sidebar />
-            </div>
-
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
-              {/* Mobile Header */}
-              <div className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 lg:hidden">
-                <MobileSidebar />
-                <span className="ml-4 font-mono text-sm font-semibold tracking-wide text-accent-foreground">
-                  dea<span className="text-muted-foreground">::</span>control
-                </span>
+        <ThemeProvider>
+          <LayoutProvider>
+            <div className="flex h-screen">
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:flex">
+                <Sidebar />
               </div>
 
-              {/* Page Content */}
-              <div className="p-6">{children}</div>
-            </main>
-          </div>
-        </LayoutProvider>
+              {/* Main Content */}
+              <main className="flex-1 overflow-y-auto">
+                {/* Mobile Header */}
+                <div className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 lg:hidden">
+                  <MobileSidebar />
+                  <span className="ml-4 font-mono text-sm font-semibold tracking-wide text-accent-foreground">
+                    dea<span className="text-muted-foreground">::</span>control
+                  </span>
+                </div>
+
+                {/* Page Content */}
+                <div className="p-6">{children}</div>
+              </main>
+            </div>
+          </LayoutProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

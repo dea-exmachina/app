@@ -36,7 +36,7 @@ export interface WidgetDefinition {
  * Props passed to all widget components
  */
 export interface WidgetProps {
-  projectId: string
+  projectId: string | null
   config: Record<string, any>
   onConfigChange?: (config: Record<string, any>) => void
   editMode?: boolean

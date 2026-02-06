@@ -317,6 +317,51 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          in_reply_to: string | null
+          project_id: string | null
+          read: boolean | null
+          sender: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          in_reply_to?: string | null
+          project_id?: string | null
+          read?: boolean | null
+          sender: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          in_reply_to?: string | null
+          project_id?: string | null
+          read?: boolean | null
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_in_reply_to_fkey"
+            columns: ["in_reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_benders: {
         Row: {
           context_notes: string | null
