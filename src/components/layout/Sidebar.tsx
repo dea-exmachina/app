@@ -2,13 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  Columns3,
+  Zap,
+  Workflow,
+  Bot,
+} from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: '~' },
-  { href: '/kanban', label: 'Kanban', icon: '#' },
-  { href: '/skills', label: 'Skills', icon: '/' },
-  { href: '/workflows', label: 'Workflows', icon: '>' },
-  { href: '/benders', label: 'Benders', icon: '@' },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/kanban', label: 'Kanban', icon: Columns3 },
+  { href: '/skills', label: 'Skills', icon: Zap },
+  { href: '/workflows', label: 'Workflows', icon: Workflow },
+  { href: '/benders', label: 'Benders', icon: Bot },
 ]
 
 export function Sidebar() {
@@ -29,6 +36,8 @@ export function Sidebar() {
               ? pathname === '/'
               : pathname.startsWith(item.href)
 
+          const Icon = item.icon
+
           return (
             <Link
               key={item.href}
@@ -39,7 +48,7 @@ export function Sidebar() {
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
               }`}
             >
-              <span className="w-4 text-center opacity-60">{item.icon}</span>
+              <Icon className="h-4 w-4" />
               {item.label}
             </Link>
           )

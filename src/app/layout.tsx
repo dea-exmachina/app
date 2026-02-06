@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { MobileSidebar } from '@/components/layout/MobileSidebar'
+import { LayoutProvider } from '@/contexts/LayoutContext'
 import './globals.css'
 
 const geistSans = Geist({
@@ -28,10 +30,28 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
+        <LayoutProvider>
+          <div className="flex h-screen">
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:flex">
+              <Sidebar />
+            </div>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+              {/* Mobile Header */}
+              <div className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 lg:hidden">
+                <MobileSidebar />
+                <span className="ml-4 font-mono text-sm font-semibold tracking-wide text-accent-foreground">
+                  dea<span className="text-muted-foreground">::</span>control
+                </span>
+              </div>
+
+              {/* Page Content */}
+              <div className="p-6">{children}</div>
+            </main>
+          </div>
+        </LayoutProvider>
       </body>
     </html>
   )
