@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parsePlatformRegistry } from '@/lib/server/parsers/bender-platform'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderPlatform } from '@/types/bender'
-
-const TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 export async function GET(
   request: NextRequest,
@@ -13,46 +9,41 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<BenderPlatform> | ApiError>> {
   try {
     const { slug } = await params
-    const ds = getDataSource()
 
-    const { data, cached } = await withCache(
-      `benders:platforms:${slug}`,
-      TTL_MS,
-      async () => {
-        const file = await ds.getFile(
-          'benders/context/shared/platform-registry.md'
-        )
-        if (!file) {
-          throw new Error('Platform registry not found')
-        }
+    const { data: row, error } = await tables.bender_platforms
+      .select('*')
+      .eq('slug', slug)
+      .single()
 
-        const platforms = parsePlatformRegistry(file.content)
-        const platform = platforms.find((p) => p.slug === slug)
-
-        if (!platform) {
-          throw new Error(`Platform '${slug}' not found`)
-        }
-
-        return platform
-      }
-    )
-
-    return NextResponse.json({ data, cached })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-
-    if (message.includes('not found')) {
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
             code: 'NOT_FOUND',
-            message,
+            message: `Platform '${slug}' not found`,
           },
         },
         { status: 404 }
       )
     }
 
+    // Map database columns to BenderPlatform interface
+    // Handle nullable columns with fallbacks
+    const platform: BenderPlatform = {
+      name: row.name,
+      slug: row.slug,
+      status: (row.status as BenderPlatform['status']) ?? 'active',
+      interface: row.interface ?? '',
+      models: (row.models as string[]) ?? [],
+      costTier: (row.cost_tier as BenderPlatform['costTier']) ?? 'TBD',
+      strengths: (row.strengths as string[]) ?? [],
+      limitations: (row.limitations as string[]) ?? [],
+      configLocation: row.config_location ?? '',
+      contextDirectory: row.context_directory ?? '',
+    }
+
+    return NextResponse.json({ data: platform, cached: false })
+  } catch (error) {
     console.error('Error fetching platform:', error)
     return NextResponse.json(
       {

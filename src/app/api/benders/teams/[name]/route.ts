@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseBenderTeam } from '@/lib/server/parsers/bender-team'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
-import type { BenderTeam } from '@/types/bender'
-
-const TTL_MS = 30 * 60 * 1000 // 30 minutes
+import type { BenderTeam, BenderAgent } from '@/types/bender'
 
 export async function GET(
   request: NextRequest,
@@ -13,39 +9,36 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<BenderTeam> | ApiError>> {
   try {
     const { name } = await params
-    const ds = getDataSource()
 
-    const { data, cached } = await withCache(
-      `benders:teams:${name}`,
-      TTL_MS,
-      async () => {
-        const path = `benders/teams/${name}.md`
-        const file = await ds.getFile(path)
+    const { data: row, error } = await tables.bender_teams
+      .select('*')
+      .eq('name', name)
+      .single()
 
-        if (!file) {
-          throw new Error(`Team '${name}' not found`)
-        }
-
-        return parseBenderTeam(file.content, file.path)
-      }
-    )
-
-    return NextResponse.json({ data, cached })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-
-    if (message.includes('not found')) {
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
             code: 'NOT_FOUND',
-            message,
+            message: `Team '${name}' not found`,
           },
         },
         { status: 404 }
       )
     }
 
+    // Map database columns to BenderTeam interface
+    // Note: members and file_ownership added via migration 008
+    const team: BenderTeam = {
+      name: row.name,
+      members: ((row as Record<string, unknown>).members as BenderAgent[]) ?? [],
+      sequencing: row.sequencing ?? '',
+      fileOwnership: ((row as Record<string, unknown>).file_ownership as BenderTeam['fileOwnership']) ?? {},
+      branchStrategy: row.branch_strategy ?? '',
+    }
+
+    return NextResponse.json({ data: team, cached: false })
+  } catch (error) {
     console.error('Error fetching team:', error)
     return NextResponse.json(
       {

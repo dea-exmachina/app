@@ -1,34 +1,36 @@
 import { NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parsePlatformRegistry } from '@/lib/server/parsers/bender-platform'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderPlatform } from '@/types/bender'
-
-const TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<BenderPlatform[]> | ApiError>
 > {
   try {
-    const ds = getDataSource()
+    const { data, error } = await tables.bender_platforms
+      .select('*')
+      .order('name')
 
-    const { data, cached } = await withCache(
-      'benders:platforms:all',
-      TTL_MS,
-      async () => {
-        const file = await ds.getFile(
-          'benders/context/shared/platform-registry.md'
-        )
-        if (!file) {
-          return []
-        }
+    if (error) {
+      throw error
+    }
 
-        return parsePlatformRegistry(file.content)
-      }
-    )
+    // Map database columns to BenderPlatform interface
+    // Handle nullable columns with fallbacks
+    const platforms: BenderPlatform[] = (data ?? []).map((row) => ({
+      name: row.name,
+      slug: row.slug,
+      status: (row.status as BenderPlatform['status']) ?? 'active',
+      interface: row.interface ?? '',
+      models: (row.models as string[]) ?? [],
+      costTier: (row.cost_tier as BenderPlatform['costTier']) ?? 'TBD',
+      strengths: (row.strengths as string[]) ?? [],
+      limitations: (row.limitations as string[]) ?? [],
+      configLocation: row.config_location ?? '',
+      contextDirectory: row.context_directory ?? '',
+    }))
 
-    return NextResponse.json({ data, cached })
+    return NextResponse.json({ data: platforms, cached: false })
   } catch (error) {
     console.error('Error fetching platforms:', error)
     return NextResponse.json(

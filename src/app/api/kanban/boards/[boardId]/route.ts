@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseKanbanBoard } from '@/lib/server/parsers/kanban'
-import { BOARD_MAP } from '@/config/boards'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
-import type { KanbanBoard } from '@/types/kanban'
-
-const TTL_MS = 5 * 60 * 1000 // 5 minutes
+import type { KanbanBoard, KanbanLane, HandoffSection } from '@/types/kanban'
 
 export async function GET(
   request: NextRequest,
@@ -14,9 +9,13 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<KanbanBoard> | ApiError>> {
   try {
     const { boardId } = await params
-    const config = BOARD_MAP[boardId]
 
-    if (!config) {
+    const { data: row, error } = await tables.kanban_boards
+      .select('*')
+      .eq('slug', boardId)
+      .single()
+
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
@@ -28,22 +27,22 @@ export async function GET(
       )
     }
 
-    const ds = getDataSource()
+    // Parse lanes from JSONB
+    const lanes = (row.lanes as unknown as KanbanLane[]) ?? []
 
-    const { data, cached } = await withCache(
-      `kanban:board:${boardId}`,
-      TTL_MS,
-      async () => {
-        const file = await ds.getFile(config.path)
-        if (!file) {
-          throw new Error(`Board file not found: ${config.path}`)
-        }
+    // Extract handoff section if present (stored in first lane or separate field)
+    // For now, handoff is null as it's not stored in Supabase schema
+    const handoff: HandoffSection | null = null
 
-        return parseKanbanBoard(file.content, boardId, file.path)
-      }
-    )
+    const board: KanbanBoard = {
+      id: row.slug,
+      name: row.name,
+      filePath: row.markdown_path ?? '',
+      handoff,
+      lanes,
+    }
 
-    return NextResponse.json({ data, cached })
+    return NextResponse.json({ data: board, cached: false })
   } catch (error) {
     console.error('Error fetching board:', error)
     return NextResponse.json(

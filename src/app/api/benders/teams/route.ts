@@ -1,41 +1,31 @@
 import { NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseBenderTeam } from '@/lib/server/parsers/bender-team'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
-import type { BenderTeam } from '@/types/bender'
-
-const TTL_MS = 30 * 60 * 1000 // 30 minutes
+import type { BenderTeam, BenderAgent } from '@/types/bender'
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<BenderTeam[]> | ApiError>
 > {
   try {
-    const ds = getDataSource()
+    const { data, error } = await tables.bender_teams
+      .select('*')
+      .order('name')
 
-    const { data, cached } = await withCache(
-      'benders:teams:all',
-      TTL_MS,
-      async () => {
-        const files = await ds.listDirectory('benders/teams')
-        const teamFiles = files.filter(
-          (f) => f.endsWith('.md') && !f.endsWith('README.md')
-        )
+    if (error) {
+      throw error
+    }
 
-        const teams = await Promise.all(
-          teamFiles.map(async (path) => {
-            const file = await ds.getFile(path)
-            if (!file) return null
+    // Map database columns to BenderTeam interface
+    // Note: members and file_ownership added via migration 008
+    const teams: BenderTeam[] = (data ?? []).map((row) => ({
+      name: row.name,
+      members: ((row as Record<string, unknown>).members as BenderAgent[]) ?? [],
+      sequencing: row.sequencing ?? '',
+      fileOwnership: ((row as Record<string, unknown>).file_ownership as BenderTeam['fileOwnership']) ?? {},
+      branchStrategy: row.branch_strategy ?? '',
+    }))
 
-            return parseBenderTeam(file.content, file.path)
-          })
-        )
-
-        return teams.filter((t): t is BenderTeam => t !== null)
-      }
-    )
-
-    return NextResponse.json({ data, cached })
+    return NextResponse.json({ data: teams, cached: false })
   } catch (error) {
     console.error('Error fetching teams:', error)
     return NextResponse.json(

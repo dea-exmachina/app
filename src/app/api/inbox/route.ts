@@ -1,54 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache, invalidateCache } from '@/lib/server/cache'
-import { parseInboxItem } from '@/lib/server/parsers/inbox'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
-
-const TTL_MS = 5 * 60 * 1000 // 5 minutes (shorter for inbox)
-
-const INBOX_PATH = 'inbox/dea-box'
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<InboxItem[]> | ApiError>
 > {
   try {
-    const ds = getDataSource()
+    const { data, error } = await tables.inbox_items
+      .select('*')
+      .order('created', { ascending: false })
 
-    const { data, cached } = await withCache(
-      'inbox:all',
-      TTL_MS,
-      async () => {
-        const entries = await ds.listDirectory(INBOX_PATH)
-        if (entries.length === 0) {
-          return []
-        }
+    if (error) {
+      throw error
+    }
 
-        // Filter to .md files only (not directories)
-        const mdFiles = entries.filter((entry) => entry.endsWith('.md'))
+    // Map database columns to InboxItem interface
+    const items: InboxItem[] = (data ?? []).map((row: Record<string, unknown>) => ({
+      filename: row.filename,
+      title: row.title,
+      type: row.type as InboxItem['type'],
+      status: row.status as InboxItem['status'],
+      created: row.created,
+      source: row.source,
+      content: row.content,
+      sha: row.id, // Use ID as sha replacement for delete operations
+    }))
 
-        const items: InboxItem[] = []
-
-        for (const filePath of mdFiles) {
-          const file = await ds.getFile(filePath)
-          if (!file) continue
-
-          const filename = filePath.split('/').pop() ?? filePath
-          const item = parseInboxItem(file.content, filename, file.sha)
-          items.push(item)
-        }
-
-        // Sort by created date, newest first
-        items.sort((a, b) => {
-          if (!a.created || !b.created) return 0
-          return new Date(b.created).getTime() - new Date(a.created).getTime()
-        })
-
-        return items
-      }
-    )
-
-    return NextResponse.json({ data, cached })
+    return NextResponse.json({ data: items, cached: false })
   } catch (error) {
     console.error('Error fetching inbox:', error)
     return NextResponse.json(
@@ -67,20 +46,6 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<InboxItem> | ApiError>> {
   try {
-    const ds = getDataSource()
-
-    if (!ds.createFile) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'NOT_SUPPORTED',
-            message: 'Write operations not supported by current data source',
-          },
-        },
-        { status: 501 }
-      )
-    }
-
     const body: InboxCreateRequest = await request.json()
 
     if (!body.title || !body.content || !body.type) {
@@ -105,40 +70,32 @@ export async function POST(
       .slice(0, 50)
     const filename = `${timestamp}-${slug}.md`
 
-    // Build markdown content
-    const fileContent = [
-      '---',
-      `type: ${body.type}`,
-      'status: pending',
-      `created: ${now.toISOString()}`,
-      'source: webapp',
-      '---',
-      '',
-      `# ${body.title}`,
-      '',
-      body.content,
-      '',
-    ].join('\n')
+    const { data: row, error } = await tables.inbox_items
+      .insert({
+        filename,
+        title: body.title,
+        type: body.type,
+        status: 'pending',
+        created: now.toISOString(),
+        source: 'webapp',
+        content: body.content,
+      })
+      .select()
+      .single()
 
-    const filePath = `${INBOX_PATH}/${filename}`
-    const result = await ds.createFile(
-      filePath,
-      fileContent,
-      `[inbox] Add ${body.type}: ${body.title}`
-    )
-
-    // Invalidate cache after write
-    invalidateCache('inbox:all')
+    if (error) {
+      throw error
+    }
 
     const item: InboxItem = {
-      filename,
-      title: body.title,
-      type: body.type,
-      status: 'pending',
-      created: now.toISOString(),
-      source: 'webapp',
-      content: body.content,
-      sha: result.sha,
+      filename: row.filename,
+      title: row.title,
+      type: row.type as InboxItem['type'],
+      status: row.status as InboxItem['status'],
+      created: row.created,
+      source: row.source,
+      content: row.content,
+      sha: row.id,
     }
 
     return NextResponse.json({ data: item, cached: false })

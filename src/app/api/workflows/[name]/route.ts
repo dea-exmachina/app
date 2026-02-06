@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseWorkflow } from '@/lib/server/parsers/workflow'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
-import type { Workflow } from '@/types/workflow'
-
-const TTL_MS = 10 * 60 * 1000 // 10 minutes
+import type { Workflow, WorkflowSection } from '@/types/workflow'
 
 export async function GET(
   request: NextRequest,
@@ -13,39 +9,44 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<Workflow> | ApiError>> {
   try {
     const { name } = await params
-    const ds = getDataSource()
 
-    const { data, cached } = await withCache(
-      `workflows:detail:${name}`,
-      TTL_MS,
-      async () => {
-        const path = `workflows/public/${name}.md`
-        const file = await ds.getFile(path)
+    // Try to find by name first, fallback to slug
+    let { data: row, error } = await tables.workflows
+      .select('*')
+      .eq('slug', name)
+      .single()
 
-        if (!file) {
-          throw new Error(`Workflow '${name}' not found`)
-        }
-
-        return parseWorkflow(file.content, file.path)
-      }
-    )
-
-    return NextResponse.json({ data, cached })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-
-    if (message.includes('not found')) {
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
             code: 'NOT_FOUND',
-            message,
+            message: `Workflow '${name}' not found`,
           },
         },
         { status: 404 }
       )
     }
 
+    // Map database columns to Workflow interface
+    // Handle both old schema (slug, markdown_path) and new schema (name, file_path)
+    const record = row as Record<string, unknown>
+    const workflow: Workflow = {
+      name: (record.name as string) ?? row.slug,
+      title: row.title,
+      workflowType: (row.workflow_type as Workflow['workflowType']) ?? 'explicit',
+      trigger: row.trigger ?? '',
+      skill: (record.skill as string) ?? null,
+      status: (row.status as Workflow['status']) ?? 'active',
+      created: (record.created as string) ?? '',
+      purpose: row.purpose ?? '',
+      filePath: (record.file_path as string) ?? row.markdown_path,
+      sections: (row.sections as unknown as WorkflowSection[]) ?? [],
+      prerequisites: (row.prerequisites as unknown as string[]) ?? [],
+    }
+
+    return NextResponse.json({ data: workflow, cached: false })
+  } catch (error) {
     console.error('Error fetching workflow:', error)
     return NextResponse.json(
       {

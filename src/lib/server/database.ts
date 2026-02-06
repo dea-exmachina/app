@@ -48,6 +48,12 @@ export const tables = {
   workflows: db.from('workflows'),
   user_learnings: db.from('user_learnings'),
   messages: db.from('messages'),
+  // Skills — migrated from GitHub markdown (v1→v2)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  skills: (db as any).from('skills') as ReturnType<typeof db.from>,
+  // Inbox — migrated from GitHub files (v1→v2)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inbox_items: (db as any).from('inbox_items') as ReturnType<typeof db.from>,
   // QUEEN — External Orchestration (DEA-032)
   // Note: These tables are not yet in the generated supabase.ts types.
   // After running migration 005 and regenerating types, remove the casts.

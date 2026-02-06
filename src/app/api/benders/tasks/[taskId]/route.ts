@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseBenderTask } from '@/lib/server/parsers/bender-task'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderTask } from '@/types/bender'
-
-const TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 export async function GET(
   request: NextRequest,
@@ -13,58 +9,124 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<BenderTask> | ApiError>> {
   try {
     const { taskId } = await params
-    const ds = getDataSource()
 
-    const { data, cached } = await withCache(
-      `benders:tasks:${taskId}`,
-      TTL_MS,
-      async () => {
-        // Search in both tasks and archive directories
-        const activeFiles = await ds.listDirectory('inbox/bender-box/tasks')
-        const archiveFiles = await ds.listDirectory(
-          'inbox/bender-box/archive'
-        )
+    const { data: row, error } = await tables.bender_tasks
+      .select('*')
+      .eq('task_id', taskId)
+      .single()
 
-        const allFiles = [
-          ...activeFiles.filter((f) => f.includes(taskId)),
-          ...archiveFiles.filter((f) => f.includes(taskId)),
-        ]
-
-        if (allFiles.length === 0) {
-          throw new Error(`Task '${taskId}' not found`)
-        }
-
-        const file = await ds.getFile(allFiles[0])
-        if (!file) {
-          throw new Error(`Task '${taskId}' not found`)
-        }
-
-        return parseBenderTask(file.content, file.path)
-      }
-    )
-
-    return NextResponse.json({ data, cached })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-
-    if (message.includes('not found')) {
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
             code: 'NOT_FOUND',
-            message,
+            message: `Task '${taskId}' not found`,
           },
         },
         { status: 404 }
       )
     }
 
+    const task: BenderTask = {
+      taskId: row.task_id,
+      title: row.title,
+      created: row.created_at?.split('T')[0] ?? '',
+      bender: row.bender_role ?? 'unassigned',
+      status: (row.status as BenderTask['status']) ?? 'proposed',
+      priority: (row.priority as BenderTask['priority']) ?? 'normal',
+      branch: row.branch ?? 'dev',
+      overview: row.overview ?? '',
+      requirements: (row.requirements as string[]) ?? [],
+      acceptanceCriteria: (row.acceptance_criteria as string[]) ?? [],
+      review: row.review_decision
+        ? {
+            decision: row.review_decision as 'ACCEPT' | 'PARTIAL' | 'REJECT',
+            feedback: row.review_feedback ?? '',
+          }
+        : null,
+      filePath: row.markdown_path ?? '',
+    }
+
+    return NextResponse.json({ data: task, cached: false })
+  } catch (error) {
     console.error('Error fetching task:', error)
     return NextResponse.json(
       {
         error: {
           code: 'FETCH_ERROR',
           message: 'Failed to fetch task',
+        },
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ taskId: string }> }
+): Promise<NextResponse<ApiResponse<BenderTask> | ApiError>> {
+  try {
+    const { taskId } = await params
+    const body = await request.json()
+
+    // Build update object from allowed fields
+    const updates: Record<string, unknown> = {}
+    if (body.status) updates.status = body.status
+    if (body.bender) updates.bender_role = body.bender
+    if (body.priority) updates.priority = body.priority
+    if (body.branch) updates.branch = body.branch
+    if (body.review) {
+      updates.review_decision = body.review.decision
+      updates.review_feedback = body.review.feedback
+    }
+
+    const { data: row, error } = await tables.bender_tasks
+      .update(updates)
+      .eq('task_id', taskId)
+      .select()
+      .single()
+
+    if (error || !row) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: `Task '${taskId}' not found`,
+          },
+        },
+        { status: 404 }
+      )
+    }
+
+    const task: BenderTask = {
+      taskId: row.task_id,
+      title: row.title,
+      created: row.created_at?.split('T')[0] ?? '',
+      bender: row.bender_role ?? 'unassigned',
+      status: (row.status as BenderTask['status']) ?? 'proposed',
+      priority: (row.priority as BenderTask['priority']) ?? 'normal',
+      branch: row.branch ?? 'dev',
+      overview: row.overview ?? '',
+      requirements: (row.requirements as string[]) ?? [],
+      acceptanceCriteria: (row.acceptance_criteria as string[]) ?? [],
+      review: row.review_decision
+        ? {
+            decision: row.review_decision as 'ACCEPT' | 'PARTIAL' | 'REJECT',
+            feedback: row.review_feedback ?? '',
+          }
+        : null,
+      filePath: row.markdown_path ?? '',
+    }
+
+    return NextResponse.json({ data: task, cached: false })
+  } catch (error) {
+    console.error('Error updating task:', error)
+    return NextResponse.json(
+      {
+        error: {
+          code: 'UPDATE_ERROR',
+          message: 'Failed to update task',
         },
       },
       { status: 500 }

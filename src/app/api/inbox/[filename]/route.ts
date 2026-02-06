@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { invalidateCache } from '@/lib/server/cache'
-import type { ApiError } from '@/types/api'
+import { tables } from '@/lib/server/database'
+import type { ApiResponse, ApiError } from '@/types/api'
+import type { InboxItem } from '@/types/inbox'
 
-const INBOX_PATH = 'inbox/dea-box'
-
-export async function DELETE(
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
-): Promise<NextResponse<{ success: boolean } | ApiError>> {
+): Promise<NextResponse<ApiResponse<InboxItem> | ApiError>> {
   try {
     const { filename } = await params
-    const ds = getDataSource()
 
-    if (!ds.deleteFile) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'NOT_SUPPORTED',
-            message: 'Write operations not supported by current data source',
-          },
-        },
-        { status: 501 }
-      )
-    }
+    const { data: row, error } = await tables.inbox_items
+      .select('*')
+      .eq('filename', filename)
+      .single()
 
-    const filePath = `${INBOX_PATH}/${filename}`
-
-    // Get file to obtain SHA
-    const file = await ds.getFile(filePath)
-    if (!file || !file.sha) {
+    if (error || !row) {
       return NextResponse.json(
         {
           error: {
@@ -41,10 +27,111 @@ export async function DELETE(
       )
     }
 
-    await ds.deleteFile(filePath, file.sha, `[inbox] Remove: ${filename}`)
+    const item: InboxItem = {
+      filename: row.filename,
+      title: row.title,
+      type: row.type as InboxItem['type'],
+      status: row.status as InboxItem['status'],
+      created: row.created,
+      source: row.source,
+      content: row.content,
+      sha: row.id,
+    }
 
-    // Invalidate cache
-    invalidateCache('inbox:all')
+    return NextResponse.json({ data: item, cached: false })
+  } catch (error) {
+    console.error('Error fetching inbox item:', error)
+    return NextResponse.json(
+      {
+        error: {
+          code: 'FETCH_ERROR',
+          message: 'Failed to fetch inbox item',
+        },
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ filename: string }> }
+): Promise<NextResponse<ApiResponse<InboxItem> | ApiError>> {
+  try {
+    const { filename } = await params
+    const body = await request.json()
+
+    // Only allow updating status
+    if (!body.status) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'status is required',
+          },
+        },
+        { status: 400 }
+      )
+    }
+
+    const { data: row, error } = await tables.inbox_items
+      .update({ status: body.status })
+      .eq('filename', filename)
+      .select()
+      .single()
+
+    if (error || !row) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: `Inbox item '${filename}' not found`,
+          },
+        },
+        { status: 404 }
+      )
+    }
+
+    const item: InboxItem = {
+      filename: row.filename,
+      title: row.title,
+      type: row.type as InboxItem['type'],
+      status: row.status as InboxItem['status'],
+      created: row.created,
+      source: row.source,
+      content: row.content,
+      sha: row.id,
+    }
+
+    return NextResponse.json({ data: item, cached: false })
+  } catch (error) {
+    console.error('Error updating inbox item:', error)
+    return NextResponse.json(
+      {
+        error: {
+          code: 'UPDATE_ERROR',
+          message: 'Failed to update inbox item',
+        },
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ filename: string }> }
+): Promise<NextResponse<{ success: boolean } | ApiError>> {
+  try {
+    const { filename } = await params
+
+    const { error } = await tables.inbox_items
+      .delete()
+      .eq('filename', filename)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

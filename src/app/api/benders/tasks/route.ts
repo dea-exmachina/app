@@ -1,47 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache, invalidateCache } from '@/lib/server/cache'
-import { parseBenderTask } from '@/lib/server/parsers/bender-task'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderTask, BenderTaskCreateRequest } from '@/types/bender'
-
-const TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<BenderTask[]> | ApiError>
 > {
   try {
-    const ds = getDataSource()
+    const { data, error } = await tables.bender_tasks
+      .select('*')
+      .order('created_at', { ascending: false })
 
-    const { data, cached } = await withCache(
-      'benders:tasks:all',
-      TTL_MS,
-      async () => {
-        // Get both active tasks and archived tasks
-        const activeFiles = await ds.listDirectory('inbox/bender-box/tasks')
-        const archiveFiles = await ds.listDirectory(
-          'inbox/bender-box/archive'
-        )
+    if (error) {
+      throw error
+    }
 
-        const allFiles = [
-          ...activeFiles.filter((f) => f.endsWith('.md')),
-          ...archiveFiles.filter((f) => f.endsWith('.md')),
-        ]
+    // Map database columns to BenderTask interface
+    const tasks: BenderTask[] = (data ?? []).map((row) => ({
+      taskId: row.task_id,
+      title: row.title,
+      created: row.created_at?.split('T')[0] ?? '',
+      bender: row.bender_role ?? 'unassigned',
+      status: (row.status as BenderTask['status']) ?? 'proposed',
+      priority: (row.priority as BenderTask['priority']) ?? 'normal',
+      branch: row.branch ?? 'dev',
+      overview: row.overview ?? '',
+      requirements: (row.requirements as string[]) ?? [],
+      acceptanceCriteria: (row.acceptance_criteria as string[]) ?? [],
+      review: row.review_decision
+        ? {
+            decision: row.review_decision as 'ACCEPT' | 'PARTIAL' | 'REJECT',
+            feedback: row.review_feedback ?? '',
+          }
+        : null,
+      filePath: row.markdown_path ?? '',
+    }))
 
-        const tasks = await Promise.all(
-          allFiles.map(async (path) => {
-            const file = await ds.getFile(path)
-            if (!file) return null
-
-            return parseBenderTask(file.content, file.path)
-          })
-        )
-
-        return tasks.filter((t): t is BenderTask => t !== null)
-      }
-    )
-
-    return NextResponse.json({ data, cached })
+    return NextResponse.json({ data: tasks, cached: false })
   } catch (error) {
     console.error('Error fetching tasks:', error)
     return NextResponse.json(
@@ -98,47 +93,69 @@ export async function POST(
       )
     }
 
-    const ds = getDataSource()
+    // Get next task number
+    const { data: maxTask } = await tables.bender_tasks
+      .select('task_id')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
 
-    // Find next task number by scanning existing tasks
-    const nextNum = await getNextTaskNumber(ds)
+    let nextNum = 1
+    if (maxTask?.task_id) {
+      const match = maxTask.task_id.match(/TASK-(\d+)/)
+      if (match) {
+        nextNum = parseInt(match[1], 10) + 1
+      }
+    }
+
     const today = new Date().toISOString().split('T')[0]
+    const taskId = `TASK-${String(nextNum).padStart(3, '0')}`
     const slug = body.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40)
-    const filename = `TASK-${String(nextNum).padStart(3, '0')}-${today}-${slug}.md`
-    const taskId = `TASK-${String(nextNum).padStart(3, '0')}`
+    const filename = `${taskId}-${today}-${slug}.md`
     const filePath = `inbox/bender-box/tasks/${filename}`
 
-    // Build markdown
-    const markdown = buildTaskMarkdown({
-      taskId,
-      today,
-      title: body.title.trim(),
-      overview: body.overview.trim(),
-      context: body.context?.trim(),
-      requirements: body.requirements,
-      acceptanceCriteria: body.acceptanceCriteria,
-      references: body.references,
-      constraints: body.constraints,
-      priority: body.priority || 'normal',
-      branch: body.branch || 'dev',
-    })
+    // Insert into Supabase
+    // Note: project_id is required but we use a system default for standalone tasks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: row, error } = await (tables.bender_tasks as any)
+      .insert({
+        task_id: taskId,
+        title: body.title.trim(),
+        overview: body.overview.trim(),
+        status: 'proposed',
+        priority: body.priority || 'normal',
+        branch: body.branch || 'dev',
+        bender_role: 'unassigned',
+        requirements: body.requirements,
+        acceptance_criteria: body.acceptanceCriteria,
+        markdown_path: filePath,
+        project_id: '00000000-0000-0000-0000-000000000000', // System default project
+      })
+      .select()
+      .single()
 
-    // Create the task file
-    await ds.createFile!(filePath, markdown, `[${taskId}] Create task: ${body.title.trim()}`)
+    if (error) {
+      throw error
+    }
 
-    // Update kanban board
-    await updateKanbanBoard(ds, taskId, body.title.trim(), body.overview.trim())
-
-    // Invalidate caches
-    invalidateCache('benders:tasks:all')
-    invalidateCache('kanban:board:bender')
-
-    // Parse the created task to return it
-    const task = parseBenderTask(markdown, filePath)
+    const task: BenderTask = {
+      taskId: row.task_id,
+      title: row.title,
+      created: row.created_at?.split('T')[0] ?? today,
+      bender: row.bender_role ?? 'unassigned',
+      status: (row.status as BenderTask['status']) ?? 'proposed',
+      priority: (row.priority as BenderTask['priority']) ?? 'normal',
+      branch: row.branch ?? 'dev',
+      overview: row.overview ?? '',
+      requirements: (row.requirements as string[]) ?? [],
+      acceptanceCriteria: (row.acceptance_criteria as string[]) ?? [],
+      review: null,
+      filePath: row.markdown_path ?? '',
+    }
 
     return NextResponse.json({ data: task, cached: false }, { status: 201 })
   } catch (error) {
@@ -153,155 +170,4 @@ export async function POST(
       { status: 500 }
     )
   }
-}
-
-async function getNextTaskNumber(
-  ds: ReturnType<typeof getDataSource>
-): Promise<number> {
-  const activeFiles = await ds.listDirectory('inbox/bender-box/tasks')
-  const archiveFiles = await ds.listDirectory('inbox/bender-box/archive')
-  const allFiles = [...activeFiles, ...archiveFiles]
-
-  let maxNum = 0
-  for (const f of allFiles) {
-    const match = f.match(/TASK-(\d+)/)
-    if (match) {
-      const num = parseInt(match[1], 10)
-      if (num > maxNum) maxNum = num
-    }
-  }
-
-  return maxNum + 1
-}
-
-function buildTaskMarkdown(opts: {
-  taskId: string
-  today: string
-  title: string
-  overview: string
-  context?: string
-  requirements: string[]
-  acceptanceCriteria: string[]
-  references?: string[]
-  constraints?: string[]
-  priority: string
-  branch: string
-}): string {
-  const lines: string[] = [
-    '---',
-    `task_id: ${opts.taskId}-${opts.today}`,
-    `title: "${opts.title}"`,
-    `created: ${opts.today}`,
-    'type: task-bender',
-    'bender: unassigned',
-    'status: proposed',
-    `priority: ${opts.priority}`,
-    `branch: ${opts.branch}`,
-    '---',
-    '',
-    `# ${opts.taskId}: ${opts.title}`,
-    '',
-    `**Task ID**: \`${opts.taskId}-${opts.today}\``,
-    '**Assigned to**: unassigned',
-    '**Status**: Proposed',
-    `**Priority**: ${opts.priority}`,
-    `**Created**: ${opts.today}`,
-    `**Branch**: ${opts.branch}`,
-    '',
-    '---',
-    '',
-    '## Overview',
-    '',
-    opts.overview,
-    '',
-  ]
-
-  if (opts.context) {
-    lines.push('## Context', '', opts.context, '')
-  }
-
-  lines.push('## Requirements', '')
-  for (const req of opts.requirements) {
-    lines.push(`- ${req}`)
-  }
-  lines.push('')
-
-  lines.push('## Acceptance Criteria', '')
-  for (const ac of opts.acceptanceCriteria) {
-    lines.push(`- [ ] ${ac}`)
-  }
-  lines.push('')
-
-  if (opts.references?.length) {
-    lines.push('## References', '')
-    for (const ref of opts.references) {
-      lines.push(`- ${ref}`)
-    }
-    lines.push('')
-  }
-
-  if (opts.constraints?.length) {
-    lines.push('## Constraints', '')
-    for (const c of opts.constraints) {
-      lines.push(`- ${c}`)
-    }
-    lines.push('')
-  }
-
-  lines.push(
-    '## Deliverables',
-    '',
-    '_To be defined by bender during execution._',
-    '',
-    '---',
-    '',
-    '## Execution Notes',
-    '',
-    '### Questions',
-    '',
-    '_Pre-flight: Any unclear points before starting?_',
-    '',
-    '### Approach',
-    '',
-    '_To be filled by bender during execution._',
-    '',
-    '### Blockers',
-    '',
-    '_None identified._',
-    '',
-    '---',
-    '',
-    `_Task created: ${opts.today}_`,
-    ''
-  )
-
-  return lines.join('\n')
-}
-
-async function updateKanbanBoard(
-  ds: ReturnType<typeof getDataSource>,
-  taskId: string,
-  title: string,
-  overview: string
-): Promise<void> {
-  const kanbanPath = 'kanban/bender.md'
-  const file = await ds.getFile(kanbanPath)
-  if (!file || !file.sha) return
-
-  const card = `- [ ] **${taskId}: ${title}** #task #bender<br>${overview}`
-
-  // Insert after ## Proposed heading
-  const lines = file.content.split('\n')
-  const proposedIdx = lines.findIndex((l) => l.trim() === '## Proposed')
-  if (proposedIdx === -1) return
-
-  lines.splice(proposedIdx + 1, 0, '', card)
-  const updated = lines.join('\n')
-
-  await ds.createFile!(
-    kanbanPath,
-    updated,
-    `[${taskId}] Add to kanban: ${title}`,
-    file.sha
-  )
 }
