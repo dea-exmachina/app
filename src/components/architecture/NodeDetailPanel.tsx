@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import type { SystemNodeData, InfraNodeData } from '@/lib/architecture/nodes'
-import { STATUS_COLORS, PHASES, KERRIGAN_EDGES } from '@/lib/architecture/nodes'
+import { STATUS_COLORS, PHASES, ARCHITECTURE_EDGES } from '@/lib/architecture/nodes'
 
 interface NodeDetailPanelProps {
   node: Node<SystemNodeData | InfraNodeData> | null
@@ -27,8 +27,8 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
   const systemData = isSystem ? (data as SystemNodeData) : null
 
   // Find connected nodes
-  const incomingEdges = KERRIGAN_EDGES.filter((e) => e.target === node.id)
-  const outgoingEdges = KERRIGAN_EDGES.filter((e) => e.source === node.id)
+  const incomingEdges = ARCHITECTURE_EDGES.filter((e) => e.target === node.id)
+  const outgoingEdges = ARCHITECTURE_EDGES.filter((e) => e.source === node.id)
 
   // Get phase names
   const phaseNames = data.phase

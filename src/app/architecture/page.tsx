@@ -17,8 +17,8 @@ import { InfraNode } from '@/components/architecture/InfraNode'
 import { PhaseSelector } from '@/components/architecture/PhaseSelector'
 import { NodeDetailPanel } from '@/components/architecture/NodeDetailPanel'
 import {
-  KERRIGAN_NODES,
-  KERRIGAN_EDGES,
+  ARCHITECTURE_NODES,
+  ARCHITECTURE_EDGES,
   getNodesForPhase,
   type SystemNodeData,
   type InfraNodeData,
@@ -42,7 +42,7 @@ export default function ArchitecturePage() {
 
   // Apply dimming to nodes not in the selected phase
   const styledNodes = useMemo(() => {
-    return KERRIGAN_NODES.map((node) => ({
+    return ARCHITECTURE_NODES.map((node) => ({
       ...node,
       style: {
         ...node.style,
@@ -54,7 +54,7 @@ export default function ArchitecturePage() {
 
   // Apply dimming to edges not connected to visible nodes
   const styledEdges = useMemo(() => {
-    return KERRIGAN_EDGES.map((edge) => {
+    return ARCHITECTURE_EDGES.map((edge) => {
       const isVisible =
         filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
       return {
@@ -108,7 +108,7 @@ export default function ArchitecturePage() {
   return (
     <div className="space-y-6">
       <Header
-        title="KERRIGAN Architecture"
+        title="THE SWARM Architecture"
         description="Interactive system diagram — click nodes for details"
       />
 

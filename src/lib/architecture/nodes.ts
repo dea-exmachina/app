@@ -66,16 +66,16 @@ const META_NODES: Node<EnhancedNodeData>[] = [
     type: 'system',
     position: { x: 100, y: 50 },
     data: {
-      label: 'HIVE',
+      label: 'HIVE \u2014 Architect',
       status: 'live',
-      description: 'Team Construction Factory',
+      description: 'Team Construction',
       tier: 'meta',
       category: 'kerrigan',
       brief:
         'Team construction factory. Assembles bender teams from goal descriptions using the capability registry. Produces team manifests with roles, identities, task breakdown, and context packages.',
       phase: [0, 1],
       cards: ['DEA-031'],
-      cardTags: ['#hive', '#kerrigan'],
+      cardTags: ['#hive', '#swarm'],
       tables: [
         'bender_identities',
         'bender_teams',
@@ -85,11 +85,11 @@ const META_NODES: Node<EnhancedNodeData>[] = [
     },
   },
   {
-    id: 'queen',
+    id: 'creep',
     type: 'system',
     position: { x: 400, y: 50 },
     data: {
-      label: 'QUEEN',
+      label: 'CREEP \u2014 Zagara',
       status: 'building',
       description: 'External Orchestration',
       tier: 'meta',
@@ -98,7 +98,7 @@ const META_NODES: Node<EnhancedNodeData>[] = [
         'External orchestration engine. Receives webhooks from external platforms (Jira, Linear), transforms them to internal entities, syncs bidirectionally with circuit breakers, and emits events for other systems to consume.',
       phase: [0, 2],
       cards: ['DEA-032', 'DEA-040'],
-      cardTags: ['#queen', '#kerrigan'],
+      cardTags: ['#creep', '#swarm'],
       tables: ['queen_events', 'agent_health', 'webhook_configs', 'sync_state'],
       workflows: [
         {
@@ -135,20 +135,20 @@ const META_NODES: Node<EnhancedNodeData>[] = [
     },
   },
   {
-    id: 'creep',
+    id: 'evolution',
     type: 'system',
     position: { x: 100, y: 200 },
     data: {
-      label: 'CREEP',
+      label: 'EVOLUTION \u2014 Abathur',
       status: 'live',
-      description: 'Context & Knowledge',
+      description: 'Quality & Knowledge',
       tier: 'meta',
       category: 'kerrigan',
       brief:
-        'Context and knowledge management system. Maintains the capability registry, builds context packages for bender tasks, extracts learnings from completed work, and enforces standards/compliance.',
+        'Quality and knowledge management system. Maintains the capability registry, builds context packages for bender tasks, extracts learnings from completed work, and enforces standards/compliance.',
       phase: [0, 1, 3],
       cards: ['DEA-034'],
-      cardTags: ['#creep', '#kerrigan'],
+      cardTags: ['#evolution', '#swarm'],
       tables: ['skills', 'workflows'],
     },
   },
@@ -157,9 +157,9 @@ const META_NODES: Node<EnhancedNodeData>[] = [
     type: 'system',
     position: { x: 400, y: 200 },
     data: {
-      label: 'THE SWARM',
+      label: 'THE SWARM \u2014 Kerrigan',
       status: 'pending',
-      description: 'Emergent Coordination',
+      description: 'Supreme Authority & Coordination',
       tier: 'meta',
       category: 'kerrigan',
       brief:
@@ -479,7 +479,7 @@ export const ARCHITECTURE_NODES: Node<EnhancedNodeData>[] = [
   ...INFRASTRUCTURE_NODES,
 ]
 
-// ── Legacy KERRIGAN_NODES (backwards compatibility) ────────
+// ── Legacy KERRIGAN_NODES (backwards compatibility, deprecated) ──
 
 export const KERRIGAN_NODES: Node<SystemNodeData | InfraNodeData>[] =
   ARCHITECTURE_NODES as Node<SystemNodeData | InfraNodeData>[]
@@ -493,25 +493,25 @@ export type EnhancedEdge = Edge & {
 }
 
 export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
-  // META: Core KERRIGAN connections
+  // META: Core SWARM connections
   {
-    id: 'hive-queen',
+    id: 'hive-creep',
     source: 'hive',
-    target: 'queen',
+    target: 'creep',
     animated: true,
     label: 'teams.build',
     data: { dataType: 'event' },
   },
   {
-    id: 'queen-creep',
-    source: 'queen',
-    target: 'creep',
+    id: 'creep-evolution',
+    source: 'creep',
+    target: 'evolution',
     label: 'feeds context',
     data: { dataType: 'sync' },
   },
   {
-    id: 'creep-swarm',
-    source: 'creep',
+    id: 'evolution-swarm',
+    source: 'evolution',
     target: 'swarm',
     label: 'enables',
     data: { dataType: 'sync' },
@@ -534,8 +534,8 @@ export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
     data: { dataType: 'api' },
   },
   {
-    id: 'queen-kanban',
-    source: 'queen',
+    id: 'creep-kanban',
+    source: 'creep',
     target: 'kanban',
     label: 'syncs cards',
     data: { dataType: 'sync' },
@@ -580,15 +580,15 @@ export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
     data: { dataType: 'api' },
   },
   {
-    id: 'queen-db',
-    source: 'queen',
+    id: 'creep-db',
+    source: 'creep',
     target: 'supabase',
     style: { strokeDasharray: '5,5' },
     data: { dataType: 'api' },
   },
   {
-    id: 'creep-db',
-    source: 'creep',
+    id: 'evolution-db',
+    source: 'evolution',
     target: 'supabase',
     style: { strokeDasharray: '5,5' },
     data: { dataType: 'api' },
@@ -603,9 +603,9 @@ export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
 
   // External webhooks
   {
-    id: 'external-queen',
+    id: 'external-creep',
     source: 'github',
-    target: 'queen',
+    target: 'creep',
     label: 'webhooks',
     data: { dataType: 'webhook' },
   },
@@ -654,7 +654,7 @@ export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
   },
 ]
 
-// ── Legacy KERRIGAN_EDGES (backwards compatibility) ────────
+// ── Legacy KERRIGAN_EDGES (backwards compatibility, deprecated) ──
 
 export const KERRIGAN_EDGES: Edge[] = ARCHITECTURE_EDGES
 
@@ -663,9 +663,9 @@ export const KERRIGAN_EDGES: Edge[] = ARCHITECTURE_EDGES
 export const PHASES = [
   { id: null, label: 'All', description: 'Show all nodes' },
   { id: 0, label: 'Architecture', description: 'System design phase' },
-  { id: 1, label: 'Core Infra', description: 'HIVE, CREEP, database' },
-  { id: 2, label: 'Integration', description: 'QUEEN, API routes' },
-  { id: 3, label: 'Standards', description: 'CREEP standards library' },
+  { id: 1, label: 'Core Infra', description: 'HIVE, EVOLUTION, database' },
+  { id: 2, label: 'Integration', description: 'CREEP, API routes' },
+  { id: 3, label: 'Standards', description: 'EVOLUTION standards library' },
   { id: 4, label: 'Swarm', description: 'Emergent coordination' },
 ] as const
 
