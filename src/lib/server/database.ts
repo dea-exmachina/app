@@ -84,6 +84,11 @@ export const tables = {
   nexus_context_packages: (db as any).from('nexus_context_packages') as ReturnType<typeof db.from>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   nexus_agent_sessions: (db as any).from('nexus_agent_sessions') as ReturnType<typeof db.from>,
+  // Architecture Visualization (DEA-043)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  architecture_annotations: (db as any).from('architecture_annotations') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  architecture_secrets: (db as any).from('architecture_secrets') as ReturnType<typeof db.from>,
 }
 
 /**

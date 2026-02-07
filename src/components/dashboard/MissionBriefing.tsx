@@ -4,10 +4,23 @@ import type { HandoffSection } from '@/types/kanban'
 import { formatRelativeDate } from '@/lib/client/formatters'
 
 interface MissionBriefingProps {
-  handoff: HandoffSection
+  handoff: HandoffSection | null
 }
 
 export function MissionBriefing({ handoff }: MissionBriefingProps) {
+  if (!handoff) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-mono text-sm">Mission Briefing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No handoff data available.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>

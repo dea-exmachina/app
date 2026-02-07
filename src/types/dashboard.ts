@@ -3,7 +3,7 @@
 import type { HandoffSection, BoardSummary } from './kanban'
 
 export interface DashboardSummary {
-  handoff: HandoffSection
+  handoff: HandoffSection | null
   boardStats: BoardSummary[]
   activeBenders: Array<{
     platform: string
@@ -12,9 +12,4 @@ export interface DashboardSummary {
   }>
   skillCount: number
   workflowCount: number
-  recentCommits: Array<{
-    sha: string
-    message: string
-    date: string
-  }>
 }

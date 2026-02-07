@@ -1,7 +1,7 @@
 // Typed fetch wrappers for all API endpoints
 // All return Promise<T> where T is the data type (unwrapped from ApiResponse)
 
-import type { ApiResponse, ApiError, RateLimit } from '@/types/api'
+import type { ApiResponse, ApiError } from '@/types/api'
 import type { DashboardSummary } from '@/types/dashboard'
 import type { KanbanBoard, BoardSummary, HandoffSection } from '@/types/kanban'
 import type { Skill, SkillDetail } from '@/types/skill'
@@ -133,13 +133,6 @@ export async function createTask(
     throw new Error(error.error.message)
   }
   return res.json()
-}
-
-export async function getRateLimit(): Promise<{
-  data: RateLimit
-  cached: boolean
-}> {
-  return fetchApi<RateLimit>('/api/github/rate-limit')
 }
 
 // Projects

@@ -1,147 +1,88 @@
 import { NextResponse } from 'next/server'
-import { getDataSource } from '@/lib/server/github-client'
-import { withCache } from '@/lib/server/cache'
-import { parseKanbanBoard } from '@/lib/server/parsers/kanban'
-import { parseSkillList } from '@/lib/server/parsers/skill'
-import { parseWorkflow } from '@/lib/server/parsers/workflow'
-import { parsePlatformRegistry } from '@/lib/server/parsers/bender-platform'
-import { parseBenderTask } from '@/lib/server/parsers/bender-task'
-import { BOARD_MAP } from '@/config/boards'
+import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { DashboardSummary } from '@/types/dashboard'
-import type { BoardSummary } from '@/types/kanban'
-
-const TTL_MS = 2 * 60 * 1000 // 2 minutes
+import type { BoardSummary, HandoffSection, KanbanLane } from '@/types/kanban'
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<DashboardSummary> | ApiError>
 > {
   try {
-    const ds = getDataSource()
+    // Board stats from Supabase
+    const { data: boards, error: boardsError } = await tables.kanban_boards
+      .select('*')
+      .order('name')
 
-    const { data, cached } = await withCache(
-      'dashboard:summary',
-      TTL_MS,
-      async () => {
-        // Parse management board for handoff
-        const mgmtFile = await ds.getFile('kanban/management.md')
-        if (!mgmtFile) {
-          throw new Error('Management board not found')
-        }
-        const mgmtBoard = parseKanbanBoard(
-          mgmtFile.content,
-          'management',
-          mgmtFile.path
-        )
-        if (!mgmtBoard.handoff) {
-          throw new Error('Handoff section not found')
-        }
+    if (boardsError) throw boardsError
 
-        // Get board summaries
-        const boardStats: BoardSummary[] = []
-        for (const [id, config] of Object.entries(BOARD_MAP)) {
-          const file = await ds.getFile(config.path)
-          if (!file) continue
+    const boardStats: BoardSummary[] = (boards ?? []).map((row) => {
+      const lanes = (row.lanes as unknown as KanbanLane[]) ?? []
 
-          const board = parseKanbanBoard(file.content, id, file.path)
-          const laneStats = board.lanes.map((lane) => ({
-            name: lane.name,
-            total: lane.cards.length,
-            completed: lane.cards.filter((c) => c.completed).length,
-          }))
+      const laneStats = lanes.map((lane) => ({
+        name: lane.name,
+        total: lane.cards.length,
+        completed: lane.cards.filter((c) => c.completed).length,
+      }))
 
-          const totalOpen = board.lanes.reduce(
-            (sum, lane) =>
-              sum + lane.cards.filter((c) => !c.completed).length,
-            0
-          )
-          const totalCompleted = board.lanes.reduce(
-            (sum, lane) => sum + lane.cards.filter((c) => c.completed).length,
-            0
-          )
+      const totalOpen = lanes.reduce(
+        (sum, lane) => sum + lane.cards.filter((c) => !c.completed).length,
+        0
+      )
+      const totalCompleted = lanes.reduce(
+        (sum, lane) => sum + lane.cards.filter((c) => c.completed).length,
+        0
+      )
 
-          boardStats.push({
-            id,
-            name: config.name,
-            filePath: config.path,
-            laneStats,
-            totalOpen,
-            totalCompleted,
-          })
-        }
-
-        // Count skills
-        const skillsFile = await ds.getFile('tools/dea-skilllist.md')
-        const skillCount = skillsFile
-          ? parseSkillList(skillsFile.content).length
-          : 0
-
-        // Count workflows
-        const workflowFiles = await ds.listDirectory('workflows/public')
-        const workflowCount = workflowFiles.filter((f) =>
-          f.endsWith('.md')
-        ).length
-
-        // Get active benders from platforms
-        const platformFile = await ds.getFile(
-          'benders/context/shared/platform-registry.md'
-        )
-        const platforms = platformFile
-          ? parsePlatformRegistry(platformFile.content)
-          : []
-
-        // Get active tasks to count per platform
-        const taskFiles = await ds.listDirectory('inbox/bender-box/tasks')
-        const tasks = await Promise.all(
-          taskFiles
-            .filter((f) => f.endsWith('.md'))
-            .map(async (path) => {
-              const file = await ds.getFile(path)
-              if (!file) return null
-              return parseBenderTask(file.content, file.path)
-            })
-        )
-
-        const validTasks = tasks.filter((t) => t !== null)
-
-        const activeBenders = platforms
-          .filter((p) => p.status === 'active')
-          .map((p) => ({
-            platform: p.name,
-            status: p.status,
-            activeTasks: validTasks.filter(
-              (t) => t.status === 'executing' || t.status === 'delivered'
-            ).length,
-          }))
-
-        // Get recent commits via shared Octokit instance
-        const { octokit, owner, repo } = ds.getOctokit()
-        const commitsResponse = await octokit.rest.repos.listCommits({
-          owner,
-          repo,
-          per_page: 5,
-        })
-
-        const recentCommits = commitsResponse.data.map((commit) => ({
-          sha: commit.sha.substring(0, 7),
-          message: commit.commit.message.split('\n')[0],
-          date: commit.commit.committer?.date || '',
-        }))
-
-        const summary: DashboardSummary = {
-          handoff: mgmtBoard.handoff,
-          boardStats,
-          activeBenders,
-          skillCount,
-          workflowCount,
-          recentCommits,
-        }
-
-        return summary
+      return {
+        id: row.slug,
+        name: row.name,
+        filePath: row.markdown_path ?? '',
+        laneStats,
+        totalOpen,
+        totalCompleted,
       }
-    )
+    })
 
-    return NextResponse.json({ data, cached })
+    // Handoff from management board
+    const mgmtBoard = (boards ?? []).find((b) => b.slug === 'management')
+    const handoff = ((mgmtBoard as Record<string, unknown> | undefined)?.handoff as HandoffSection | undefined) ?? null
+
+    // Skill count
+    const { count: skillCount } = await tables.skills
+      .select('id', { count: 'exact', head: true })
+
+    // Workflow count
+    const { count: workflowCount } = await tables.workflows
+      .select('id', { count: 'exact', head: true })
+
+    // Active benders
+    const { data: platforms } = await tables.bender_platforms
+      .select('*')
+
+    const { data: tasks } = await tables.bender_tasks
+      .select('*')
+
+    const activeBenders = (platforms ?? [])
+      .filter((p) => (p as Record<string, unknown>).status === 'active')
+      .map((p) => ({
+        platform: (p as Record<string, unknown>).name as string,
+        status: (p as Record<string, unknown>).status as string,
+        activeTasks: (tasks ?? []).filter(
+          (t) =>
+            (t as Record<string, unknown>).status === 'executing' ||
+            (t as Record<string, unknown>).status === 'delivered'
+        ).length,
+      }))
+
+    const summary: DashboardSummary = {
+      handoff,
+      boardStats,
+      activeBenders,
+      skillCount: skillCount ?? 0,
+      workflowCount: workflowCount ?? 0,
+    }
+
+    return NextResponse.json({ data: summary, cached: false })
   } catch (error) {
     console.error('Error fetching dashboard summary:', error)
     return NextResponse.json(
