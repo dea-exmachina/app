@@ -89,6 +89,9 @@ export const tables = {
   architecture_annotations: (db as any).from('architecture_annotations') as ReturnType<typeof db.from>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   architecture_secrets: (db as any).from('architecture_secrets') as ReturnType<typeof db.from>,
+  // Canvas / Whiteboard (Excalidraw)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  canvases: (db as any).from('canvases') as ReturnType<typeof db.from>,
 }
 
 /**

@@ -14,6 +14,7 @@ import type {
 } from '@/types/bender'
 import type { ProjectLegacy as Project, ProjectDetail } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
+import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -175,6 +176,60 @@ export async function postInbox(
 
 export async function deleteInboxItem(filename: string): Promise<void> {
   const res = await fetch(`/api/inbox/${filename}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
+// Canvas / Whiteboard
+export async function getCanvases(): Promise<{
+  data: CanvasSummary[]
+  cached: boolean
+}> {
+  return fetchApi<CanvasSummary[]>('/api/canvas')
+}
+
+export async function getCanvas(id: string): Promise<{
+  data: Canvas
+  cached: boolean
+}> {
+  return fetchApi<Canvas>(`/api/canvas/${id}`)
+}
+
+export async function createCanvas(
+  input: CreateCanvasInput = {}
+): Promise<{ data: Canvas; cached: boolean }> {
+  const res = await fetch('/api/canvas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateCanvas(
+  id: string,
+  input: UpdateCanvasInput
+): Promise<{ data: Canvas; cached: boolean }> {
+  const res = await fetch(`/api/canvas/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteCanvas(id: string): Promise<void> {
+  const res = await fetch(`/api/canvas/${id}`, { method: 'DELETE' })
   if (!res.ok) {
     const error: ApiError = await res.json()
     throw new Error(error.error.message)

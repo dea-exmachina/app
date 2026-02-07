@@ -142,3 +142,19 @@
   border-color: oklch(0.551 0.027 264.364);
   box-shadow: 0 0 0 1px oklch(0.551 0.027 264.364 / 30%);
 }
+
+/* Excalidraw theme integration */
+.excalidraw.theme--dark {
+  --color-primary: oklch(0.488 0.243 264.376);
+  --color-primary-light: oklch(0.551 0.027 264.364);
+}
+
+.excalidraw .Island {
+  background: oklch(0.208 0.042 265.755) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+}
+
+.excalidraw .dropdown-menu {
+  background: oklch(0.208 0.042 265.755) !important;
+  border-color: oklch(1 0 0 / 10%) !important;
+}
