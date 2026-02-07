@@ -9,6 +9,8 @@ export interface KanbanCard {
   description: string | null
   metadata: Record<string, string>
   rawMarkdown: string
+  startedAt?: string | null
+  completedAt?: string | null
 }
 
 export interface KanbanLane {

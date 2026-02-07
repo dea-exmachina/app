@@ -7,7 +7,31 @@ interface CardItemProps {
   card: KanbanCard
 }
 
+/** Format date string as short date (e.g., "Feb 6") */
+function formatShortDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
 export function CardItem({ card }: CardItemProps) {
+  // Extract timestamp fields from metadata
+  const startedAt = card.startedAt || card.metadata?.Started || card.metadata?.started
+  const completedAt = card.completedAt || card.metadata?.Completed || card.metadata?.completed
+
+  // Filter out timestamp keys from metadata for separate display
+  const filteredMetadata = Object.fromEntries(
+    Object.entries(card.metadata || {}).filter(
+      ([key]) => !['Started', 'started', 'Completed', 'completed'].includes(key)
+    )
+  )
+
+  const hasTimestamps = startedAt || completedAt
+
   return (
     <div
       className={`rounded-md border border-border bg-card p-3 shadow-sm transition-colors hover:border-primary/30 ${
@@ -49,8 +73,24 @@ export function CardItem({ card }: CardItemProps) {
         </p>
       )}
 
-      {/* Metadata */}
-      <CardMetadata metadata={card.metadata} />
+      {/* Other Metadata */}
+      <CardMetadata metadata={filteredMetadata} />
+
+      {/* Timestamps Footer */}
+      {hasTimestamps && (
+        <div className="mt-2 flex gap-3 border-t border-border pt-2 text-[10px] text-muted-foreground">
+          {startedAt && (
+            <span title={startedAt}>
+              ▶ {formatShortDate(startedAt)}
+            </span>
+          )}
+          {completedAt && (
+            <span title={completedAt}>
+              ✓ {formatShortDate(completedAt)}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
