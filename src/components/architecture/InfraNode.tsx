@@ -6,7 +6,7 @@ import type { InfraNodeData } from '@/lib/architecture/nodes'
 import { STATUS_COLORS } from '@/lib/architecture/nodes'
 
 function InfraNodeComponent({ data, selected }: NodeProps<InfraNodeData>) {
-  const colors = STATUS_COLORS[data.status]
+  const colors = STATUS_COLORS[data.status as keyof typeof STATUS_COLORS]
 
   return (
     <div

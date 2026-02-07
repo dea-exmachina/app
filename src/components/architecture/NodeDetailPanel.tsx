@@ -22,7 +22,7 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
   if (!node) return null
 
   const data = node.data
-  const colors = STATUS_COLORS[data.status]
+  const colors = STATUS_COLORS[data.status as keyof typeof STATUS_COLORS]
   const isSystem = node.type === 'system'
   const systemData = isSystem ? (data as SystemNodeData) : null
 

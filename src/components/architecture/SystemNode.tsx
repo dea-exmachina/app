@@ -6,7 +6,7 @@ import type { SystemNodeData } from '@/lib/architecture/nodes'
 import { STATUS_COLORS } from '@/lib/architecture/nodes'
 
 function SystemNodeComponent({ data, selected }: NodeProps<SystemNodeData>) {
-  const colors = STATUS_COLORS[data.status]
+  const colors = STATUS_COLORS[data.status as keyof typeof STATUS_COLORS]
 
   return (
     <div
