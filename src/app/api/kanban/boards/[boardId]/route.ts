@@ -30,9 +30,7 @@ export async function GET(
     // Parse lanes from JSONB
     const lanes = (row.lanes as unknown as KanbanLane[]) ?? []
 
-    // Extract handoff section if present (stored in first lane or separate field)
-    // For now, handoff is null as it's not stored in Supabase schema
-    const handoff: HandoffSection | null = null
+    const handoff = ((row as Record<string, unknown>).handoff as HandoffSection | undefined) ?? null
 
     const board: KanbanBoard = {
       id: row.slug,
