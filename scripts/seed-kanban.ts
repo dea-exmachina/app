@@ -70,7 +70,17 @@ function parseCard(line: string, index: number): KanbanCard {
 
   // Extract title: **Bold Title** or first text
   const titleMatch = raw.match(/\*\*([^*]+)\*\*/)
-  const title = titleMatch ? titleMatch[1] : raw.split('<br>')[0].trim()
+  const fullTitle = titleMatch ? titleMatch[1] : raw.split('<br>')[0].trim()
+
+  // Extract card ID from title (e.g., "DEA-077: Title" or "CC-P8 Title")
+  // Pattern: PROJECT-XXX or PROJECT-XXX-YYY (with optional colon/space separator)
+  const idMatch = fullTitle.match(/^([A-Z]+-[A-Z0-9]+(?:-[A-Z0-9]+)?)[:\s]/)
+  const cardId = idMatch ? idMatch[1] : `card-${index}`
+
+  // Remove ID from title for cleaner display
+  const title = idMatch
+    ? fullTitle.replace(/^[A-Z]+-[A-Z0-9]+(?:-[A-Z0-9]+)?[:\s]+/, '').trim()
+    : fullTitle
 
   // Extract tags: #word
   const tags = [...raw.matchAll(/#(\S+)/g)].map((m) => m[1])
@@ -94,7 +104,7 @@ function parseCard(line: string, index: number): KanbanCard {
   const completeMatch = raw.match(/\*\*Completed\*\*:\s*([\d-]+)/)
 
   return {
-    id: `card-${index}`,
+    id: cardId,
     title,
     completed,
     tags,
