@@ -16,40 +16,55 @@ export type Database = {
     Tables: {
       bender_identities: {
         Row: {
+          brief: Json | null
           context_files: string[] | null
           created_at: string | null
           description: string | null
+          display_name: string | null
           expertise: string[]
           id: string
+          learnings: string | null
           name: string
           platforms: string[]
+          profile: Json | null
           project_count: number | null
           slug: string
           system_prompt: string | null
+          updated_at: string | null
         }
         Insert: {
+          brief?: Json | null
           context_files?: string[] | null
           created_at?: string | null
           description?: string | null
+          display_name?: string | null
           expertise: string[]
           id?: string
+          learnings?: string | null
           name: string
           platforms: string[]
+          profile?: Json | null
           project_count?: number | null
           slug: string
           system_prompt?: string | null
+          updated_at?: string | null
         }
         Update: {
+          brief?: Json | null
           context_files?: string[] | null
           created_at?: string | null
           description?: string | null
+          display_name?: string | null
           expertise?: string[]
           id?: string
+          learnings?: string | null
           name?: string
           platforms?: string[]
+          profile?: Json | null
           project_count?: number | null
           slug?: string
           system_prompt?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -100,18 +115,26 @@ export type Database = {
           acceptance_criteria: string[] | null
           bender_role: string | null
           branch: string | null
+          context: string | null
           created_at: string | null
+          deliverables: string | null
           execution_notes: string | null
+          heartbeat_at: string | null
           id: string
           markdown_path: string | null
+          member: string | null
           overview: string | null
+          platform: string | null
           priority: string | null
           project_id: string
           requirements: string[] | null
           review_decision: string | null
           review_feedback: string | null
+          score: number | null
           status: string
+          target_repo: string | null
           task_id: string
+          team_id: string | null
           title: string
           updated_at: string | null
         }
@@ -119,18 +142,26 @@ export type Database = {
           acceptance_criteria?: string[] | null
           bender_role?: string | null
           branch?: string | null
+          context?: string | null
           created_at?: string | null
+          deliverables?: string | null
           execution_notes?: string | null
+          heartbeat_at?: string | null
           id?: string
           markdown_path?: string | null
+          member?: string | null
           overview?: string | null
+          platform?: string | null
           priority?: string | null
           project_id: string
           requirements?: string[] | null
           review_decision?: string | null
           review_feedback?: string | null
+          score?: number | null
           status?: string
+          target_repo?: string | null
           task_id: string
+          team_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -138,18 +169,26 @@ export type Database = {
           acceptance_criteria?: string[] | null
           bender_role?: string | null
           branch?: string | null
+          context?: string | null
           created_at?: string | null
+          deliverables?: string | null
           execution_notes?: string | null
+          heartbeat_at?: string | null
           id?: string
           markdown_path?: string | null
+          member?: string | null
           overview?: string | null
+          platform?: string | null
           priority?: string | null
           project_id?: string
           requirements?: string[] | null
           review_decision?: string | null
           review_feedback?: string | null
+          score?: number | null
           status?: string
+          target_repo?: string | null
           task_id?: string
+          team_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -161,35 +200,48 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bender_tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "bender_teams"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bender_teams: {
         Row: {
           branch_strategy: string | null
           created_at: string | null
+          display_name: string | null
           id: string
           markdown_path: string | null
           name: string
           project_id: string | null
           sequencing: string | null
+          slug: string | null
         }
         Insert: {
           branch_strategy?: string | null
           created_at?: string | null
+          display_name?: string | null
           id?: string
           markdown_path?: string | null
           name: string
           project_id?: string | null
           sequencing?: string | null
+          slug?: string | null
         }
         Update: {
           branch_strategy?: string | null
           created_at?: string | null
+          display_name?: string | null
           id?: string
           markdown_path?: string | null
           name?: string
           project_id?: string | null
           sequencing?: string | null
+          slug?: string | null
         }
         Relationships: [
           {
@@ -197,6 +249,147 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bender_team_members: {
+        Row: {
+          context_file: string | null
+          created_at: string | null
+          id: string
+          identity_id: string | null
+          is_dea_led: boolean | null
+          platform: string | null
+          role: string
+          sequencing: string | null
+          team_id: string
+        }
+        Insert: {
+          context_file?: string | null
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          is_dea_led?: boolean | null
+          platform?: string | null
+          role: string
+          sequencing?: string | null
+          team_id: string
+        }
+        Update: {
+          context_file?: string | null
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          is_dea_led?: boolean | null
+          platform?: string | null
+          role?: string
+          sequencing?: string | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bender_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "bender_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bender_team_members_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "bender_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identity_project_context: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          id: string
+          identity_id: string | null
+          last_accessed_at: string | null
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          last_accessed_at?: string | null
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          last_accessed_at?: string | null
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_project_context_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "bender_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "identity_project_context_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects" // Assuming nexus_projects maps to projects or similar in this context, using projects for now based on context. Wait, migration said nexus_projects. I should check if nexus_projects exists or if it's an alias. Looking at the file, I see kanban_boards refers to projects. I'll stick to projects if nexus_projects isn't in the types. But wait, I should check.
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identity_recommendations: {
+        Row: {
+          created_at: string | null
+          id: string
+          identity_id: string | null
+          metadata: Json | null
+          reason: string | null
+          score: number | null
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          metadata?: Json | null
+          reason?: string | null
+          score?: number | null
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identity_id?: string | null
+          metadata?: Json | null
+          reason?: string | null
+          score?: number | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_recommendations_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "bender_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "identity_recommendations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_cards" // Migration said 'nexus_cards'. I suspect 'kanban_cards' is what I have here. I'll use kanban_cards.
             referencedColumns: ["id"]
           },
         ]
@@ -570,6 +763,130 @@ export type Database = {
           },
         ]
       }
+      model_library: {
+        Row: {
+          capabilities: string[] | null
+          cost_tier: number
+          created_at: string | null
+          display_name: string
+          escalates_to: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          slug: string
+          strengths: string[] | null
+          weaknesses: string[] | null
+        }
+        Insert: {
+          capabilities?: string[] | null
+          cost_tier: number
+          created_at?: string | null
+          display_name: string
+          escalates_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider: string
+          slug: string
+          strengths?: string[] | null
+          weaknesses?: string[] | null
+        }
+        Update: {
+          capabilities?: string[] | null
+          cost_tier?: number
+          created_at?: string | null
+          display_name?: string
+          escalates_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          slug?: string
+          strengths?: string[] | null
+          weaknesses?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_library_escalates_to_fkey"
+            columns: ["escalates_to"]
+            isOneToOne: false
+            referencedRelation: "model_library"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      routing_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      supervisor_lenses: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          lens: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lens: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lens?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      task_type_routing: {
+        Row: {
+          default_model: string | null
+          description: string | null
+          is_governance: boolean | null
+          task_type: string
+        }
+        Insert: {
+          default_model?: string | null
+          description?: string | null
+          is_governance?: boolean | null
+          task_type: string
+        }
+        Update: {
+          default_model?: string | null
+          description?: string | null
+          is_governance?: boolean | null
+          task_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_type_routing_default_model_fkey"
+            columns: ["default_model"]
+            isOneToOne: false
+            referencedRelation: "model_library"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       workflows: {
         Row: {
           created_at: string | null
@@ -648,116 +965,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

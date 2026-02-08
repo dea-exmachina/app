@@ -49,24 +49,35 @@ export async function GET(
       console.error('Error fetching projects:', error)
       return NextResponse.json(
         {
-          error: 'Failed to fetch projects',
-          details: error.message,
-          code: 'DB_ERROR',
+          error: {
+            code: 'DB_ERROR',
+            message: 'Failed to fetch projects',
+          },
         },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({
-      projects: data as Project[],
-      total: data.length,
-    })
+    // Map Supabase rows to ProjectLegacy interface for frontend compatibility
+    const projects = (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      domain: row.type, // map type → domain for display
+      status: row.status,
+      created: row.created_at?.split('T')[0] ?? '',
+      overview: '', // Supabase projects don't have overview text
+      files: [], // No file listing from Supabase
+    }))
+
+    return NextResponse.json({ data: projects, cached: false })
   } catch (error) {
     console.error('Unexpected error fetching projects:', error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        code: 'INTERNAL_ERROR',
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error',
+        },
       },
       { status: 500 }
     )
