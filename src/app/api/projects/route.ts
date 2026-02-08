@@ -9,10 +9,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { tables, generateSlug, isValidSlug } from '@/lib/server/database'
 import type {
   CreateProjectRequest,
-  ProjectListResponse,
   ErrorResponse,
   Project,
 } from '@/types/project'
+import type { ApiResponse, ApiError } from '@/types/api'
+import type { ProjectLegacy } from '@/types/project'
 
 /**
  * GET /api/projects
@@ -24,7 +25,7 @@ import type {
  */
 export async function GET(
   request: NextRequest
-): Promise<NextResponse<ProjectListResponse | ErrorResponse>> {
+): Promise<NextResponse<ApiResponse<ProjectLegacy[]> | ErrorResponse>> {
   try {
     const { searchParams } = new URL(request.url)
     const statusFilter = searchParams.get('status')
@@ -49,10 +50,9 @@ export async function GET(
       console.error('Error fetching projects:', error)
       return NextResponse.json(
         {
-          error: {
-            code: 'DB_ERROR',
-            message: 'Failed to fetch projects',
-          },
+          error: 'Failed to fetch projects',
+          details: error.message,
+          code: 'DB_ERROR',
         },
         { status: 500 }
       )
@@ -66,7 +66,7 @@ export async function GET(
       status: row.status,
       created: row.created_at?.split('T')[0] ?? '',
       overview: '', // Supabase projects don't have overview text
-      files: [], // No file listing from Supabase
+      files: [] as string[], // No file listing from Supabase
     }))
 
     return NextResponse.json({ data: projects, cached: false })
@@ -74,10 +74,8 @@ export async function GET(
     console.error('Unexpected error fetching projects:', error)
     return NextResponse.json(
       {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error',
-        },
+        error: 'Internal server error',
+        code: 'INTERNAL_ERROR',
       },
       { status: 500 }
     )
