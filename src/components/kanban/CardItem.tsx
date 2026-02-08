@@ -4,6 +4,7 @@ import { StatusDot, statusToType } from '@/components/ui/status-dot'
 
 interface CardItemProps {
   card: KanbanCard
+  onClick?: () => void
 }
 
 /** Compute relative age from a date string */
@@ -30,14 +31,15 @@ function cardStatus(card: KanbanCard): string {
   return 'pending'
 }
 
-export function CardItem({ card }: CardItemProps) {
+export function CardItem({ card, onClick }: CardItemProps) {
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
 
   return (
     <div
-      className={`rounded-sm border border-terminal-border bg-terminal-bg-surface p-2 transition-colors hover:border-terminal-border-strong ${
+      onClick={onClick}
+      className={`rounded-sm border border-terminal-border bg-terminal-bg-surface p-2 transition-colors hover:border-terminal-border-strong cursor-pointer ${
         card.completed ? 'opacity-50' : ''
       }`}
     >
