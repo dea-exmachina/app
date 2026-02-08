@@ -18,20 +18,20 @@ export function SectionDivider({
         className
       )}
     >
-      <span className="text-terminal-fg-tertiary font-mono text-[10px] select-none">
+      <span className="text-terminal-fg-tertiary font-mono text-[11px] select-none">
         {"──"}
       </span>
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-terminal-fg-tertiary whitespace-nowrap">
+      <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-terminal-fg-tertiary whitespace-nowrap">
         {label}
       </span>
       {count !== undefined && (
-        <span className="font-mono text-[10px] text-terminal-fg-secondary whitespace-nowrap">
+        <span className="font-mono text-[11px] text-terminal-fg-secondary whitespace-nowrap">
           {count}
         </span>
       )}
       <span className="flex-1 border-b border-terminal-border" />
       {right && (
-        <span className="font-mono text-[10px] text-terminal-fg-tertiary whitespace-nowrap">
+        <span className="font-mono text-[11px] text-terminal-fg-tertiary whitespace-nowrap">
           {right}
         </span>
       )}

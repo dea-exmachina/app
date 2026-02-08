@@ -235,10 +235,10 @@
  * ============================================
  */
 @layer utilities {
-  /* Section header: 10px mono uppercase tracking-widest, bottom border */
+  /* Section header: 11px mono uppercase tracking-widest, bottom border */
   .terminal-section {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -247,20 +247,20 @@
     border-bottom: 1px solid var(--terminal-border);
   }
 
-  /* Data label: 10px mono uppercase, muted */
+  /* Data label: 11px mono uppercase, muted */
   .terminal-label {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--terminal-fg-secondary);
   }
 
-  /* Data value: 14px mono bold */
+  /* Data value: 15px mono bold */
   .terminal-value {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--terminal-fg-primary);
   }
@@ -273,10 +273,10 @@
     color: var(--terminal-fg-secondary);
   }
 
-  /* Timestamp: 11px mono, dim */
+  /* Timestamp: 12px mono, dim */
   .terminal-timestamp {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--terminal-fg-tertiary);
   }

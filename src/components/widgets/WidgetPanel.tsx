@@ -7,10 +7,12 @@ import { useLayout } from '@/contexts/LayoutContext'
 interface WidgetPanelProps {
   title: string
   children: React.ReactNode
+  editMode?: boolean
 }
 
-export function WidgetPanel({ title, children }: WidgetPanelProps) {
-  const { editMode } = useLayout()
+export function WidgetPanel({ title, children, editMode: editModeProp }: WidgetPanelProps) {
+  const layoutCtx = useLayout()
+  const editMode = editModeProp ?? layoutCtx.editMode
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -20,7 +22,7 @@ export function WidgetPanel({ title, children }: WidgetPanelProps) {
         {editMode && (
           <GripVertical className="h-3 w-3 text-terminal-fg-tertiary widget-drag-handle cursor-move" />
         )}
-        <span className="flex-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-terminal-fg-secondary">
+        <span className="flex-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-terminal-fg-secondary">
           {title}
         </span>
         <button

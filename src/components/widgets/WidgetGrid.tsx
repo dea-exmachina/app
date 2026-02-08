@@ -23,6 +23,7 @@ export function WidgetGrid({
 }: WidgetGridProps) {
   const layoutCtx = useLayout()
   const isEditing = editModeProp ?? layoutCtx.editMode
+  const hasExternalEditMode = editModeProp !== undefined
   const resolvedPageId = pageId ?? config.pageId
   const { layouts, onLayoutChange } = useLayoutPersistence(
     resolvedPageId,
@@ -34,6 +35,30 @@ export function WidgetGrid({
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
+      {/* Compact edit toggle — only shown when page doesn't provide its own */}
+      {!hasExternalEditMode && (
+        <div className="flex items-center justify-end gap-2 px-1 py-1 mb-1">
+          <button
+            onClick={layoutCtx.toggleEditMode}
+            className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+              isEditing
+                ? 'border-user-accent text-user-accent bg-user-accent/10'
+                : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+            }`}
+          >
+            {isEditing ? 'DONE' : 'EDIT'}
+          </button>
+          {isEditing && (
+            <button
+              onClick={() => layoutCtx.resetLayout(resolvedPageId)}
+              className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
+            >
+              RESET
+            </button>
+          )}
+        </div>
+      )}
+
       {mounted && width > 0 && (
         <ResponsiveGridLayout
           className="layout"
@@ -55,7 +80,7 @@ export function WidgetGrid({
         >
           {config.widgets.map((widget) => (
             <div key={widget.id}>
-              <WidgetPanel title={widget.title}>
+              <WidgetPanel title={widget.title} editMode={isEditing}>
                 <widget.component />
               </WidgetPanel>
             </div>

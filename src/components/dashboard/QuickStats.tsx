@@ -57,9 +57,9 @@ function TickerStat({
       <span className="terminal-label">{label}</span>
       <span className="flex items-center gap-1.5">
         {dot && <StatusDot status={dot} size={5} />}
-        <span className="terminal-value text-[13px]">{value}</span>
+        <span className="terminal-value text-[14px]">{value}</span>
         {suffix && (
-          <span className="text-[10px] text-terminal-fg-tertiary">{suffix}</span>
+          <span className="text-[11px] text-terminal-fg-tertiary">{suffix}</span>
         )}
       </span>
     </div>
