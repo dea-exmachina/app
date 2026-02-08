@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Crown,
   Network,
+  Settings,
 } from 'lucide-react'
 import { useAgentHealth } from '@/hooks/useAgentHealth'
 import { AgentRosterItem } from './AgentRosterItem'
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/queen/events', label: 'QUEEN', icon: Crown },
   { href: '/architecture', label: 'Architecture', icon: Network },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export function Sidebar() {
