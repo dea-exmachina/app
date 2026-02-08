@@ -5,6 +5,7 @@ import { MobileSidebar } from '@/components/layout/MobileSidebar'
 import { LayoutProvider } from '@/contexts/LayoutContext'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AccentInitializer } from '@/components/providers/AccentInitializer'
+import { TextSizeInitializer } from '@/components/providers/TextSizeInitializer'
 import './globals.css'
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AccentInitializer />
+          <TextSizeInitializer />
           <LayoutProvider>
             <div className="flex h-screen">
               {/* Desktop Sidebar */}

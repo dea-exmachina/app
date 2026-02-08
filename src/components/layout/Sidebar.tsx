@@ -33,7 +33,6 @@ const NAV_ITEMS = [
   { href: '/chat', label: 'Chat', icon: MessageCircle },
   { href: '/queen/events', label: 'QUEEN', icon: Crown },
   { href: '/architecture', label: 'Architecture', icon: Network },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export function Sidebar() {
@@ -119,6 +118,24 @@ export function Sidebar() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Settings — pinned bottom */}
+      <div className="border-t border-terminal-border px-2 py-1.5">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-2 rounded-sm px-2 py-1.5 font-mono text-[11px] transition-colors ${
+            pathname.startsWith('/settings')
+              ? 'bg-user-accent-muted text-terminal-fg-primary'
+              : 'text-terminal-fg-secondary hover:bg-terminal-bg-elevated hover:text-terminal-fg-primary'
+          }`}
+        >
+          <Settings className="h-3.5 w-3.5 shrink-0" />
+          Settings
+          {pathname.startsWith('/settings') && (
+            <span className="ml-auto text-user-accent text-[10px]">{'>'}</span>
+          )}
+        </Link>
       </div>
 
       {/* Footer */}

@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { useAccentColor, ACCENT_PRESETS } from '@/hooks/useAccentColor'
+import { useTextSize } from '@/hooks/useTextSize'
 
 const LAYOUT_PAGES = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -23,6 +24,7 @@ function previewColor(hue: number, chroma: number) {
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { activePreset, setAccent, mounted: accentMounted } = useAccentColor()
+  const { size: textSize, setTextSize, mounted: textMounted, MIN_SIZE, MAX_SIZE, STEP } = useTextSize()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function SettingsPage() {
     LAYOUT_PAGES.forEach((p) => localStorage.removeItem(`cc-layout-${p.id}`))
   }
 
-  if (!mounted || !accentMounted) {
+  if (!mounted || !accentMounted || !textMounted) {
     return (
       <div className="p-4">
         <div className="font-mono text-[11px] text-terminal-fg-tertiary">Loading settings...</div>
@@ -95,6 +97,34 @@ export default function SettingsPage() {
         </div>
         <p className="mt-2 font-mono text-[10px] text-terminal-fg-tertiary">
           Accent color applies to active states, focus rings, and interactive elements.
+        </p>
+      </div>
+
+      {/* Text Size */}
+      <div>
+        <SectionDivider label="Text Size" />
+        <div className="mt-3 flex items-center gap-4">
+          <span className="font-mono text-[11px] text-terminal-fg-tertiary w-6 text-right shrink-0">
+            A
+          </span>
+          <input
+            type="range"
+            min={MIN_SIZE}
+            max={MAX_SIZE}
+            step={STEP}
+            value={textSize}
+            onChange={(e) => setTextSize(parseInt(e.target.value, 10))}
+            className="flex-1 h-1 accent-[var(--user-accent)] cursor-pointer"
+          />
+          <span className="font-mono text-[14px] text-terminal-fg-tertiary w-6 shrink-0">
+            A
+          </span>
+          <span className="font-mono text-[11px] text-terminal-fg-secondary w-10 text-right shrink-0">
+            {textSize}%
+          </span>
+        </div>
+        <p className="mt-2 font-mono text-[10px] text-terminal-fg-tertiary">
+          Scales all text across the interface. Default: 100%.
         </p>
       </div>
 
