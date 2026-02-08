@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge'
+import { StatusDot } from '@/components/ui/status-dot'
 import type { BenderTask } from '@/types/bender'
 
 interface ReviewDecisionProps {
@@ -8,32 +8,27 @@ interface ReviewDecisionProps {
 export function ReviewDecision({ review }: ReviewDecisionProps) {
   if (!review) return null
 
-  const decisionColors = {
-    ACCEPT: { border: '#7BAD8E', color: '#7BAD8E' },
-    PARTIAL: { border: '#DDCBAD', color: '#DDCBAD' },
-    REJECT: { border: '#AD7B7B', color: '#AD7B7B' },
+  const statusMap = {
+    ACCEPT: 'ok' as const,
+    PARTIAL: 'warn' as const,
+    REJECT: 'error' as const,
   }
 
-  const colors = decisionColors[review.decision]
-
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <h3 className="font-mono text-sm font-semibold text-muted-foreground">
-          Review Decision
-        </h3>
-        <Badge
-          variant="outline"
-          className="font-mono"
-          style={{
-            borderColor: colors.border,
-            color: colors.color,
-          }}
-        >
-          {review.decision}
-        </Badge>
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-terminal-fg-tertiary">
+          Review
+        </span>
+        <StatusDot
+          status={statusMap[review.decision]}
+          label={review.decision}
+          size={5}
+        />
       </div>
-      <p className="text-sm text-foreground/90">{review.feedback}</p>
+      <p className="font-mono text-[11px] text-terminal-fg-secondary">
+        {review.feedback}
+      </p>
     </div>
   )
 }

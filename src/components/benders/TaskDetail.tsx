@@ -1,140 +1,108 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import type { BenderTask } from '@/types/bender'
-import { formatDate, getStatusColor } from '@/lib/client/formatters'
+import { StatusDot, statusToType } from '@/components/ui/status-dot'
+import { SectionDivider } from '@/components/ui/section-divider'
 import { ReviewDecision } from './ReviewDecision'
+import { formatDate } from '@/lib/client/formatters'
 
 interface TaskDetailProps {
   task: BenderTask
 }
 
 export function TaskDetail({ task }: TaskDetailProps) {
-  const priorityColor = task.priority === 'focus' ? '#AD7B7B' : '#9B8E7B'
-
   return (
-    <div className="space-y-6">
-      {/* Header Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="mb-2 font-mono text-sm text-muted-foreground">
-                {task.taskId}
-              </div>
-              <CardTitle className="text-xl">{task.title}</CardTitle>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Badge
-                variant="outline"
-                className="font-mono"
-                style={{
-                  borderColor: getStatusColor(task.status),
-                  color: getStatusColor(task.status),
-                }}
-              >
-                {task.status}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="font-mono text-xs"
-                style={{
-                  borderColor: priorityColor,
-                  color: priorityColor,
-                }}
-              >
-                {task.priority}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Overview */}
-          <div>
-            <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
-              Overview
-            </h3>
-            <p className="text-sm">{task.overview}</p>
-          </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="border-b border-terminal-border pb-3">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="font-mono text-[11px] font-semibold text-user-accent">
+            {task.taskId}
+          </span>
+          <StatusDot
+            status={statusToType(task.status)}
+            label={task.status}
+            size={5}
+          />
+          {task.priority === 'focus' && (
+            <span className="font-mono text-[10px] text-status-warn uppercase tracking-wider">
+              focus
+            </span>
+          )}
+        </div>
+        <h2 className="font-mono text-sm font-semibold text-terminal-fg-primary">
+          {task.title}
+        </h2>
+      </div>
 
-          {/* Metadata */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-              <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
-                Bender
-              </h3>
-              <p className="font-mono text-sm">{task.bender}</p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
-                Branch
-              </h3>
-              <p className="font-mono text-sm">{task.branch}</p>
-            </div>
-            <div>
-              <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
-                Created
-              </h3>
-              <p className="font-mono text-sm">{formatDate(task.created)}</p>
-            </div>
-          </div>
+      {/* Key-value metadata */}
+      <div className="grid grid-cols-3 gap-x-4 gap-y-1 font-mono text-[11px]">
+        <div>
+          <span className="text-terminal-fg-tertiary uppercase tracking-wider">Bender </span>
+          <span className="text-terminal-fg-primary">{task.bender}</span>
+        </div>
+        <div>
+          <span className="text-terminal-fg-tertiary uppercase tracking-wider">Branch </span>
+          <span className="text-terminal-fg-secondary">{task.branch}</span>
+        </div>
+        <div>
+          <span className="text-terminal-fg-tertiary uppercase tracking-wider">Created </span>
+          <span className="text-terminal-fg-secondary">{formatDate(task.created)}</span>
+        </div>
+      </div>
 
-          {/* File Path */}
-          <div>
-            <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
-              File Path
-            </h3>
-            <p className="font-mono text-xs text-muted-foreground">
-              {task.filePath}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Overview */}
+      <div>
+        <SectionDivider label="Overview" />
+        <p className="mt-1.5 text-[13px] text-terminal-fg-primary leading-relaxed">
+          {task.overview}
+        </p>
+      </div>
 
       {/* Requirements */}
       {task.requirements.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-sm">Requirements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-inside list-disc space-y-1 text-sm">
-              {task.requirements.map((req, i) => (
-                <li key={i}>{req}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div>
+          <SectionDivider label="Requirements" />
+          <ul className="mt-1.5 space-y-0.5 font-mono text-[11px] text-terminal-fg-secondary">
+            {task.requirements.map((req, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-terminal-fg-tertiary shrink-0">{i + 1}.</span>
+                <span>{req}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Acceptance Criteria */}
       {task.acceptanceCriteria.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-sm">
-              Acceptance Criteria
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-inside list-disc space-y-1 text-sm">
-              {task.acceptanceCriteria.map((criteria, i) => (
-                <li key={i}>{criteria}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div>
+          <SectionDivider label="Acceptance Criteria" />
+          <ul className="mt-1.5 space-y-0.5 font-mono text-[11px] text-terminal-fg-secondary">
+            {task.acceptanceCriteria.map((criteria, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-terminal-fg-tertiary shrink-0">-</span>
+                <span>{criteria}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Review */}
       {task.review && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-sm">Review</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div>
+          <SectionDivider label="Review" />
+          <div className="mt-1.5">
             <ReviewDecision review={task.review} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
+
+      {/* File path */}
+      <div className="pt-2 border-t border-terminal-border">
+        <span className="font-mono text-[10px] text-terminal-fg-tertiary">
+          {task.filePath}
+        </span>
+      </div>
     </div>
   )
 }

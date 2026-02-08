@@ -1,8 +1,6 @@
 'use client'
 
 import { use } from 'react'
-import Link from 'next/link'
-import { Header } from '@/components/layout/Header'
 import { BoardView } from '@/components/kanban/BoardView'
 import { useBoard } from '@/hooks/useBoard'
 
@@ -16,32 +14,18 @@ export default function BoardPage({
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/kanban"
-            className="font-mono text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Back to boards
-          </Link>
+      <div className="p-4">
+        <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+          Loading board...
         </div>
-        <div className="text-sm text-muted-foreground">Loading board...</div>
       </div>
     )
   }
 
   if (error || !board) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/kanban"
-            className="font-mono text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Back to boards
-          </Link>
-        </div>
-        <div className="text-sm text-destructive">
+      <div className="p-4 space-y-2">
+        <div className="font-mono text-[11px] text-status-error">
           Failed to load board: {error || 'Unknown error'}
         </div>
       </div>
@@ -49,15 +33,7 @@ export default function BoardPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/kanban"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to boards
-        </Link>
-      </div>
+    <div className="p-4">
       <BoardView board={board} />
     </div>
   )

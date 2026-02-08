@@ -6,10 +6,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* === Structural Colors === */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* === Fonts === */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* === Sidebar (mapped to terminal tokens) === */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -18,11 +23,15 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+
+  /* === Chart Colors === */
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+
+  /* === shadcn Semantic Tokens (mapped to terminal system) === */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -39,84 +48,178 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* === Terminal Structural Tokens === */
+  --color-terminal-bg-base: var(--terminal-bg-base);
+  --color-terminal-bg-surface: var(--terminal-bg-surface);
+  --color-terminal-bg-elevated: var(--terminal-bg-elevated);
+  --color-terminal-bg-overlay: var(--terminal-bg-overlay);
+  --color-terminal-fg-primary: var(--terminal-fg-primary);
+  --color-terminal-fg-secondary: var(--terminal-fg-secondary);
+  --color-terminal-fg-tertiary: var(--terminal-fg-tertiary);
+  --color-terminal-border: var(--terminal-border);
+  --color-terminal-border-strong: var(--terminal-border-strong);
+
+  /* === Semantic Status Colors === */
+  --color-status-ok: var(--status-ok);
+  --color-status-warn: var(--status-warn);
+  --color-status-error: var(--status-error);
+  --color-status-info: var(--status-info);
+
+  /* === User Accent === */
+  --color-user-accent: var(--user-accent);
+  --color-user-accent-muted: var(--user-accent-muted);
+  --color-user-accent-fg: var(--user-accent-fg);
+
+  /* === Radius (terminal: near-zero) === */
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 1px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 6px);
+  --radius-4xl: calc(var(--radius) + 8px);
 }
 
+/*
+ * ============================================
+ * LIGHT MODE — Terminal Clarity
+ * ============================================
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --radius: 2px;
+
+  /* Terminal structural */
+  --terminal-bg-base: oklch(0.97 0.005 250);
+  --terminal-bg-surface: oklch(1 0 0);
+  --terminal-bg-elevated: oklch(0.95 0.005 250);
+  --terminal-bg-overlay: oklch(0.93 0.005 250);
+  --terminal-fg-primary: oklch(0.18 0.02 260);
+  --terminal-fg-secondary: oklch(0.45 0.02 260);
+  --terminal-fg-tertiary: oklch(0.7 0.015 260);
+  --terminal-border: oklch(0 0 0 / 6%);
+  --terminal-border-strong: oklch(0 0 0 / 12%);
+
+  /* Semantic status */
+  --status-ok: oklch(0.65 0.2 145);
+  --status-warn: oklch(0.75 0.18 85);
+  --status-error: oklch(0.58 0.22 25);
+  --status-info: oklch(0.6 0.19 260);
+
+  /* User accent (default: blue, overridable via JS) */
+  --user-accent: oklch(0.6 0.19 260);
+  --user-accent-muted: oklch(0.6 0.19 260 / 15%);
+  --user-accent-fg: oklch(1 0 0);
+
+  /* shadcn mappings → terminal tokens */
+  --background: var(--terminal-bg-base);
+  --foreground: var(--terminal-fg-primary);
+  --card: var(--terminal-bg-surface);
+  --card-foreground: var(--terminal-fg-primary);
+  --popover: var(--terminal-bg-overlay);
+  --popover-foreground: var(--terminal-fg-primary);
+  --primary: var(--terminal-fg-primary);
+  --primary-foreground: var(--terminal-bg-surface);
+  --secondary: var(--terminal-bg-elevated);
+  --secondary-foreground: var(--terminal-fg-primary);
+  --muted: var(--terminal-bg-elevated);
+  --muted-foreground: var(--terminal-fg-secondary);
+  --accent: var(--terminal-bg-elevated);
+  --accent-foreground: var(--terminal-fg-primary);
+  --destructive: var(--status-error);
+  --border: var(--terminal-border);
+  --input: var(--terminal-border-strong);
+  --ring: var(--user-accent);
+
+  /* Charts (terminal-compatible) */
+  --chart-1: var(--status-info);
+  --chart-2: var(--status-ok);
+  --chart-3: var(--status-warn);
+  --chart-4: oklch(0.6 0.2 300);
+  --chart-5: oklch(0.65 0.2 30);
+
+  /* Sidebar */
+  --sidebar: var(--terminal-bg-surface);
+  --sidebar-foreground: var(--terminal-fg-primary);
+  --sidebar-primary: var(--user-accent);
+  --sidebar-primary-foreground: var(--user-accent-fg);
+  --sidebar-accent: var(--terminal-bg-elevated);
+  --sidebar-accent-foreground: var(--terminal-fg-primary);
+  --sidebar-border: var(--terminal-border);
+  --sidebar-ring: var(--user-accent);
 }
 
+/*
+ * ============================================
+ * DARK MODE — Terminal Clarity
+ * ============================================
+ */
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Terminal structural */
+  --terminal-bg-base: oklch(0.13 0.015 265);
+  --terminal-bg-surface: oklch(0.17 0.015 265);
+  --terminal-bg-elevated: oklch(0.21 0.015 265);
+  --terminal-bg-overlay: oklch(0.25 0.015 265);
+  --terminal-fg-primary: oklch(0.92 0.01 260);
+  --terminal-fg-secondary: oklch(0.6 0.03 260);
+  --terminal-fg-tertiary: oklch(0.42 0.02 260);
+  --terminal-border: oklch(1 0 0 / 5%);
+  --terminal-border-strong: oklch(1 0 0 / 10%);
+
+  /* Semantic status (slightly brighter for dark bg) */
+  --status-ok: oklch(0.7 0.2 145);
+  --status-warn: oklch(0.8 0.18 85);
+  --status-error: oklch(0.65 0.22 25);
+  --status-info: oklch(0.65 0.19 260);
+
+  /* User accent */
+  --user-accent: oklch(0.65 0.19 260);
+  --user-accent-muted: oklch(0.65 0.19 260 / 15%);
+  --user-accent-fg: oklch(1 0 0);
+
+  /* shadcn mappings → terminal tokens */
+  --background: var(--terminal-bg-base);
+  --foreground: var(--terminal-fg-primary);
+  --card: var(--terminal-bg-surface);
+  --card-foreground: var(--terminal-fg-primary);
+  --popover: var(--terminal-bg-overlay);
+  --popover-foreground: var(--terminal-fg-primary);
+  --primary: var(--terminal-fg-primary);
+  --primary-foreground: var(--terminal-bg-base);
+  --secondary: var(--terminal-bg-elevated);
+  --secondary-foreground: var(--terminal-fg-primary);
+  --muted: var(--terminal-bg-elevated);
+  --muted-foreground: var(--terminal-fg-secondary);
+  --accent: var(--terminal-bg-elevated);
+  --accent-foreground: var(--terminal-fg-primary);
+  --destructive: var(--status-error);
+  --border: var(--terminal-border);
+  --input: var(--terminal-border-strong);
+  --ring: var(--user-accent);
+
+  /* Charts */
+  --chart-1: var(--status-info);
+  --chart-2: var(--status-ok);
+  --chart-3: var(--status-warn);
+  --chart-4: oklch(0.65 0.2 300);
+  --chart-5: oklch(0.7 0.2 30);
+
+  /* Sidebar */
+  --sidebar: var(--terminal-bg-surface);
+  --sidebar-foreground: var(--terminal-fg-primary);
+  --sidebar-primary: var(--user-accent);
+  --sidebar-primary-foreground: var(--user-accent-fg);
+  --sidebar-accent: var(--terminal-bg-elevated);
+  --sidebar-accent-foreground: var(--terminal-fg-primary);
+  --sidebar-border: var(--terminal-border);
+  --sidebar-ring: var(--user-accent);
 }
 
+/*
+ * ============================================
+ * BASE LAYER
+ * ============================================
+ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -126,35 +229,105 @@
   }
 }
 
-/* Widget grid styles */
+/*
+ * ============================================
+ * TERMINAL UTILITY CLASSES
+ * ============================================
+ */
+@layer utilities {
+  /* Section header: 10px mono uppercase tracking-widest, bottom border */
+  .terminal-section {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--terminal-fg-tertiary);
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--terminal-border);
+  }
+
+  /* Data label: 10px mono uppercase, muted */
+  .terminal-label {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--terminal-fg-secondary);
+  }
+
+  /* Data value: 14px mono bold */
+  .terminal-value {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--terminal-fg-primary);
+  }
+
+  /* ID/code: 12px mono, muted */
+  .terminal-id {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--terminal-fg-secondary);
+  }
+
+  /* Timestamp: 11px mono, dim */
+  .terminal-timestamp {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--terminal-fg-tertiary);
+  }
+
+  /* Body text in mono context */
+  .terminal-body {
+    font-family: var(--font-geist-sans), ui-sans-serif, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--terminal-fg-primary);
+  }
+}
+
+/*
+ * ============================================
+ * WIDGET GRID STYLES
+ * ============================================
+ */
 .react-grid-item.react-grid-placeholder {
-  background: oklch(0.551 0.027 264.364 / 20%) !important;
-  border: 1px dashed oklch(0.551 0.027 264.364 / 50%) !important;
-  border-radius: 0.375rem;
+  background: var(--user-accent-muted) !important;
+  border: 1px dashed var(--user-accent) !important;
+  border-radius: var(--radius);
+  opacity: 0.5;
 }
 
 .react-grid-item > .react-resizable-handle::after {
-  border-right-color: oklch(0.704 0.04 256.788) !important;
-  border-bottom-color: oklch(0.704 0.04 256.788) !important;
+  border-right-color: var(--terminal-fg-tertiary) !important;
+  border-bottom-color: var(--terminal-fg-tertiary) !important;
 }
 
 .widget-panel-focus:focus-within {
-  border-color: oklch(0.551 0.027 264.364);
-  box-shadow: 0 0 0 1px oklch(0.551 0.027 264.364 / 30%);
+  border-color: var(--user-accent);
+  box-shadow: 0 0 0 1px var(--user-accent-muted);
 }
 
-/* Excalidraw theme integration */
+/*
+ * ============================================
+ * EXCALIDRAW THEME INTEGRATION
+ * ============================================
+ */
 .excalidraw.theme--dark {
-  --color-primary: oklch(0.488 0.243 264.376);
-  --color-primary-light: oklch(0.551 0.027 264.364);
+  --color-primary: var(--user-accent);
+  --color-primary-light: var(--terminal-fg-tertiary);
 }
 
 .excalidraw .Island {
-  background: oklch(0.208 0.042 265.755) !important;
-  border-color: oklch(1 0 0 / 10%) !important;
+  background: var(--terminal-bg-surface) !important;
+  border-color: var(--terminal-border) !important;
 }
 
 .excalidraw .dropdown-menu {
-  background: oklch(0.208 0.042 265.755) !important;
-  border-color: oklch(1 0 0 / 10%) !important;
+  background: var(--terminal-bg-surface) !important;
+  border-color: var(--terminal-border) !important;
 }

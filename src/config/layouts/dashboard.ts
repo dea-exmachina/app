@@ -4,16 +4,15 @@ import { MissionBriefingWidget } from '@/components/widgets/dashboard/MissionBri
 import { BenderStatusWidget } from '@/components/widgets/dashboard/BenderStatusWidget'
 import { BoardSummaryWidget } from '@/components/widgets/dashboard/BoardSummaryWidget'
 import { InboxWidget } from '@/components/widgets/inbox/InboxWidget'
-import { RecentCanvasesWidget } from '@/components/widgets/canvas/RecentCanvasesWidget'
 
 export const dashboardConfig: PageLayoutConfig = {
   pageId: 'dashboard',
   widgets: [
     {
-      id: 'quick-stats',
-      title: 'Quick Stats',
+      id: 'ticker',
+      title: 'Status',
       component: QuickStatsWidget,
-      defaultSize: { w: 12, h: 2, minH: 2 },
+      defaultSize: { w: 12, h: 1, minH: 1, maxH: 2 },
     },
     {
       id: 'mission-brief',
@@ -23,53 +22,44 @@ export const dashboardConfig: PageLayoutConfig = {
     },
     {
       id: 'bender-status',
-      title: 'Bender Status',
+      title: 'Benders',
       component: BenderStatusWidget,
-      defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
+      defaultSize: { w: 4, h: 4, minW: 3, minH: 2 },
     },
     {
       id: 'board-summary',
-      title: 'Kanban Boards',
+      title: 'Boards',
       component: BoardSummaryWidget,
-      defaultSize: { w: 12, h: 4, minH: 3 },
+      defaultSize: { w: 8, h: 3, minH: 2 },
     },
     {
-      id: 'inbox-quick',
-      title: 'Quick Drop',
+      id: 'inbox-preview',
+      title: 'Inbox',
       component: InboxWidget,
-      defaultSize: { w: 6, h: 3, minH: 2 },
-    },
-    {
-      id: 'recent-canvases',
-      title: 'Recent Canvases',
-      component: RecentCanvasesWidget,
-      defaultSize: { w: 6, h: 3, minH: 2 },
+      defaultSize: { w: 4, h: 3, minH: 2 },
     },
   ],
   defaultLayouts: {
     lg: [
-      { i: 'quick-stats', x: 0, y: 0, w: 12, h: 2, minH: 2 },
-      { i: 'mission-brief', x: 0, y: 2, w: 8, h: 5, minW: 4, minH: 3 },
-      { i: 'bender-status', x: 8, y: 2, w: 4, h: 5, minW: 3, minH: 3 },
-      { i: 'board-summary', x: 0, y: 7, w: 12, h: 4, minH: 3 },
-      { i: 'inbox-quick', x: 0, y: 11, w: 6, h: 3, minH: 2 },
-      { i: 'recent-canvases', x: 6, y: 11, w: 6, h: 3, minH: 2 },
+      { i: 'ticker', x: 0, y: 0, w: 12, h: 1, minH: 1, maxH: 2 },
+      { i: 'mission-brief', x: 0, y: 1, w: 8, h: 5, minW: 4, minH: 3 },
+      { i: 'bender-status', x: 8, y: 1, w: 4, h: 4, minW: 3, minH: 2 },
+      { i: 'board-summary', x: 0, y: 6, w: 8, h: 3, minH: 2 },
+      { i: 'inbox-preview', x: 8, y: 5, w: 4, h: 3, minH: 2 },
     ],
     md: [
-      { i: 'quick-stats', x: 0, y: 0, w: 8, h: 2, minH: 2 },
-      { i: 'mission-brief', x: 0, y: 2, w: 8, h: 5, minW: 4, minH: 3 },
-      { i: 'bender-status', x: 0, y: 7, w: 8, h: 4, minW: 3, minH: 3 },
-      { i: 'board-summary', x: 0, y: 11, w: 8, h: 4, minH: 3 },
-      { i: 'inbox-quick', x: 0, y: 15, w: 8, h: 3, minH: 2 },
-      { i: 'recent-canvases', x: 0, y: 18, w: 8, h: 3, minH: 2 },
+      { i: 'ticker', x: 0, y: 0, w: 8, h: 1, minH: 1, maxH: 2 },
+      { i: 'mission-brief', x: 0, y: 1, w: 8, h: 5, minW: 4, minH: 3 },
+      { i: 'bender-status', x: 0, y: 6, w: 8, h: 3, minW: 3, minH: 2 },
+      { i: 'board-summary', x: 0, y: 9, w: 8, h: 3, minH: 2 },
+      { i: 'inbox-preview', x: 0, y: 12, w: 8, h: 3, minH: 2 },
     ],
     sm: [
-      { i: 'quick-stats', x: 0, y: 0, w: 4, h: 3, minH: 2 },
-      { i: 'mission-brief', x: 0, y: 3, w: 4, h: 6, minW: 4, minH: 3 },
-      { i: 'bender-status', x: 0, y: 9, w: 4, h: 5, minW: 3, minH: 3 },
-      { i: 'board-summary', x: 0, y: 14, w: 4, h: 5, minH: 3 },
-      { i: 'inbox-quick', x: 0, y: 19, w: 4, h: 4, minH: 2 },
-      { i: 'recent-canvases', x: 0, y: 23, w: 4, h: 4, minH: 2 },
+      { i: 'ticker', x: 0, y: 0, w: 4, h: 2, minH: 1 },
+      { i: 'mission-brief', x: 0, y: 2, w: 4, h: 6, minW: 4, minH: 3 },
+      { i: 'bender-status', x: 0, y: 8, w: 4, h: 4, minW: 3, minH: 2 },
+      { i: 'board-summary', x: 0, y: 12, w: 4, h: 4, minH: 2 },
+      { i: 'inbox-preview', x: 0, y: 16, w: 4, h: 4, minH: 2 },
     ],
   },
 }

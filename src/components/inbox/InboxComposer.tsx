@@ -1,16 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Send } from 'lucide-react'
-import type { InboxItemType, InboxCreateRequest } from '@/types/inbox'
-
-const ITEM_TYPES: { value: InboxItemType; label: string }[] = [
-  { value: 'note', label: 'Note' },
-  { value: 'link', label: 'Link' },
-  { value: 'instruction', label: 'Instruction' },
-  { value: 'file', label: 'File' },
-]
+import type { InboxCreateRequest } from '@/types/inbox'
 
 interface InboxComposerProps {
   onSubmit: (item: InboxCreateRequest) => Promise<unknown>
@@ -23,62 +14,77 @@ export function InboxComposer({
   submitting = false,
   compact = false,
 }: InboxComposerProps) {
+  const [expanded, setExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [type, setType] = useState<InboxItemType>('note')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim() || !content.trim()) return
+    if (!title.trim()) return
 
-    await onSubmit({ title: title.trim(), content: content.trim(), type })
+    await onSubmit({
+      title: title.trim(),
+      content: content.trim(),
+      type: 'note',
+    })
     setTitle('')
     setContent('')
-    setType('note')
+    setExpanded(false)
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="w-full text-left font-mono text-[10px] px-1 py-1 text-terminal-fg-tertiary hover:text-user-accent transition-colors border-b border-terminal-border"
+      >
+        + drop something...
+      </button>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex items-center gap-2">
+    <form onSubmit={handleSubmit} className="border-b border-terminal-border pb-2">
+      <div className="space-y-1.5">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title..."
-          className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          placeholder="title..."
+          className="w-full bg-transparent font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary border-b border-terminal-border px-1 py-1 outline-none focus:border-user-accent transition-colors"
           disabled={submitting}
+          autoFocus
         />
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as InboxItemType)}
-          className="rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          disabled={submitting}
-        >
-          {ITEM_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Drop something here..."
-        rows={compact ? 2 : 4}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-        disabled={submitting}
-      />
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          size="sm"
-          disabled={submitting || !title.trim() || !content.trim()}
-          className="gap-1.5 font-mono text-xs"
-        >
-          <Send className="h-3.5 w-3.5" />
-          {submitting ? 'Sending...' : 'Drop'}
-        </Button>
+        {!compact && (
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="content (optional)..."
+            rows={2}
+            className="w-full bg-transparent font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary border border-terminal-border rounded-sm px-1 py-1 outline-none focus:border-user-accent transition-colors resize-none"
+            disabled={submitting}
+          />
+        )}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setExpanded(false)
+              setTitle('')
+              setContent('')
+            }}
+            className="font-mono text-[10px] px-2 py-0.5 text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
+          >
+            cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || !title.trim()}
+            className="font-mono text-[10px] px-2 py-0.5 rounded-sm bg-user-accent text-user-accent-fg hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {submitting ? 'dropping...' : 'drop'}
+          </button>
+        </div>
       </div>
     </form>
   )

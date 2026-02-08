@@ -16,19 +16,16 @@ export function BoardStats({ board }: BoardStatsProps) {
   const openCards = totalCards - completedCards
 
   return (
-    <div className="flex items-center gap-6 font-mono text-sm">
-      <div>
-        <span className="text-muted-foreground">Total:</span>{' '}
-        <span className="font-semibold">{totalCards}</span>
-      </div>
-      <div>
-        <span className="text-muted-foreground">Open:</span>{' '}
-        <span className="font-semibold">{openCards}</span>
-      </div>
-      <div>
-        <span className="text-muted-foreground">Completed:</span>{' '}
-        <span className="font-semibold">{completedCards}</span>
-      </div>
+    <div className="flex items-center gap-4 font-mono text-[11px]">
+      <span>
+        <span className="text-terminal-fg-tertiary uppercase tracking-wider">open </span>
+        <span className="font-semibold text-terminal-fg-primary">{openCards}</span>
+      </span>
+      <span className="text-terminal-fg-tertiary">|</span>
+      <span>
+        <span className="text-terminal-fg-tertiary uppercase tracking-wider">done </span>
+        <span className="text-terminal-fg-secondary">{completedCards}</span>
+      </span>
     </div>
   )
 }

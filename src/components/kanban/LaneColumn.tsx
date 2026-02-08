@@ -6,20 +6,24 @@ interface LaneColumnProps {
 }
 
 export function LaneColumn({ lane }: LaneColumnProps) {
+  const openCount = lane.cards.filter((c) => !c.completed).length
+
   return (
-    <div className="flex w-80 shrink-0 flex-col">
-      {/* Lane Header */}
-      <div className="mb-3 flex items-baseline gap-2">
-        <h3 className="font-mono text-sm font-semibold">{lane.name}</h3>
-        <span className="font-mono text-xs text-muted-foreground">
-          {lane.cards.length}
+    <div className="flex w-[280px] shrink-0 flex-col">
+      {/* Lane Header — terminal-section style */}
+      <div className="mb-2 flex items-baseline justify-between border-b border-terminal-border pb-1">
+        <h3 className="font-mono text-[10px] font-semibold uppercase tracking-wider text-terminal-fg-secondary">
+          {lane.name}
+        </h3>
+        <span className="font-mono text-[10px] text-terminal-fg-tertiary">
+          {openCount}
         </span>
       </div>
 
       {/* Cards */}
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {lane.cards.length === 0 ? (
-          <div className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+          <div className="rounded-sm border border-dashed border-terminal-border p-3 text-center font-mono text-[10px] text-terminal-fg-tertiary">
             No cards
           </div>
         ) : (

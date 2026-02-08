@@ -1,56 +1,95 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
 
-interface QuickStatsProps {
-  boardCount: number
-  skillCount: number
-  workflowCount: number
-  benderCount: number
+import { StatusDot } from '@/components/ui/status-dot'
+
+interface TickerProps {
+  openCards: number
+  blockers: number
+  boardCompletion: number
+  inboxPending: number
+  benderActive: number
+  benderTotal: number
 }
 
-export function QuickStats({
-  boardCount,
-  skillCount,
-  workflowCount,
-  benderCount,
-}: QuickStatsProps) {
+export function TickerBar({
+  openCards,
+  blockers,
+  boardCompletion,
+  inboxPending,
+  benderActive,
+  benderTotal,
+}: TickerProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatCard title="Boards" value={boardCount} subtitle="kanban boards" />
-      <StatCard title="Skills" value={skillCount} subtitle="registered skills" />
-      <StatCard
-        title="Workflows"
-        value={workflowCount}
-        subtitle="active workflows"
+    <div className="flex items-center gap-0 h-full font-mono">
+      <TickerStat label="OPEN" value={openCards} />
+      <TickerDivider />
+      <TickerStat
+        label="BLOCKED"
+        value={blockers}
+        dot={blockers > 0 ? 'error' : undefined}
       />
-      <StatCard
-        title="Benders"
-        value={benderCount}
-        subtitle="agent platforms"
+      <TickerDivider />
+      <TickerStat label="BOARDS" value={`${boardCompletion}%`} suffix="avg" />
+      <TickerDivider />
+      <TickerStat label="INBOX" value={inboxPending} />
+      <TickerDivider />
+      <TickerStat
+        label="BENDERS"
+        value={`${benderActive}/${benderTotal}`}
       />
     </div>
   )
 }
 
-function StatCard({
-  title,
+function TickerStat({
+  label,
   value,
-  subtitle,
+  suffix,
+  dot,
 }: {
-  title: string
-  value: number
-  subtitle: string
+  label: string
+  value: string | number
+  suffix?: string
+  dot?: 'ok' | 'warn' | 'error' | 'info'
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-mono text-xs text-muted-foreground">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="font-mono text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col items-start px-3 py-1">
+      <span className="terminal-label">{label}</span>
+      <span className="flex items-center gap-1.5">
+        {dot && <StatusDot status={dot} size={5} />}
+        <span className="terminal-value text-[13px]">{value}</span>
+        {suffix && (
+          <span className="text-[10px] text-terminal-fg-tertiary">{suffix}</span>
+        )}
+      </span>
+    </div>
+  )
+}
+
+function TickerDivider() {
+  return <div className="w-px h-6 bg-terminal-border-strong shrink-0" />
+}
+
+// Keep QuickStats export for backward compat during migration
+export function QuickStats({
+  boardCount,
+  skillCount,
+  workflowCount,
+  benderCount,
+}: {
+  boardCount: number
+  skillCount: number
+  workflowCount: number
+  benderCount: number
+}) {
+  return (
+    <TickerBar
+      openCards={0}
+      blockers={0}
+      boardCompletion={0}
+      inboxPending={0}
+      benderActive={0}
+      benderTotal={benderCount}
+    />
   )
 }

@@ -1,68 +1,70 @@
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { getStatusColor } from '@/lib/client/formatters'
+'use client'
 
-interface BenderStatusWidgetProps {
-  benders: Array<{
-    platform: string
-    status: string
-    activeTasks: number
-  }>
+import { SectionDivider } from '@/components/ui/section-divider'
+import { StatusDot, statusToType } from '@/components/ui/status-dot'
+import { TerminalTable, type TerminalColumn } from '@/components/ui/terminal-table'
+
+interface BenderRow {
+  platform: string
+  status: string
+  activeTasks: number
+  taskId?: string
 }
 
-export function BenderStatusWidget({ benders }: BenderStatusWidgetProps) {
-  if (benders.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-mono text-sm">Bender Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No active bender platforms
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
+interface ActiveBendersProps {
+  benders: BenderRow[]
+}
+
+export function ActiveBendersTable({ benders }: ActiveBendersProps) {
+  const activeCount = benders.filter(
+    (b) => b.status.toLowerCase() !== 'idle'
+  ).length
+
+  const columns: TerminalColumn<BenderRow>[] = [
+    {
+      key: 'platform',
+      label: 'Name',
+      render: (row) => (
+        <span className="text-terminal-fg-primary">{row.platform}</span>
+      ),
+    },
+    {
+      key: 'taskId',
+      label: 'Task',
+      render: (row) => (
+        <span className="terminal-id">
+          {row.taskId || (row.activeTasks > 0 ? `${row.activeTasks} active` : '—')}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => (
+        <StatusDot status={statusToType(row.status)} label={row.status} />
+      ),
+    },
+  ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-mono text-sm">Bender Status</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {benders.map((bender) => (
-            <Link
-              key={bender.platform}
-              href={`/benders/${bender.platform}`}
-              className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3 transition-colors hover:border-primary/50"
-            >
-              <div>
-                <div className="font-mono text-sm font-semibold">
-                  {bender.platform}
-                </div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  {bender.activeTasks} active{' '}
-                  {bender.activeTasks === 1 ? 'task' : 'tasks'}
-                </div>
-              </div>
-              <Badge
-                variant="outline"
-                className="font-mono"
-                style={{
-                  borderColor: getStatusColor(bender.status),
-                  color: getStatusColor(bender.status),
-                }}
-              >
-                {bender.status}
-              </Badge>
-            </Link>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div>
+      <SectionDivider label="Benders" count={`${activeCount} active`} />
+      <TerminalTable
+        columns={columns}
+        data={benders}
+        getRowKey={(row) => row.platform}
+        compact
+        className="mt-1"
+      />
+    </div>
   )
+}
+
+// Keep old export for backward compat
+export function BenderStatusWidget({
+  benders,
+}: {
+  benders: BenderRow[]
+}) {
+  return <ActiveBendersTable benders={benders} />
 }

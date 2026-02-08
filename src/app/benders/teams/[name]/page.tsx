@@ -23,45 +23,41 @@ export default function TeamDetailPage({
       .finally(() => setLoading(false))
   }, [name])
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
+  return (
+    <div className="p-4 space-y-3">
+      {/* Nav bar */}
+      <div className="flex items-center gap-3 font-mono text-[11px] border-b border-terminal-border pb-2">
+        <Link
+          href="/benders"
+          className="text-terminal-fg-tertiary hover:text-user-accent transition-colors"
+        >
+          BENDERS
+        </Link>
+        <span className="text-terminal-fg-tertiary">/</span>
         <Link
           href="/benders/teams"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
+          className="text-terminal-fg-tertiary hover:text-user-accent transition-colors"
         >
-          ← Back to teams
+          TEAMS
         </Link>
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <span className="text-terminal-fg-tertiary">/</span>
+        <span className="font-semibold text-terminal-fg-primary">
+          {decodeURIComponent(name)}
+        </span>
       </div>
-    )
-  }
 
-  if (error || !team) {
-    return (
-      <div className="space-y-6">
-        <Link
-          href="/benders/teams"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to teams
-        </Link>
-        <div className="text-sm text-destructive">
+      {/* Content */}
+      {loading ? (
+        <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+          Loading...
+        </div>
+      ) : error || !team ? (
+        <div className="font-mono text-[11px] text-status-error">
           Failed to load team: {error || 'Unknown error'}
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      <Link
-        href="/benders/teams"
-        className="font-mono text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to teams
-      </Link>
-      <TeamView team={team} />
+      ) : (
+        <TeamView team={team} />
+      )}
     </div>
   )
 }

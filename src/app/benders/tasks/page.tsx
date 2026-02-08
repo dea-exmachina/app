@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Header } from '@/components/layout/Header'
 import { TaskBrowser } from '@/components/benders/TaskBrowser'
 import type { BenderTask } from '@/types/bender'
 import { getTasks } from '@/lib/client/api'
@@ -19,56 +18,42 @@ export default function TasksPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Link
-          href="/benders"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to benders
-        </Link>
-        <Header title="Tasks" description="Bender task browser with filters" />
-        <div className="text-sm text-muted-foreground">Loading...</div>
-      </div>
-    )
-  }
-
-  if (error || !tasks) {
-    return (
-      <div className="space-y-6">
-        <Link
-          href="/benders"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to benders
-        </Link>
-        <Header title="Tasks" description="Bender task browser with filters" />
-        <div className="text-sm text-destructive">
-          Failed to load tasks: {error || 'Unknown error'}
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/benders"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          &larr; Back to benders
-        </Link>
+    <div className="p-4 space-y-3">
+      {/* Nav bar */}
+      <div className="flex items-center justify-between border-b border-terminal-border pb-2">
+        <div className="flex items-center gap-3 font-mono text-[11px]">
+          <Link
+            href="/benders"
+            className="text-terminal-fg-tertiary hover:text-user-accent transition-colors"
+          >
+            BENDERS
+          </Link>
+          <span className="text-terminal-fg-tertiary">/</span>
+          <span className="font-semibold uppercase tracking-wider text-terminal-fg-primary">
+            Tasks
+          </span>
+        </div>
         <Link
           href="/benders/tasks/new"
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-mono text-xs text-primary-foreground hover:bg-primary/90"
+          className="font-mono text-[10px] px-2 py-0.5 rounded-sm bg-user-accent text-user-accent-fg hover:opacity-90 transition-opacity"
         >
-          + Create Task
+          + NEW
         </Link>
       </div>
-      <Header title="Tasks" description="Bender task browser with filters" />
-      <TaskBrowser tasks={tasks} />
+
+      {/* Content */}
+      {loading ? (
+        <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+          Loading...
+        </div>
+      ) : error || !tasks ? (
+        <div className="font-mono text-[11px] text-status-error">
+          Failed to load tasks: {error || 'Unknown error'}
+        </div>
+      ) : (
+        <TaskBrowser tasks={tasks} />
+      )}
     </div>
   )
 }

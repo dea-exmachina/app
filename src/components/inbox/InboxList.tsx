@@ -1,7 +1,7 @@
 'use client'
 
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { InboxItemCard } from './InboxItem'
+import { SectionDivider } from '@/components/ui/section-divider'
 import type { InboxItem } from '@/types/inbox'
 
 interface InboxListProps {
@@ -11,26 +11,43 @@ interface InboxListProps {
 }
 
 export function InboxList({ items, onDelete, deleting }: InboxListProps) {
-  if (items.length === 0) {
-    return (
-      <div className="py-8 text-center font-mono text-sm text-muted-foreground">
-        Inbox is empty. Drop something in.
-      </div>
-    )
-  }
+  const pendingItems = items.filter((i) => i.status === 'pending')
+  const otherItems = items.filter((i) => i.status !== 'pending')
 
   return (
-    <ScrollArea className="h-full">
-      <div className="space-y-2">
-        {items.map((item) => (
-          <InboxItemCard
-            key={item.filename}
-            item={item}
-            onDelete={onDelete}
-            deleting={deleting}
-          />
-        ))}
-      </div>
-    </ScrollArea>
+    <div>
+      <SectionDivider
+        label="Inbox"
+        count={pendingItems.length > 0 ? `${pendingItems.length} pending` : `${items.length} items`}
+      />
+
+      {items.length === 0 ? (
+        <div className="py-4 text-center font-mono text-[11px] text-terminal-fg-tertiary">
+          Inbox is empty. Drop something in.
+        </div>
+      ) : (
+        <div className="mt-1">
+          {pendingItems.map((item) => (
+            <InboxItemCard
+              key={item.filename}
+              item={item}
+              onDelete={onDelete}
+              deleting={deleting}
+            />
+          ))}
+          {otherItems.length > 0 && pendingItems.length > 0 && (
+            <div className="my-1 border-b border-terminal-border" />
+          )}
+          {otherItems.map((item) => (
+            <InboxItemCard
+              key={item.filename}
+              item={item}
+              onDelete={onDelete}
+              deleting={deleting}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

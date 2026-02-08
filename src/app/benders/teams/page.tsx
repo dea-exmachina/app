@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Header } from '@/components/layout/Header'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionDivider } from '@/components/ui/section-divider'
 import type { BenderTeam } from '@/types/bender'
 import { getTeams } from '@/lib/client/api'
 
@@ -19,89 +18,73 @@ export default function TeamsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
+  return (
+    <div className="p-4 space-y-3">
+      {/* Nav bar */}
+      <div className="flex items-center gap-3 font-mono text-[11px] border-b border-terminal-border pb-2">
         <Link
           href="/benders"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
+          className="text-terminal-fg-tertiary hover:text-user-accent transition-colors"
         >
-          ← Back to benders
+          BENDERS
         </Link>
-        <Header title="Teams" description="Bender team configurations" />
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <span className="text-terminal-fg-tertiary">/</span>
+        <span className="font-semibold uppercase tracking-wider text-terminal-fg-primary">
+          Teams
+        </span>
       </div>
-    )
-  }
 
-  if (error || !teams) {
-    return (
-      <div className="space-y-6">
-        <Link
-          href="/benders"
-          className="font-mono text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to benders
-        </Link>
-        <Header title="Teams" description="Bender team configurations" />
-        <div className="text-sm text-destructive">
+      {/* Content */}
+      {loading ? (
+        <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+          Loading...
+        </div>
+      ) : error || !teams ? (
+        <div className="font-mono text-[11px] text-status-error">
           Failed to load teams: {error || 'Unknown error'}
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      <Link
-        href="/benders"
-        className="font-mono text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to benders
-      </Link>
-      <Header title="Teams" description="Bender team configurations" />
-
-      {/* Team List */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {teams.map((team) => (
-          <Link key={team.name} href={`/benders/teams/${team.name}`}>
-            <Card className="h-full transition-colors hover:border-primary/50">
-              <CardHeader>
-                <CardTitle className="text-base">{team.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Members Count */}
-                <div>
-                  <span className="font-mono text-2xl font-bold">
-                    {team.members.length}
-                  </span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {team.members.length === 1 ? 'member' : 'members'}
-                  </span>
-                </div>
-
-                {/* Member List */}
-                <div>
-                  <h4 className="mb-1 font-mono text-xs text-muted-foreground">
+      ) : (
+        <div>
+          <SectionDivider label="Teams" count={`${teams.length}`} />
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full font-mono text-[11px]">
+              <thead>
+                <tr className="border-b border-terminal-border text-terminal-fg-tertiary">
+                  <th className="pb-1.5 pr-3 text-left font-semibold uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="pb-1.5 px-2 text-right font-semibold uppercase tracking-wider w-16">
                     Members
-                  </h4>
-                  <ul className="space-y-0.5 text-sm">
-                    {team.members.map((member) => (
-                      <li key={member.name} className="font-mono text-xs">
-                        {member.name}
-                        <span className="text-muted-foreground">
-                          {' '}
-                          — {member.role}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                  </th>
+                  <th className="pb-1.5 pl-3 text-left font-semibold uppercase tracking-wider">
+                    Agents
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((team) => (
+                  <tr key={team.name} className="group hover:bg-terminal-bg-elevated/50">
+                    <td className="py-1.5 pr-3">
+                      <Link
+                        href={`/benders/teams/${team.name}`}
+                        className="text-terminal-fg-primary group-hover:text-user-accent transition-colors font-semibold"
+                      >
+                        {team.name}
+                      </Link>
+                    </td>
+                    <td className="py-1.5 px-2 text-right text-terminal-fg-secondary">
+                      {team.members.length}
+                    </td>
+                    <td className="py-1.5 pl-3 text-terminal-fg-tertiary">
+                      {team.members.map((m) => m.name).join(', ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

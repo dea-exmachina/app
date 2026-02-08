@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { StatusDot, statusToType } from '@/components/ui/status-dot'
 import { getTasks } from '@/lib/client/api'
 import { formatRelativeDate } from '@/lib/client/formatters'
 import type { BenderTask } from '@/types/bender'
@@ -22,58 +21,52 @@ export function TaskBrowserWidget() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+      <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+        Loading tasks...
       </div>
     )
   }
 
   if (error || !tasks) {
     return (
-      <div className="text-sm text-destructive">
+      <div className="font-mono text-[11px] text-status-error">
         Failed to load tasks: {error || 'Unknown error'}
       </div>
     )
   }
 
   if (tasks.length === 0) {
-    return <div className="text-sm text-muted-foreground">No tasks found</div>
+    return (
+      <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+        No tasks found
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {tasks.slice(0, 10).map((task) => (
         <Link
           key={task.taskId}
           href={`/benders/tasks/${task.taskId}`}
-          className="block rounded-md border border-border bg-muted/30 p-3 transition-colors hover:border-primary/50"
+          className="flex items-center gap-2 py-1 px-1 rounded-sm font-mono text-[11px] hover:bg-terminal-bg-elevated/50 transition-colors"
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-1">
-              <div className="font-mono text-xs text-muted-foreground">
-                {task.taskId}
-              </div>
-              <div className="text-sm font-medium">{task.title}</div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{task.bender}</span>
-                <span>•</span>
-                <span>{formatRelativeDate(task.created)}</span>
-              </div>
-            </div>
-            <Badge variant="outline" className="shrink-0 font-mono">
-              {task.status}
-            </Badge>
-          </div>
+          <span className="text-user-accent shrink-0 w-16">{task.taskId}</span>
+          <span className="text-terminal-fg-primary truncate flex-1">
+            {task.title}
+          </span>
+          <StatusDot status={statusToType(task.status)} size={5} />
+          <span className="text-terminal-fg-tertiary shrink-0 w-14 text-right">
+            {formatRelativeDate(task.created)}
+          </span>
         </Link>
       ))}
       {tasks.length > 10 && (
         <Link
           href="/benders/tasks"
-          className="block pt-2 font-mono text-xs text-primary hover:underline"
+          className="block px-1 pt-1 font-mono text-[10px] text-terminal-fg-tertiary hover:text-user-accent transition-colors"
         >
-          View all {tasks.length} tasks →
+          +{tasks.length - 10} more →
         </Link>
       )}
     </div>

@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { getTeams } from '@/lib/client/api'
 import type { BenderTeam } from '@/types/bender'
 
@@ -21,56 +19,45 @@ export function TeamViewWidget() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+      <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+        Loading teams...
       </div>
     )
   }
 
   if (error || !teams) {
     return (
-      <div className="text-sm text-destructive">
+      <div className="font-mono text-[11px] text-status-error">
         Failed to load teams: {error || 'Unknown error'}
       </div>
     )
   }
 
   if (teams.length === 0) {
-    return <div className="text-sm text-muted-foreground">No teams found</div>
+    return (
+      <div className="font-mono text-[11px] text-terminal-fg-tertiary">
+        No teams found
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {teams.map((team) => (
         <Link
           key={team.name}
           href={`/benders/teams/${team.name}`}
-          className="block rounded-md border border-border bg-muted/30 p-3 transition-colors hover:border-primary/50"
+          className="block rounded-sm border border-terminal-border p-2 hover:border-terminal-border-strong transition-colors"
         >
-          <div className="space-y-2">
-            <div className="font-mono text-sm font-semibold">{team.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {team.members.length} member{team.members.length !== 1 ? 's' : ''}
-            </div>
+          <div className="font-mono text-[11px] font-semibold text-terminal-fg-primary">
+            {team.name}
+          </div>
+          <div className="font-mono text-[10px] text-terminal-fg-tertiary mt-0.5">
+            {team.members.length} member{team.members.length !== 1 ? 's' : ''}
             {team.members.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {team.members.slice(0, 3).map((member) => (
-                  <Badge
-                    key={member.name}
-                    variant="outline"
-                    className="font-mono text-xs"
-                  >
-                    {member.name}
-                  </Badge>
-                ))}
-                {team.members.length > 3 && (
-                  <Badge variant="outline" className="font-mono text-xs">
-                    +{team.members.length - 3}
-                  </Badge>
-                )}
-              </div>
+              <span className="text-terminal-fg-secondary ml-2">
+                {team.members.map((m) => m.name).join(', ')}
+              </span>
             )}
           </div>
         </Link>

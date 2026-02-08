@@ -1,55 +1,85 @@
+'use client'
+
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionDivider } from '@/components/ui/section-divider'
+import { InlineProgressBar } from '@/components/ui/sparkline'
+import { TerminalTable, type TerminalColumn } from '@/components/ui/terminal-table'
 import type { BoardSummary } from '@/types/kanban'
 
-interface BoardSummaryCardProps {
-  board: BoardSummary
+interface BoardSummaryTableProps {
+  boards: BoardSummary[]
 }
 
-export function BoardSummaryCard({ board }: BoardSummaryCardProps) {
-  return (
-    <Link href={`/kanban/${board.id}`}>
-      <Card className="transition-colors hover:border-primary/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">{board.name}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Total Stats */}
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-2xl font-bold">
-              {board.totalOpen}
+export function BoardSummaryTable({ boards }: BoardSummaryTableProps) {
+  const columns: TerminalColumn<BoardSummary>[] = [
+    {
+      key: 'name',
+      label: 'Board',
+      sortable: true,
+      render: (row) => (
+        <Link
+          href={`/kanban/${row.id}`}
+          className="text-terminal-fg-primary hover:text-user-accent transition-colors"
+        >
+          {row.name}
+        </Link>
+      ),
+    },
+    {
+      key: 'totalOpen',
+      label: 'Open',
+      width: '60px',
+      align: 'right',
+      sortable: true,
+    },
+    {
+      key: 'totalCompleted',
+      label: 'Done',
+      width: '60px',
+      align: 'right',
+      sortable: true,
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      width: '120px',
+      render: (row) => {
+        const total = row.totalOpen + row.totalCompleted
+        const pct = total > 0 ? Math.round((row.totalCompleted / total) * 100) : 0
+        return (
+          <span className="flex items-center gap-2">
+            <InlineProgressBar
+              value={pct}
+              width={60}
+              height={8}
+              color={pct > 60 ? 'var(--status-ok)' : pct > 30 ? 'var(--status-warn)' : 'var(--terminal-fg-tertiary)'}
+            />
+            <span className="text-[10px] text-terminal-fg-secondary w-8 text-right">
+              {pct}%
             </span>
-            <span className="text-xs text-muted-foreground">open</span>
-            <span className="text-xs text-muted-foreground">/</span>
-            <span className="font-mono text-sm text-muted-foreground">
-              {board.totalCompleted}
-            </span>
-            <span className="text-xs text-muted-foreground">done</span>
-          </div>
+          </span>
+        )
+      },
+    },
+  ]
 
-          {/* Lane Breakdown */}
-          <div className="space-y-1">
-            {board.laneStats.map((lane) => (
-              <div key={lane.name} className="flex items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground w-20 truncate">
-                  {lane.name}
-                </span>
-                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-primary/60"
-                    style={{
-                      width: `${lane.total > 0 ? (lane.completed / lane.total) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <span className="font-mono text-xs text-muted-foreground w-8 text-right">
-                  {lane.total}
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+  return (
+    <div>
+      <SectionDivider label="Boards" />
+      <TerminalTable
+        columns={columns}
+        data={boards}
+        getRowKey={(row) => row.id}
+        compact
+        className="mt-1"
+      />
+    </div>
+  )
+}
+
+// Keep old export for backward compat
+export function BoardSummaryCard({ board }: { board: BoardSummary }) {
+  return (
+    <BoardSummaryTable boards={[board]} />
   )
 }

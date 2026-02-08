@@ -3,114 +3,142 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { BenderTask } from '@/types/bender'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { getStatusColor, formatDate } from '@/lib/client/formatters'
+import { StatusDot, statusToType } from '@/components/ui/status-dot'
+import { SectionDivider } from '@/components/ui/section-divider'
+import { formatRelativeDate } from '@/lib/client/formatters'
 
 interface TaskBrowserProps {
   tasks: BenderTask[]
 }
 
+const STATUS_TABS = ['all', 'executing', 'delivered', 'integrated'] as const
+
 export function TaskBrowser({ tasks }: TaskBrowserProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
-  // Filter tasks
-  let filtered = tasks
-
-  if (statusFilter !== 'all') {
-    filtered = filtered.filter((t) => t.status === statusFilter)
-  }
-
-  if (priorityFilter !== 'all') {
-    filtered = filtered.filter((t) => t.priority === priorityFilter)
-  }
+  const filtered =
+    statusFilter === 'all'
+      ? tasks
+      : tasks.filter((t) => t.status === statusFilter)
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-          <TabsList variant="line">
-            <TabsTrigger value="all">All Status</TabsTrigger>
-            <TabsTrigger value="proposed">Proposed</TabsTrigger>
-            <TabsTrigger value="executing">Executing</TabsTrigger>
-            <TabsTrigger value="delivered">Delivered</TabsTrigger>
-            <TabsTrigger value="integrated">Integrated</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <Tabs value={priorityFilter} onValueChange={setPriorityFilter}>
-          <TabsList variant="line">
-            <TabsTrigger value="all">All Priority</TabsTrigger>
-            <TabsTrigger value="focus">Focus</TabsTrigger>
-            <TabsTrigger value="normal">Normal</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <SectionDivider label="Tasks" count={`${tasks.length} total`} />
       </div>
 
-      {/* Results Count */}
-      <div className="font-mono text-sm text-muted-foreground">
-        {filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}
+      {/* Status tab filter */}
+      <div className="flex gap-1 mb-3 font-mono text-[10px]">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setStatusFilter(tab)}
+            className={`px-2 py-0.5 rounded-sm uppercase tracking-wider transition-colors ${
+              statusFilter === tab
+                ? 'bg-user-accent text-user-accent-fg'
+                : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {/* Task List */}
-      {filtered.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No tasks match the selected filters
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((task) => (
-            <Link
-              key={task.taskId}
-              href={`/benders/tasks/${task.taskId}`}
-              className="block"
-            >
-              <div className="flex items-start gap-4 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary/50">
-                <div className="flex-1">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {task.taskId}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="font-mono text-xs"
-                      style={{
-                        borderColor: getStatusColor(task.status),
-                        color: getStatusColor(task.status),
-                      }}
+      {/* Task table */}
+      <div className="overflow-x-auto">
+        <table className="w-full font-mono text-[11px]">
+          <thead>
+            <tr className="border-b border-terminal-border text-terminal-fg-tertiary">
+              <th className="pb-1.5 pr-2 text-left font-semibold uppercase tracking-wider w-20">
+                ID
+              </th>
+              <th className="pb-1.5 px-2 text-left font-semibold uppercase tracking-wider">
+                Title
+              </th>
+              <th className="pb-1.5 px-2 text-left font-semibold uppercase tracking-wider w-20">
+                Bender
+              </th>
+              <th className="pb-1.5 px-2 text-left font-semibold uppercase tracking-wider w-24">
+                Status
+              </th>
+              <th className="pb-1.5 px-2 text-left font-semibold uppercase tracking-wider w-12">
+                Pri
+              </th>
+              <th className="pb-1.5 pl-2 text-right font-semibold uppercase tracking-wider w-16">
+                Age
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((task) => {
+              const reviewMark =
+                task.review?.decision === 'ACCEPT'
+                  ? ' \u2713'
+                  : task.review?.decision === 'PARTIAL'
+                    ? ' ~'
+                    : task.review?.decision === 'REJECT'
+                      ? ' \u2717'
+                      : ''
+
+              return (
+                <tr
+                  key={task.taskId}
+                  className="group hover:bg-terminal-bg-elevated/50"
+                >
+                  <td className="py-1.5 pr-2">
+                    <Link
+                      href={`/benders/tasks/${task.taskId}`}
+                      className="text-user-accent hover:underline"
                     >
-                      {task.status}
-                    </Badge>
-                    {task.priority === 'focus' && (
-                      <Badge
-                        variant="outline"
-                        className="font-mono text-xs"
-                        style={{
-                          borderColor: '#AD7B7B',
-                          color: '#AD7B7B',
-                        }}
-                      >
-                        focus
-                      </Badge>
+                      {task.taskId}
+                    </Link>
+                  </td>
+                  <td className="py-1.5 px-2 text-terminal-fg-primary truncate max-w-[300px]">
+                    <Link href={`/benders/tasks/${task.taskId}`}>
+                      {task.title}
+                    </Link>
+                  </td>
+                  <td className="py-1.5 px-2 text-terminal-fg-secondary">
+                    {task.bender}
+                  </td>
+                  <td className="py-1.5 px-2">
+                    <span className="flex items-center gap-1">
+                      <StatusDot
+                        status={statusToType(task.status)}
+                        size={5}
+                      />
+                      <span className="text-terminal-fg-secondary">
+                        {task.status}
+                        {reviewMark}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-2">
+                    {task.priority === 'focus' ? (
+                      <span className="text-status-warn">focus</span>
+                    ) : (
+                      <span className="text-terminal-fg-tertiary">norm</span>
                     )}
-                  </div>
-                  <h3 className="mb-1 text-sm font-semibold">{task.title}</h3>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="font-mono">
-                      Bender: {task.bender}
-                    </span>
-                    <span className="font-mono">
-                      Created: {formatDate(task.created)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+                  </td>
+                  <td className="py-1.5 pl-2 text-right text-terminal-fg-tertiary">
+                    {formatRelativeDate(task.created)}
+                  </td>
+                </tr>
+              )
+            })}
+            {filtered.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="py-4 text-center text-terminal-fg-tertiary"
+                >
+                  No tasks match filter
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -7,14 +7,25 @@ import { WidgetPanel } from './WidgetPanel'
 import type { PageLayoutConfig } from '@/types/widget'
 
 interface WidgetGridProps {
-  pageId: string
+  pageId?: string
   config: PageLayoutConfig
+  editMode?: boolean
+  rowHeight?: number
+  margin?: [number, number]
 }
 
-export function WidgetGrid({ pageId, config }: WidgetGridProps) {
-  const { editMode } = useLayout()
+export function WidgetGrid({
+  pageId,
+  config,
+  editMode: editModeProp,
+  rowHeight = 60,
+  margin = [8, 8],
+}: WidgetGridProps) {
+  const layoutCtx = useLayout()
+  const isEditing = editModeProp ?? layoutCtx.editMode
+  const resolvedPageId = pageId ?? config.pageId
   const { layouts, onLayoutChange } = useLayoutPersistence(
-    pageId,
+    resolvedPageId,
     config.defaultLayouts
   )
   const { width, mounted, containerRef } = useContainerWidth({
@@ -29,18 +40,18 @@ export function WidgetGrid({ pageId, config }: WidgetGridProps) {
           layouts={layouts}
           breakpoints={{ lg: 1200, md: 768, sm: 0 }}
           cols={{ lg: 12, md: 8, sm: 4 }}
-          rowHeight={80}
+          rowHeight={rowHeight}
           width={width}
           dragConfig={{
-            enabled: editMode,
+            enabled: isEditing,
             handle: '.widget-drag-handle',
           }}
           resizeConfig={{
-            enabled: editMode,
+            enabled: isEditing,
           }}
           onLayoutChange={onLayoutChange}
           containerPadding={[0, 0]}
-          margin={[12, 12]}
+          margin={margin}
         >
           {config.widgets.map((widget) => (
             <div key={widget.id}>
