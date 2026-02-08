@@ -22,10 +22,14 @@ export async function GET(
   try {
     const { slug } = await params
 
+    // Detect if param is a UUID (support both slug and id lookups)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+    const column = isUuid ? 'id' : 'slug'
+
     // Fetch project
     const { data: project, error: projectError } = await tables.projects
       .select('*')
-      .eq('slug', slug)
+      .eq(column, slug)
       .single()
 
     if (projectError) {
@@ -34,7 +38,7 @@ export async function GET(
         return NextResponse.json(
           {
             error: 'Project not found',
-            details: `No project found with slug "${slug}"`,
+            details: `No project found with ${column} "${slug}"`,
             code: 'NOT_FOUND',
           },
           { status: 404 }
