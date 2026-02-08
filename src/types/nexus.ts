@@ -1,7 +1,7 @@
 /**
  * NEXUS — Next-Gen Execution & Unified System Types
  *
- * Shared types for the NEXUS orchestration engine (DEA-042).
+ * Schema V2: Board=Project, standard 5 lanes, bender dual-view, inline subtasks.
  * Used by cards, tasks, comments, locks, events, context, and agent sessions.
  */
 
@@ -15,6 +15,9 @@ export interface NexusProject {
   override_reason: string | null
   protected_paths: string[] | null
   repo_url: string | null
+  card_id_prefix: string
+  next_card_number: number
+  color: string | null
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string
@@ -27,8 +30,8 @@ export interface NexusCard {
   card_id: string
   project_id: string | null
   parent_id: string | null
-  board: string
   lane: CardLane
+  bender_lane: BenderLane | null
   title: string
   summary: string | null
   card_type: CardType
@@ -39,25 +42,33 @@ export interface NexusCard {
   priority: CardPriority
   source: string | null
   tags: string[] | null
+  subtasks: Subtask[]
+  due_date: string | null
   completed_at: string | null
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string
 }
 
-export type CardLane =
-  | 'inbox' | 'handoff' | 'planning' | 'ready' | 'in_progress' | 'review' | 'done'
-  | 'proposed' | 'queued' | 'executing' | 'delivered' | 'integrated'
+export type CardLane = 'backlog' | 'ready' | 'in_progress' | 'review' | 'done'
 
-export type CardType = 'epic' | 'task' | 'bug' | 'chore' | 'research' | 'phase'
+export type BenderLane = 'proposed' | 'queued' | 'executing' | 'delivered' | 'integrated'
+
+export interface Subtask {
+  id: string
+  title: string
+  completed: boolean
+  completed_at: string | null
+}
+
+export type CardType = 'epic' | 'task' | 'bug' | 'chore' | 'research'
 export type DelegationTag = 'BENDER' | 'DEA'
 export type CardPriority = 'critical' | 'high' | 'normal' | 'low'
 
 export interface NexusCardCreate {
-  card_id: string
+  card_id?: string
   project_id?: string
   parent_id?: string
-  board: string
   lane: CardLane
   title: string
   summary?: string
@@ -69,11 +80,15 @@ export interface NexusCardCreate {
   priority?: CardPriority
   source?: string
   tags?: string[]
+  bender_lane?: BenderLane
+  subtasks?: Subtask[]
+  due_date?: string
   metadata?: Record<string, unknown>
 }
 
 export interface NexusCardUpdate {
   lane?: CardLane
+  bender_lane?: BenderLane | null
   title?: string
   summary?: string
   delegation_tag?: DelegationTag
@@ -82,6 +97,8 @@ export interface NexusCardUpdate {
   assigned_model?: string | null
   priority?: CardPriority
   tags?: string[]
+  subtasks?: Subtask[]
+  due_date?: string | null
   completed_at?: string | null
   metadata?: Record<string, unknown>
 }
@@ -211,7 +228,7 @@ export interface NexusEvent {
 }
 
 export type NexusEventType =
-  | 'card.created' | 'card.moved' | 'card.assigned' | 'card.completed'
+  | 'card.created' | 'card.moved' | 'card.assigned' | 'card.completed' | 'card.bender_moved'
   | 'comment.added' | 'comment.pivot'
   | 'lock.acquired' | 'lock.released'
   | 'scope.conflict'
@@ -264,8 +281,8 @@ export interface NexusAgentSessionCreate {
 // ── Query / Filter Types ────────────────────────────────
 
 export interface CardFilters {
-  board?: string
   lane?: CardLane | CardLane[]
+  bender_lane?: BenderLane | BenderLane[]
   project_id?: string
   assigned_to?: string
   delegation_tag?: DelegationTag
@@ -273,6 +290,8 @@ export interface CardFilters {
   card_type?: CardType
   parent_id?: string | null
   tags?: string[]
+  due_before?: string
+  due_after?: string
 }
 
 export interface EventFilters {

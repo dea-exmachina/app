@@ -1,13 +1,15 @@
 -- NEXUS — Next-Gen Execution & Unified System (DEA-042)
 -- Migration: 011_nexus_schema
+-- Schema V2: Board=Project, standard 5 lanes, bender dual-view, inline subtasks
 -- Creates: nexus_projects, nexus_cards, nexus_task_details, nexus_comments,
 --          nexus_locks, nexus_events, nexus_context_packages, nexus_agent_sessions
--- Triggers: card change events, comment events, lock events
+-- Triggers: card change events, comment events, lock events, auto-ID generation
 -- Realtime: nexus_events, nexus_cards, nexus_comments, nexus_agent_sessions
 
 -- ============================================================================
 -- TABLE: nexus_projects
--- Project-level config, delegation policy, protected files.
+-- Project-level config, delegation policy, card ID generation.
+-- Board = Project: every project gets its own board view.
 -- ============================================================================
 CREATE TABLE nexus_projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,6 +20,9 @@ CREATE TABLE nexus_projects (
   override_reason TEXT,
   protected_paths TEXT[],
   repo_url TEXT,
+  card_id_prefix TEXT NOT NULL,
+  next_card_number INTEGER NOT NULL DEFAULT 1,
+  color TEXT,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -32,20 +37,24 @@ CREATE POLICY "Allow all for service role" ON nexus_projects
 -- ============================================================================
 -- TABLE: nexus_cards
 -- The index object. Lightweight, scannable, links to everything.
+-- No board column — project_id determines which board a card belongs to.
+-- Standard 5 lanes: backlog → ready → in_progress → review → done
+-- Bender dual-view via bender_lane (nullable, only for bender-assigned cards).
+-- Inline subtasks as JSONB array: [{id, title, completed, completed_at}]
 -- ============================================================================
 CREATE TABLE nexus_cards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  card_id TEXT UNIQUE NOT NULL,
+  card_id TEXT UNIQUE NOT NULL DEFAULT '',
   project_id UUID REFERENCES nexus_projects(id),
   parent_id UUID REFERENCES nexus_cards(id),
-  board TEXT NOT NULL,
   lane TEXT NOT NULL
-    CHECK (lane IN ('inbox', 'handoff', 'planning', 'ready', 'in_progress', 'review', 'done',
-                    'proposed', 'queued', 'executing', 'delivered', 'integrated')),
+    CHECK (lane IN ('backlog', 'ready', 'in_progress', 'review', 'done')),
+  bender_lane TEXT
+    CHECK (bender_lane IN ('proposed', 'queued', 'executing', 'delivered', 'integrated')),
   title TEXT NOT NULL,
   summary TEXT,
   card_type TEXT NOT NULL
-    CHECK (card_type IN ('epic', 'task', 'bug', 'chore', 'research', 'phase')),
+    CHECK (card_type IN ('epic', 'task', 'bug', 'chore', 'research')),
   delegation_tag TEXT NOT NULL DEFAULT 'BENDER'
     CHECK (delegation_tag IN ('BENDER', 'DEA')),
   delegation_justification TEXT,
@@ -55,13 +64,16 @@ CREATE TABLE nexus_cards (
     CHECK (priority IN ('critical', 'high', 'normal', 'low')),
   source TEXT,
   tags TEXT[],
+  subtasks JSONB DEFAULT '[]',
+  due_date TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_nexus_cards_board_lane ON nexus_cards(board, lane);
+CREATE INDEX idx_nexus_cards_project_lane ON nexus_cards(project_id, lane);
+CREATE INDEX idx_nexus_cards_bender ON nexus_cards(assigned_to) WHERE bender_lane IS NOT NULL;
 CREATE INDEX idx_nexus_cards_project ON nexus_cards(project_id);
 CREATE INDEX idx_nexus_cards_parent ON nexus_cards(parent_id);
 CREATE INDEX idx_nexus_cards_assigned ON nexus_cards(assigned_to);
@@ -245,7 +257,30 @@ CREATE POLICY "Allow all for service role" ON nexus_agent_sessions
 ALTER PUBLICATION supabase_realtime ADD TABLE nexus_agent_sessions;
 
 -- ============================================================================
+-- TRIGGER: Auto-generate card_id from project prefix + sequence
+-- If card_id is empty or null on INSERT, generates e.g. 'DEA-112', 'CC-001'
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_generate_card_id()
+RETURNS TRIGGER AS $$
+DECLARE prefix TEXT; num INTEGER;
+BEGIN
+  IF NEW.card_id IS NULL OR NEW.card_id = '' THEN
+    SELECT card_id_prefix, next_card_number INTO prefix, num
+      FROM nexus_projects WHERE id = NEW.project_id FOR UPDATE;
+    NEW.card_id := prefix || '-' || LPAD(num::TEXT, 3, '0');
+    UPDATE nexus_projects SET next_card_number = num + 1 WHERE id = NEW.project_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nexus_card_auto_id
+  BEFORE INSERT ON nexus_cards FOR EACH ROW
+  EXECUTE FUNCTION nexus_generate_card_id();
+
+-- ============================================================================
 -- TRIGGERS: Emit events on card state changes
+-- Detects lane changes, assignment changes, and bender_lane changes.
 -- ============================================================================
 CREATE OR REPLACE FUNCTION nexus_emit_card_event()
 RETURNS TRIGGER AS $$
@@ -268,6 +303,17 @@ BEGIN
       jsonb_build_object(
         'from', OLD.assigned_to,
         'to', NEW.assigned_to
+      ));
+  END IF;
+
+  IF OLD.bender_lane IS DISTINCT FROM NEW.bender_lane THEN
+    INSERT INTO nexus_events (event_type, card_id, actor, payload)
+    VALUES ('card.bender_moved', NEW.id,
+      COALESCE(current_setting('app.actor', true), 'system'),
+      jsonb_build_object(
+        'from_bender_lane', OLD.bender_lane,
+        'to_bender_lane', NEW.bender_lane,
+        'card_id', NEW.card_id
       ));
   END IF;
 
@@ -328,12 +374,13 @@ CREATE TRIGGER nexus_lock_changes
   FOR EACH ROW EXECUTE FUNCTION nexus_emit_lock_event();
 
 -- ============================================================================
--- TRIGGERS: Auto-set completed_at when card moves to done/integrated
+-- TRIGGERS: Auto-set completed_at when card moves to done
+-- Only fires on standard lane = 'done' (bender_lane 'integrated' is separate)
 -- ============================================================================
 CREATE OR REPLACE FUNCTION nexus_card_completion()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.lane IN ('done', 'integrated') AND OLD.lane NOT IN ('done', 'integrated') THEN
+  IF NEW.lane = 'done' AND OLD.lane != 'done' THEN
     NEW.completed_at = COALESCE(NEW.completed_at, now());
   END IF;
   RETURN NEW;
@@ -345,7 +392,7 @@ CREATE TRIGGER nexus_card_completion
   FOR EACH ROW EXECUTE FUNCTION nexus_card_completion();
 
 -- ============================================================================
--- TRIGGERS: Auto-update updated_at on task_details changes
+-- TRIGGERS: Auto-update updated_at on task_details / projects changes
 -- ============================================================================
 CREATE OR REPLACE FUNCTION nexus_update_timestamp()
 RETURNS TRIGGER AS $$
@@ -362,3 +409,13 @@ CREATE TRIGGER nexus_task_details_updated
 CREATE TRIGGER nexus_projects_updated
   BEFORE UPDATE ON nexus_projects
   FOR EACH ROW EXECUTE FUNCTION nexus_update_timestamp();
+
+-- ============================================================================
+-- SEED DATA: Initial projects
+-- Council = system/meta/governance (replaces management board)
+-- ============================================================================
+INSERT INTO nexus_projects (slug, name, delegation_policy, override_reason, card_id_prefix, next_card_number) VALUES
+  ('council', 'Council', 'dea-only', 'System/meta/governance', 'DEA', 112),
+  ('control-center', 'Control Center', 'delegation-first', NULL, 'CC', 1),
+  ('kerkoporta', 'Kerkoporta', 'dea-only', 'Personal voice/brand', 'KERKO', 15),
+  ('nexus', 'NEXUS', 'delegation-first', NULL, 'NEXUS', 1);

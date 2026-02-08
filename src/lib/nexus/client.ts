@@ -27,7 +27,7 @@ import type {
   NexusEvent, NexusEventType, EventFilters,
   NexusContextPackage,
   NexusAgentSession, NexusAgentSessionCreate,
-  NexusProject, CardLane,
+  NexusProject, CardLane, BenderLane,
 } from '@/types/nexus'
 
 // ── Client Factory ──────────────────────────────────────
@@ -116,12 +116,18 @@ export class NexusClient {
   async listCards(filters: CardFilters = {}): Promise<NexusCard[]> {
     let query = this.supabase.from('nexus_cards').select('*')
 
-    if (filters.board) query = query.eq('board', filters.board)
     if (filters.lane) {
       if (Array.isArray(filters.lane)) {
         query = query.in('lane', filters.lane)
       } else {
         query = query.eq('lane', filters.lane)
+      }
+    }
+    if (filters.bender_lane) {
+      if (Array.isArray(filters.bender_lane)) {
+        query = query.in('bender_lane', filters.bender_lane)
+      } else {
+        query = query.eq('bender_lane', filters.bender_lane)
       }
     }
     if (filters.project_id) query = query.eq('project_id', filters.project_id)
@@ -139,6 +145,8 @@ export class NexusClient {
     if (filters.tags && filters.tags.length > 0) {
       query = query.overlaps('tags', filters.tags)
     }
+    if (filters.due_before) query = query.lte('due_date', filters.due_before)
+    if (filters.due_after) query = query.gte('due_date', filters.due_after)
 
     const { data, error } = await query.order('created_at', { ascending: true })
     if (error) throw new NexusError('listCards', error.message)
@@ -155,8 +163,7 @@ export class NexusClient {
 
     // Emit creation event
     await this.emitEvent('card.created', (data as NexusCard).id, {
-      card_id: card.card_id,
-      board: card.board,
+      card_id: (data as NexusCard).card_id,
       lane: card.lane,
       title: card.title,
     })
@@ -177,6 +184,10 @@ export class NexusClient {
 
   async moveCard(cardId: string, toLane: CardLane): Promise<NexusCard> {
     return this.updateCard(cardId, { lane: toLane })
+  }
+
+  async moveCardBenderLane(cardId: string, toBenderLane: BenderLane | null): Promise<NexusCard> {
+    return this.updateCard(cardId, { bender_lane: toBenderLane })
   }
 
   async getChildren(parentCardId: string): Promise<NexusCard[]> {
