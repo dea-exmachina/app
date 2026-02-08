@@ -1,3 +1,5 @@
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -5,6 +7,7 @@ import { StatusDot, statusToType } from '@/components/ui/status-dot'
 interface CardItemProps {
   card: KanbanCard
   onClick?: () => void
+  draggable?: boolean
 }
 
 /** Compute relative age from a date string */
@@ -31,17 +34,29 @@ function cardStatus(card: KanbanCard): string {
   return 'pending'
 }
 
-export function CardItem({ card, onClick }: CardItemProps) {
+export function CardItem({ card, onClick, draggable = false }: CardItemProps) {
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: card.id,
+    disabled: !draggable,
+  })
+
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : undefined
+
   return (
     <div
-      onClick={onClick}
+      ref={setNodeRef}
+      style={style}
+      {...(draggable ? { ...listeners, ...attributes } : {})}
+      onClick={isDragging ? undefined : onClick}
       className={`rounded-sm border border-terminal-border bg-terminal-bg-surface p-2 transition-colors hover:border-terminal-border-strong cursor-pointer ${
         card.completed ? 'opacity-50' : ''
-      }`}
+      } ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
       {/* Line 1: ID + tags + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">

@@ -1,16 +1,28 @@
+import { useDroppable } from '@dnd-kit/core'
 import type { KanbanLane, KanbanCard } from '@/types/kanban'
 import { CardItem } from './CardItem'
 
 interface LaneColumnProps {
   lane: KanbanLane
   onCardClick?: (card: KanbanCard) => void
+  droppable?: boolean
 }
 
-export function LaneColumn({ lane, onCardClick }: LaneColumnProps) {
+export function LaneColumn({ lane, onCardClick, droppable = false }: LaneColumnProps) {
   const openCount = lane.cards.filter((c) => !c.completed).length
 
+  const { isOver, setNodeRef } = useDroppable({
+    id: lane.name,
+    disabled: !droppable,
+  })
+
   return (
-    <div className="flex w-[280px] shrink-0 flex-col">
+    <div
+      ref={setNodeRef}
+      className={`flex w-[280px] shrink-0 flex-col transition-colors ${
+        isOver ? 'bg-user-accent-muted rounded-sm' : ''
+      }`}
+    >
       {/* Lane Header — terminal-section style */}
       <div className="mb-2 flex items-baseline justify-between border-b border-terminal-border pb-1">
         <h3 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-terminal-fg-secondary">
@@ -22,7 +34,7 @@ export function LaneColumn({ lane, onCardClick }: LaneColumnProps) {
       </div>
 
       {/* Cards */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 min-h-[40px]">
         {lane.cards.length === 0 ? (
           <div className="rounded-sm border border-dashed border-terminal-border p-3 text-center font-mono text-[11px] text-terminal-fg-tertiary">
             No cards
@@ -33,6 +45,7 @@ export function LaneColumn({ lane, onCardClick }: LaneColumnProps) {
               key={card.id}
               card={card}
               onClick={onCardClick ? () => onCardClick(card) : undefined}
+              draggable={droppable}
             />
           ))
         )}
