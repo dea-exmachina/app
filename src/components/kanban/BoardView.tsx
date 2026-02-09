@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
 import { moveCard } from '@/lib/client/api'
+import { useUnresolvedComments } from '@/hooks/useUnresolvedComments'
 import { LaneColumn } from './LaneColumn'
 import { BoardStats } from './BoardStats'
 import { CardDetailPanel } from './CardDetailPanel'
@@ -42,6 +43,9 @@ export function BoardView({ board }: BoardViewProps) {
     card: KanbanCard
     lane: string
   } | null>(null)
+
+  // Unresolved comments for badge display
+  const { unresolvedMap, cardsNeedingAttention } = useUnresolvedComments()
 
   // Build card→lane lookup
   const cardLaneMap = useMemo(() => {
@@ -140,6 +144,11 @@ export function BoardView({ board }: BoardViewProps) {
           </h2>
         </div>
         <div className="flex items-center gap-3">
+          {cardsNeedingAttention > 0 && (
+            <span className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-amber-500/40 text-amber-400 bg-amber-500/10">
+              {cardsNeedingAttention} NEED ATTENTION
+            </span>
+          )}
           <button
             onClick={() => setLocked((v) => !v)}
             className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
@@ -169,6 +178,7 @@ export function BoardView({ board }: BoardViewProps) {
                 lane={lane}
                 onCardClick={handleCardClick(lane.name)}
                 droppable={!locked}
+                unresolvedMap={unresolvedMap}
               />
             ))}
           </div>

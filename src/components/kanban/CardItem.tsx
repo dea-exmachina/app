@@ -8,6 +8,8 @@ interface CardItemProps {
   card: KanbanCard
   onClick?: () => void
   draggable?: boolean
+  unresolvedCount?: number
+  hasQuestions?: boolean
 }
 
 /** Compute relative age from a date string */
@@ -34,7 +36,7 @@ function cardStatus(card: KanbanCard): string {
   return 'pending'
 }
 
-export function CardItem({ card, onClick, draggable = false }: CardItemProps) {
+export function CardItem({ card, onClick, draggable = false, unresolvedCount, hasQuestions }: CardItemProps) {
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
@@ -58,11 +60,20 @@ export function CardItem({ card, onClick, draggable = false }: CardItemProps) {
         card.completed ? 'opacity-50' : ''
       } ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
-      {/* Line 1: ID + tags + status dot */}
+      {/* Line 1: ID + unresolved badge + tags + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="font-mono text-[10px] font-semibold text-user-accent shrink-0">
           {card.id}
         </span>
+        {unresolvedCount != null && unresolvedCount > 0 && (
+          <span className={`font-mono text-[9px] px-1 rounded-sm shrink-0 ${
+            hasQuestions
+              ? 'bg-amber-500/15 text-amber-400'
+              : 'bg-terminal-bg-elevated text-terminal-fg-secondary'
+          }`}>
+            {unresolvedCount}
+          </span>
+        )}
         <div className="flex gap-1 flex-1 min-w-0 overflow-hidden">
           {card.tags.slice(0, 3).map((tag) => (
             <CardBadge key={tag} tag={tag} />

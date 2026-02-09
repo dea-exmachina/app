@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
+import { CommentThread } from './CommentThread'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { formatDate } from '@/lib/client/formatters'
@@ -156,6 +157,9 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
               </pre>
             </details>
           )}
+
+          {/* Comments Thread */}
+          <CommentThread cardId={card.id} />
         </div>
       </div>
     </>

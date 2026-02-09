@@ -173,7 +173,8 @@ export interface NexusComment {
   created_at: string
 }
 
-export type CommentType = 'note' | 'pivot' | 'question' | 'directive'
+export type CommentType = 'note' | 'pivot' | 'question' | 'directive' | 'delivery' | 'review' | 'rejection'
+export type CommentAuthor = 'dea' | 'user' | 'bender' | `bender+${string}`
 export type PivotImpact = 'minor' | 'major'
 
 export interface NexusCommentCreate {
@@ -183,6 +184,15 @@ export interface NexusCommentCreate {
   comment_type?: CommentType
   is_pivot?: boolean
   pivot_impact?: PivotImpact
+}
+
+export interface CardCommentSummary {
+  card_id: string
+  card_display_id: string
+  unresolved_count: number
+  has_questions: boolean
+  has_rejections: boolean
+  latest_comment_at: string | null
 }
 
 // ── Lock Types ──────────────────────────────────────────

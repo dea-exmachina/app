@@ -1,14 +1,16 @@
 import { useDroppable } from '@dnd-kit/core'
 import type { KanbanLane, KanbanCard } from '@/types/kanban'
+import type { CardCommentSummary } from '@/types/nexus'
 import { CardItem } from './CardItem'
 
 interface LaneColumnProps {
   lane: KanbanLane
   onCardClick?: (card: KanbanCard) => void
   droppable?: boolean
+  unresolvedMap?: Map<string, CardCommentSummary>
 }
 
-export function LaneColumn({ lane, onCardClick, droppable = false }: LaneColumnProps) {
+export function LaneColumn({ lane, onCardClick, droppable = false, unresolvedMap }: LaneColumnProps) {
   const openCount = lane.cards.filter((c) => !c.completed).length
 
   const { isOver, setNodeRef } = useDroppable({
@@ -40,14 +42,19 @@ export function LaneColumn({ lane, onCardClick, droppable = false }: LaneColumnP
             No cards
           </div>
         ) : (
-          lane.cards.map((card) => (
-            <CardItem
-              key={card.id}
-              card={card}
-              onClick={onCardClick ? () => onCardClick(card) : undefined}
-              draggable={droppable}
-            />
-          ))
+          lane.cards.map((card) => {
+            const summary = unresolvedMap?.get(card.id)
+            return (
+              <CardItem
+                key={card.id}
+                card={card}
+                onClick={onCardClick ? () => onCardClick(card) : undefined}
+                draggable={droppable}
+                unresolvedCount={summary?.unresolved_count}
+                hasQuestions={summary?.has_questions}
+              />
+            )
+          })
         )}
       </div>
     </div>

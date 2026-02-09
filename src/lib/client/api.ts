@@ -15,6 +15,7 @@ import type {
 import type { ProjectLegacy as Project, ProjectDetail } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
+import type { NexusComment, CardCommentSummary } from '@/types/nexus'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -150,6 +151,56 @@ export async function moveCard(
     const error: ApiError = await res.json()
     throw new Error(error.error.message)
   }
+}
+
+// NEXUS Comment Operations
+export async function getComments(cardId: string): Promise<{
+  data: NexusComment[]
+  cached: boolean
+}> {
+  return fetchApi<NexusComment[]>(`/api/nexus/cards/${cardId}/comments`)
+}
+
+export async function postComment(
+  cardId: string,
+  body: { author: string; content: string; comment_type?: string; is_pivot?: boolean; pivot_impact?: string }
+): Promise<{ data: NexusComment; cached: boolean }> {
+  const res = await fetch(`/api/nexus/cards/${cardId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function resolveComment(
+  cardId: string,
+  commentId: string
+): Promise<{ data: NexusComment; cached: boolean }> {
+  const res = await fetch(`/api/nexus/cards/${cardId}/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolved: true }),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function getUnresolvedComments(projectId?: string): Promise<{
+  data: CardCommentSummary[]
+  cached: boolean
+}> {
+  const url = projectId
+    ? `/api/nexus/comments/unresolved?project_id=${projectId}`
+    : '/api/nexus/comments/unresolved'
+  return fetchApi<CardCommentSummary[]>(url)
 }
 
 // Projects
