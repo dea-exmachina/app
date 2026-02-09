@@ -28,6 +28,7 @@ import type {
   NexusContextPackage,
   NexusAgentSession, NexusAgentSessionCreate,
   NexusProject, CardLane, BenderLane,
+  ContextLayers,
 } from '@/types/nexus'
 
 // ── Client Factory ──────────────────────────────────────
@@ -425,6 +426,12 @@ export class NexusClient {
     return allConflicts
   }
 
+  async cleanupExpiredLocks(): Promise<number> {
+    const { data, error } = await this.supabase.rpc('nexus_cleanup_expired_locks_rpc')
+    if (error) throw new NexusError('cleanupExpiredLocks', error.message)
+    return (data as { released: number }).released
+  }
+
   async getActiveLocks(agent?: string): Promise<NexusLock[]> {
     let query = this.supabase
       .from('nexus_locks')
@@ -522,6 +529,43 @@ export class NexusClient {
     this.subscriptions.clear()
   }
 
+  // ── Progressive Disclosure ─────────────────────────
+
+  /** Layer 0: Card index only (lightweight) */
+  async getLayer0(cardId: string): Promise<NexusCard | null> {
+    return this.getCard(cardId)
+  }
+
+  /** Layer 1: Card + task details (on demand) */
+  async getLayer1(cardId: string): Promise<{ card: NexusCard; details: NexusTaskDetails | null; comments: NexusComment[] } | null> {
+    const card = await this.getCard(cardId)
+    if (!card) return null
+    const [details, comments] = await Promise.all([
+      this.getTaskDetails(cardId),
+      this.getComments(cardId),
+    ])
+    return { card, details, comments }
+  }
+
+  /** Layer 2: Full context package (for execution) */
+  async getLayer2(cardId: string): Promise<{
+    card: NexusCard
+    details: NexusTaskDetails | null
+    comments: NexusComment[]
+    context: NexusContextPackage | null
+    children: NexusCard[]
+  } | null> {
+    const card = await this.getCard(cardId)
+    if (!card) return null
+    const [details, comments, context, children] = await Promise.all([
+      this.getTaskDetails(cardId),
+      this.getComments(cardId),
+      this.getContextPackage(cardId),
+      this.getChildren(cardId),
+    ])
+    return { card, details, comments, context, children }
+  }
+
   // ── Context Packages ────────────────────────────────
 
   async getContextPackage(cardId: string): Promise<NexusContextPackage | null> {
@@ -538,6 +582,84 @@ export class NexusClient {
       .maybeSingle()
     if (error) throw new NexusError('getContextPackage', error.message)
     return data as NexusContextPackage | null
+  }
+
+  /** Assemble a fresh context package for a card, marking old ones stale */
+  async assembleContextPackage(cardId: string): Promise<NexusContextPackage> {
+    const card = await this.getCard(cardId)
+    if (!card) throw new NexusError('assembleContextPackage', `Card not found: ${cardId}`)
+
+    const [details, comments, children, project] = await Promise.all([
+      this.getTaskDetails(cardId),
+      this.getComments(cardId),
+      this.getChildren(cardId),
+      card.project_id
+        ? this.supabase.from('nexus_projects').select('slug, name, delegation_policy').eq('id', card.project_id).single().then(r => r.data as NexusProject | null)
+        : Promise.resolve(null),
+    ])
+
+    const layers: ContextLayers = {
+      base: [
+        `Card: ${card.card_id} — ${card.title}`,
+        `Type: ${card.card_type} | Lane: ${card.lane} | Priority: ${card.priority}`,
+        card.assigned_to ? `Assigned: ${card.assigned_to}` : 'Unassigned',
+        ...(card.bender_lane ? [`Bender lane: ${card.bender_lane}`] : []),
+      ],
+      task_type: details ? [
+        details.overview ?? '',
+        ...(details.requirements ? [`Requirements: ${details.requirements}`] : []),
+        ...(details.acceptance_criteria ? [`Criteria: ${details.acceptance_criteria}`] : []),
+        ...(details.constraints ? [`Constraints: ${details.constraints}`] : []),
+        ...(details.deliverables ? [`Deliverables: ${details.deliverables}`] : []),
+      ].filter(Boolean) : [],
+      project: project ? [
+        `Project: ${project.name} (${project.slug})`,
+        `Policy: ${project.delegation_policy}`,
+      ] : [],
+      comments: comments.map(c =>
+        `[${c.comment_type}${c.is_pivot ? '/pivot' : ''}] ${c.author}: ${c.content}`
+      ),
+    }
+
+    const assembledFiles = details?.declared_scope ?? []
+    const assembledContent = [
+      ...layers.base ?? [],
+      '',
+      ...(layers.task_type?.length ? ['--- Task Details ---', ...layers.task_type, ''] : []),
+      ...(layers.project?.length ? ['--- Project ---', ...layers.project, ''] : []),
+      ...(children.length ? [
+        '--- Subtasks ---',
+        ...children.map(c => `  ${c.card_id}: ${c.title} [${c.lane}]`),
+        '',
+      ] : []),
+      ...(layers.comments?.length ? ['--- Comments ---', ...layers.comments] : []),
+    ].join('\n')
+
+    // Mark old packages stale
+    await this.supabase
+      .from('nexus_context_packages')
+      .update({ stale: true })
+      .eq('card_id', card.id)
+      .eq('stale', false)
+
+    // Insert fresh package
+    const { data, error } = await this.supabase
+      .from('nexus_context_packages')
+      .insert({
+        card_id: card.id,
+        layers,
+        assembled_files: assembledFiles,
+        assembled_content: assembledContent,
+        assembled_at: new Date().toISOString(),
+        stale: false,
+      })
+      .select()
+      .single()
+    if (error) throw new NexusError('assembleContextPackage', error.message)
+
+    await this.emitEvent('context.stale', card.id, { reason: 'reassembled', package_id: (data as NexusContextPackage).id })
+
+    return data as NexusContextPackage
   }
 
   // ── Agent Sessions ──────────────────────────────────

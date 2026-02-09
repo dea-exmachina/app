@@ -1,44 +1,25 @@
 import { NextResponse } from 'next/server'
-import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { HandoffSection } from '@/types/kanban'
+
+/**
+ * GET /api/dashboard/handoff — Handoff section
+ *
+ * Previously from kanban_boards management board JSONB.
+ * Now returns 404 — handoff data lives in vault markdown (kanban/management.md),
+ * not in NEXUS Supabase. Will be replaced by NEXUS session handoff when available.
+ */
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<HandoffSection> | ApiError>
 > {
-  try {
-    const { data, error } = await tables.kanban_boards
-      .select('*')
-      .eq('slug', 'management')
-      .single()
-
-    if (error) throw error
-
-    const handoff = (data as Record<string, unknown>)?.handoff as HandoffSection | null
-
-    if (!handoff) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Handoff section not found in management board',
-          },
-        },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({ data: handoff, cached: false })
-  } catch (error) {
-    console.error('Error fetching handoff:', error)
-    return NextResponse.json(
-      {
-        error: {
-          code: 'FETCH_ERROR',
-          message: 'Failed to fetch handoff section',
-        },
+  return NextResponse.json(
+    {
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Handoff section not available — migrated to NEXUS',
       },
-      { status: 500 }
-    )
-  }
+    },
+    { status: 404 }
+  )
 }

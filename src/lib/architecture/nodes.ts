@@ -212,10 +212,10 @@ const PROJECT_NODES: Node<EnhancedNodeData>[] = [
       tier: 'project',
       category: 'kanban',
       brief:
-        'Kanban boards for task tracking. Cards move through lanes (inbox → ready → in_progress → review → done). Supports tags, parent/child hierarchy, and completion tracking.',
+        'NEXUS kanban — project-scoped card lifecycle. Standard lanes (backlog → ready → in_progress → review → done) + bender dual-view. Subtasks, locking, context engine, event system.',
       phase: [1, 2],
       cardTags: ['#kanban'],
-      tables: ['kanban_boards', 'kanban_cards'],
+      tables: ['nexus_projects', 'nexus_cards', 'nexus_task_details', 'nexus_comments', 'nexus_locks', 'nexus_events'],
     },
   },
   {

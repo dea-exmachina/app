@@ -136,6 +136,22 @@ export async function createTask(
   return res.json()
 }
 
+// NEXUS Card Operations
+export async function moveCard(
+  cardId: string,
+  lane: string
+): Promise<void> {
+  const res = await fetch(`/api/nexus/cards/${cardId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lane }),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
 // Projects
 export async function getProjects(): Promise<{
   data: Project[]

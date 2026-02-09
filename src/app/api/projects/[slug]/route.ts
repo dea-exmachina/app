@@ -71,8 +71,8 @@ export async function GET(
       .select('*', { count: 'exact', head: true })
       .eq('project_id', project.id)
 
-    // Count kanban cards
-    const { count: cardCount } = await tables.kanban_cards
+    // Count nexus cards
+    const { count: cardCount } = await tables.nexus_cards
       .select('*', { count: 'exact', head: true })
       .eq('project_id', project.id)
 

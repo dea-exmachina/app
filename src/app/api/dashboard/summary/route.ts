@@ -2,50 +2,63 @@ import { NextResponse } from 'next/server'
 import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { DashboardSummary } from '@/types/dashboard'
-import type { BoardSummary, HandoffSection, KanbanLane } from '@/types/kanban'
+import type { BoardSummary } from '@/types/kanban'
+
+/**
+ * GET /api/dashboard/summary — Dashboard overview (backed by nexus_projects + nexus_cards)
+ */
+
+const STANDARD_LANES = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const
+const LANE_LABELS: Record<string, string> = {
+  backlog: 'Backlog',
+  ready: 'Ready',
+  in_progress: 'In Progress',
+  review: 'Review',
+  done: 'Done',
+}
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<DashboardSummary> | ApiError>
 > {
   try {
-    // Board stats from Supabase
-    const { data: boards, error: boardsError } = await tables.kanban_boards
-      .select('*')
+    // Board stats from NEXUS projects + cards
+    const { data: projects, error: projError } = await tables.nexus_projects
+      .select('id, slug, name')
       .order('name')
 
-    if (boardsError) throw boardsError
+    if (projError) throw projError
 
-    const boardStats: BoardSummary[] = (boards ?? []).map((row) => {
-      const lanes = (row.lanes as unknown as KanbanLane[]) ?? []
+    const { data: cards, error: cardsError } = await tables.nexus_cards
+      .select('project_id, lane, completed_at')
 
-      const laneStats = lanes.map((lane) => ({
-        name: lane.name,
-        total: lane.cards.length,
-        completed: lane.cards.filter((c) => c.completed).length,
-      }))
+    if (cardsError) throw cardsError
 
-      const totalOpen = lanes.reduce(
-        (sum, lane) => sum + lane.cards.filter((c) => !c.completed).length,
-        0
-      )
-      const totalCompleted = lanes.reduce(
-        (sum, lane) => sum + lane.cards.filter((c) => c.completed).length,
-        0
-      )
+    const allCards = (cards ?? []) as Array<{ project_id: string; lane: string; completed_at: string | null }>
+
+    const boardStats: BoardSummary[] = (projects ?? []).map((project: Record<string, unknown>) => {
+      const projectCards = allCards.filter(c => c.project_id === project.id)
+
+      const laneStats = STANDARD_LANES.map(lane => {
+        const laneCards = projectCards.filter(c => c.lane === lane)
+        return {
+          name: LANE_LABELS[lane],
+          total: laneCards.length,
+          completed: laneCards.filter(c => c.lane === 'done').length,
+        }
+      })
+
+      const totalCompleted = projectCards.filter(c => c.lane === 'done').length
+      const totalOpen = projectCards.length - totalCompleted
 
       return {
-        id: row.slug,
-        name: row.name,
-        filePath: row.markdown_path ?? '',
+        id: project.slug as string,
+        name: project.name as string,
+        filePath: '',
         laneStats,
         totalOpen,
         totalCompleted,
       }
     })
-
-    // Handoff from management board
-    const mgmtBoard = (boards ?? []).find((b) => b.slug === 'management')
-    const handoff = ((mgmtBoard as Record<string, unknown> | undefined)?.handoff as HandoffSection | undefined) ?? null
 
     // Skill count
     const { count: skillCount } = await tables.skills
@@ -75,7 +88,7 @@ export async function GET(): Promise<
       }))
 
     const summary: DashboardSummary = {
-      handoff,
+      handoff: null,
       boardStats,
       activeBenders,
       skillCount: skillCount ?? 0,

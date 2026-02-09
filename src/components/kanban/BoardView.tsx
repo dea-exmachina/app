@@ -13,10 +13,20 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
+import { moveCard } from '@/lib/client/api'
 import { LaneColumn } from './LaneColumn'
 import { BoardStats } from './BoardStats'
 import { CardDetailPanel } from './CardDetailPanel'
 import { CardItem } from './CardItem'
+
+/** Map display lane names back to DB lane values for NEXUS persistence */
+const LANE_TO_DB: Record<string, string> = {
+  'Backlog': 'backlog',
+  'Ready': 'ready',
+  'In Progress': 'in_progress',
+  'Review': 'review',
+  'Done': 'done',
+}
 
 interface BoardViewProps {
   board: KanbanBoard
@@ -90,6 +100,14 @@ export function BoardView({ board }: BoardViewProps) {
         dstLane.cards.push(card)
         return next
       })
+
+      // Persist lane move to NEXUS
+      const dbLane = LANE_TO_DB[targetLaneName]
+      if (dbLane) {
+        moveCard(cardId, dbLane).catch((err) => {
+          console.error('Failed to persist lane move:', err)
+        })
+      }
     },
     [cardLaneMap]
   )

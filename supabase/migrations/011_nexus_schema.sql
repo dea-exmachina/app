@@ -411,6 +411,115 @@ CREATE TRIGGER nexus_projects_updated
   FOR EACH ROW EXECUTE FUNCTION nexus_update_timestamp();
 
 -- ============================================================================
+-- TRIGGERS: Mark context packages stale when task details change
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_mark_context_stale()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE nexus_context_packages SET stale = true
+  WHERE card_id = NEW.card_id AND stale = false;
+  INSERT INTO nexus_events (event_type, card_id, actor, payload)
+  VALUES ('context.stale', NEW.card_id, 'system',
+    jsonb_build_object('reason', 'task_details_updated'));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nexus_context_staleness
+  AFTER UPDATE ON nexus_task_details
+  FOR EACH ROW EXECUTE FUNCTION nexus_mark_context_stale();
+
+-- ============================================================================
+-- TRIGGERS: Auto-lock on in_progress, auto-release on review/done
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_auto_lock()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Auto-acquire task lock when card moves to in_progress
+  IF NEW.lane = 'in_progress' AND OLD.lane != 'in_progress' AND NEW.assigned_to IS NOT NULL THEN
+    INSERT INTO nexus_locks (lock_type, card_id, agent, target, expires_at)
+    VALUES ('task', NEW.id, NEW.assigned_to, NEW.card_id, now() + interval '4 hours')
+    ON CONFLICT DO NOTHING;
+  END IF;
+  -- Auto-release task locks when card moves to review or done
+  IF NEW.lane IN ('review', 'done') AND OLD.lane NOT IN ('review', 'done') THEN
+    UPDATE nexus_locks SET released_at = now()
+    WHERE card_id = NEW.id AND lock_type = 'task' AND released_at IS NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nexus_card_auto_lock
+  AFTER UPDATE ON nexus_cards
+  FOR EACH ROW EXECUTE FUNCTION nexus_auto_lock();
+
+-- ============================================================================
+-- FUNCTION: Cleanup expired locks (call via RPC or cron)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_cleanup_expired_locks()
+RETURNS INTEGER AS $$
+DECLARE released_count INTEGER;
+BEGIN
+  UPDATE nexus_locks SET released_at = now()
+  WHERE released_at IS NULL AND expires_at IS NOT NULL AND expires_at < now();
+  GET DIAGNOSTICS released_count = ROW_COUNT;
+  RETURN released_count;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION nexus_cleanup_expired_locks_rpc()
+RETURNS JSONB AS $$
+DECLARE cnt INTEGER;
+BEGIN
+  cnt := nexus_cleanup_expired_locks();
+  RETURN jsonb_build_object('released', cnt);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- TRIGGERS: Emit card.created event on INSERT
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_emit_card_created()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO nexus_events (event_type, card_id, actor, payload)
+  VALUES ('card.created', NEW.id,
+    COALESCE(current_setting('app.actor', true), 'system'),
+    jsonb_build_object(
+      'card_id', NEW.card_id,
+      'lane', NEW.lane,
+      'title', NEW.title,
+      'card_type', NEW.card_type
+    ));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nexus_card_created
+  AFTER INSERT ON nexus_cards
+  FOR EACH ROW EXECUTE FUNCTION nexus_emit_card_created();
+
+-- ============================================================================
+-- TRIGGERS: Major pivot → pull card back to review
+-- ============================================================================
+CREATE OR REPLACE FUNCTION nexus_handle_pivot()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_pivot = true AND NEW.pivot_impact = 'major' THEN
+    UPDATE nexus_cards SET lane = 'review'
+    WHERE id = NEW.card_id AND lane = 'in_progress';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nexus_pivot_handler
+  AFTER INSERT ON nexus_comments
+  FOR EACH ROW WHEN (NEW.is_pivot = true AND NEW.pivot_impact = 'major')
+  EXECUTE FUNCTION nexus_handle_pivot();
+
+-- ============================================================================
 -- SEED DATA: Initial projects
 -- Council = system/meta/governance (replaces management board)
 -- ============================================================================
