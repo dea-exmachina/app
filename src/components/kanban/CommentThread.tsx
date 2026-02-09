@@ -73,15 +73,40 @@ const COMMENT_TYPES: { value: CommentType; label: string }[] = [
 function CommentItem({
   comment,
   onResolve,
+  onEdit,
+  onDelete,
 }: {
   comment: NexusComment
   onResolve?: (id: string) => void
+  onEdit?: (id: string, content: string) => Promise<void>
+  onDelete?: (id: string) => Promise<void>
 }) {
+  const [editing, setEditing] = useState(false)
+  const [editContent, setEditContent] = useState(comment.content)
+  const [saving, setSaving] = useState(false)
+  const isUserComment = comment.author === 'user'
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim() || saving || !onEdit) return
+    setSaving(true)
+    try {
+      await onEdit(comment.id, editContent.trim())
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!onDelete) return
+    await onDelete(comment.id)
+  }
+
   return (
     <div className={`rounded-sm border border-terminal-border p-2 space-y-1 ${
       comment.resolved ? 'opacity-50' : ''
     }`}>
-      {/* Header: author + type + time */}
+      {/* Header: author + type + time + actions */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`font-mono text-[10px] font-semibold ${authorColor(comment.author)} ${authorBgColor(comment.author)} px-1 rounded-sm`}>
           {comment.author}
@@ -112,6 +137,24 @@ function CommentItem({
             resolve
           </button>
         )}
+        {isUserComment && !editing && (
+          <>
+            <button
+              onClick={() => { setEditing(true); setEditContent(comment.content) }}
+              className="font-mono text-[9px] text-terminal-fg-tertiary hover:text-user-accent transition-colors px-1"
+              title="Edit comment"
+            >
+              edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="font-mono text-[9px] text-terminal-fg-tertiary hover:text-red-400 transition-colors px-1"
+              title="Delete comment"
+            >
+              del
+            </button>
+          </>
+        )}
         {comment.resolved && (
           <span className="font-mono text-[9px] text-terminal-fg-tertiary">
             resolved
@@ -119,10 +162,42 @@ function CommentItem({
         )}
       </div>
 
-      {/* Content */}
-      <p className="font-mono text-[11px] text-terminal-fg-primary leading-relaxed whitespace-pre-wrap">
-        {comment.content}
-      </p>
+      {/* Content or edit mode */}
+      {editing ? (
+        <div className="space-y-1">
+          <TerminalTextarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={2}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault()
+                handleSaveEdit()
+              }
+              if (e.key === 'Escape') setEditing(false)
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveEdit}
+              disabled={!editContent.trim() || saving}
+              className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-secondary hover:text-user-accent hover:border-user-accent transition-colors disabled:opacity-40"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="font-mono text-[9px] px-1.5 py-0.5 text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="font-mono text-[11px] text-terminal-fg-primary leading-relaxed whitespace-pre-wrap">
+          {comment.content}
+        </p>
+      )}
     </div>
   )
 }
@@ -210,6 +285,8 @@ export function CommentThread({ cardId }: CommentThreadProps) {
     isLive,
     postComment,
     resolveComment,
+    editComment,
+    deleteComment,
   } = useCommentsRealtime({ cardId })
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -263,6 +340,8 @@ export function CommentThread({ cardId }: CommentThreadProps) {
                   key={comment.id}
                   comment={comment}
                   onResolve={resolveComment}
+                  onEdit={editComment}
+                  onDelete={deleteComment}
                 />
               ))
             )}

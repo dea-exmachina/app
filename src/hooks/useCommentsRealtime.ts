@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { NexusComment, CommentType } from '@/types/nexus'
-import { getComments, postComment as apiPostComment, resolveComment as apiResolveComment } from '@/lib/client/api'
+import {
+  getComments,
+  postComment as apiPostComment,
+  resolveComment as apiResolveComment,
+  editComment as apiEditComment,
+  deleteComment as apiDeleteComment,
+} from '@/lib/client/api'
 
 const REALTIME_TIMEOUT_MS = 5000
 
@@ -20,6 +26,8 @@ interface UseCommentsRealtimeResult {
   refresh: () => void
   postComment: (content: string, commentType: CommentType) => Promise<void>
   resolveComment: (commentId: string) => Promise<void>
+  editComment: (commentId: string, content: string) => Promise<void>
+  deleteComment: (commentId: string) => Promise<void>
 }
 
 export function useCommentsRealtime(
@@ -182,9 +190,34 @@ export function useCommentsRealtime(
     }
   }, [cardId])
 
+  // Edit a comment (user-authored only, enforced server-side)
+  const editComment = useCallback(async (commentId: string, content: string) => {
+    try {
+      const { data } = await apiEditComment(cardId, commentId, { content })
+      setComments((prev) =>
+        prev.map((c) => (c.id === data.id ? data : c))
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to edit comment')
+      throw err
+    }
+  }, [cardId])
+
+  // Delete a comment (user-authored only, enforced server-side)
+  const deleteComment = useCallback(async (commentId: string) => {
+    try {
+      await apiDeleteComment(cardId, commentId)
+      commentIdsRef.current.delete(commentId)
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete comment')
+      throw err
+    }
+  }, [cardId])
+
   const refresh = useCallback(() => {
     fetchComments(true)
   }, [fetchComments])
 
-  return { comments, loading, error, isLive, refresh, postComment, resolveComment }
+  return { comments, loading, error, isLive, refresh, postComment, resolveComment, editComment, deleteComment }
 }

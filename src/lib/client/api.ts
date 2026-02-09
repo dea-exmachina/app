@@ -193,6 +193,36 @@ export async function resolveComment(
   return res.json()
 }
 
+export async function editComment(
+  cardId: string,
+  commentId: string,
+  body: { content: string; comment_type?: string }
+): Promise<{ data: NexusComment; cached: boolean }> {
+  const res = await fetch(`/api/nexus/cards/${cardId}/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteComment(
+  cardId: string,
+  commentId: string
+): Promise<void> {
+  const res = await fetch(`/api/nexus/cards/${cardId}/comments/${commentId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
 export async function getUnresolvedComments(projectId?: string): Promise<{
   data: CardCommentSummary[]
   cached: boolean
