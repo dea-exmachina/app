@@ -35,16 +35,18 @@ export async function GET(
     // Resolve chain context: next slug and prev slug
     const chainNextId = record.chain_next as string | null
     let chainNextSlug: string | null = null
+    let chainNextTitle: string | null = null
     if (chainNextId) {
       const { data: nextData } = await tables.workflows
-        .select('slug')
+        .select('slug, title')
         .eq('id', chainNextId)
         .single()
       chainNextSlug = nextData?.slug ?? null
+      chainNextTitle = nextData?.title ?? null
     }
 
     const { data: prevData } = await tables.workflows
-      .select('slug')
+      .select('slug, title')
       .eq('chain_next', row.id)
       .single()
 
@@ -62,7 +64,9 @@ export async function GET(
       prerequisites: (row.prerequisites as unknown as string[]) ?? [],
       layer: (record.layer as Workflow['layer']) ?? null,
       chainNext: chainNextSlug,
+      chainNextTitle: chainNextTitle,
       chainPrev: prevData?.slug ?? null,
+      chainPrevTitle: prevData?.title ?? null,
     }
 
     return NextResponse.json({ data: workflow, cached: false })

@@ -16,7 +16,9 @@ export interface Workflow {
   prerequisites: string[]
   layer: ArchitectureTier | null
   chainNext: string | null
+  chainNextTitle: string | null
   chainPrev: string | null
+  chainPrevTitle: string | null
 }
 
 export interface WorkflowSection {

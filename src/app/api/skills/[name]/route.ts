@@ -59,7 +59,9 @@ export async function GET(
           prerequisites: (workflow.prerequisites as unknown as string[]) ?? [],
           layer: (record.layer as Workflow['layer']) ?? null,
           chainNext: (record.chain_next as string) ?? null,
+          chainNextTitle: null,
           chainPrev: null,
+          chainPrevTitle: null,
         }
       }
     }
