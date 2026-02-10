@@ -81,7 +81,7 @@ const TIER_GROUPS: Node<TierGroupData>[] = [
       label: 'Tier 1 — Operations',
       tier: 'operations',
       description: 'Execution layer — kanban, benders, inbox, projects, skills, workflows',
-      nodeCount: 7,
+      nodeCount: 9,
     },
     style: {
       width: 1180,
@@ -113,7 +113,7 @@ const TIER_GROUPS: Node<TierGroupData>[] = [
       label: 'Tier ∞ — Infrastructure',
       tier: 'infrastructure',
       description: 'Cross-cutting services — hosting, database, storage, auth',
-      nodeCount: 8,
+      nodeCount: 9,
     },
     style: {
       width: 1180,
@@ -406,6 +406,40 @@ const OPERATIONS_NODES: Node<EnhancedNodeData>[] = [
       tables: ['bender_teams', 'bender_team_members', 'identity_project_context'],
     },
   },
+  {
+    id: 'design-system',
+    type: 'system',
+    position: { x: 30, y: 170 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Design System',
+      status: 'live',
+      description: 'UI Components',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'shadcn/ui component library with Tailwind v4. Provides Button, Card, Badge, Tabs, Dialog, Skeleton, and other primitives. Tier-colored badges and status indicators throughout.',
+      tables: [],
+    },
+  },
+  {
+    id: 'widget-system',
+    type: 'system',
+    position: { x: 200, y: 170 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Widget System',
+      status: 'live',
+      description: 'Layout Engine',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'react-grid-layout v2 widget engine. Each page is a WidgetGrid with draggable, resizable widget cards. Persists layouts to localStorage. Powers all dashboard pages.',
+      tables: [],
+    },
+  },
 ]
 
 // ── Tier 2: Instance (Per-User Vaults) ───────────────────────
@@ -625,6 +659,25 @@ const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
       ],
     },
   },
+  {
+    id: 'mcp-server',
+    type: 'infra',
+    position: { x: 710, y: 170 },
+    parentNode: 'infra-group',
+    extent: 'parent',
+    data: {
+      label: 'MCP Server',
+      status: 'live',
+      description: 'Supabase MCP',
+      tier: 'infrastructure',
+      category: 'api',
+      brief:
+        'Model Context Protocol server (@supabase/mcp-server-supabase). Provides execute_sql, apply_migration, list_tables tools. Used by dea for all interactive Supabase queries.',
+      secrets: [
+        { variableName: 'SUPABASE_ACCESS_TOKEN', secretType: 'TOKEN', location: 'vault', required: true },
+      ],
+    },
+  },
 ]
 
 // ── All Nodes Combined ───────────────────────────────────────
@@ -734,6 +787,13 @@ export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
 
   // ── External → Infrastructure ──────────────────────────────
   coloredEdge('github-zagara', 'github', 'zagara', 'webhook', { label: 'webhooks', animated: true }),
+
+  // ── MCP Server ────────────────────────────────────────────
+  coloredEdge('mcp-supabase', 'mcp-server', 'supabase', 'api', { label: 'SQL queries' }),
+  coloredEdge('dea-mcp', 'dea-instance', 'mcp-server', 'api', { label: 'MCP tools' }),
+
+  // ── Design/Widget systems ─────────────────────────────────
+  coloredEdge('widget-vercel', 'widget-system', 'vercel', 'api', { dashed: true }),
 ]
 
 // ── Tier definitions ─────────────────────────────────────────
