@@ -1,17 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Workflow } from '@/types/workflow'
+import { TIER_COLORS, TIER_LABELS } from '@/types/architecture'
 import { formatDate, getStatusColor } from '@/lib/client/formatters'
+import { WorkflowTimeline } from './WorkflowTimeline'
+import { WorkflowChain } from './WorkflowChain'
 
 interface WorkflowDetailProps {
   workflow: Workflow
 }
 
 export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
+  const tierColor = workflow.layer ? TIER_COLORS[workflow.layer] : null
+  const tierLabel = workflow.layer ? TIER_LABELS[workflow.layer] : null
+
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card>
+      <Card
+        style={tierColor ? { borderTopColor: tierColor.accent, borderTopWidth: 3 } : undefined}
+      >
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -43,6 +51,20 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
 
           {/* Metadata */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {tierLabel && tierColor && (
+              <div>
+                <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
+                  Layer
+                </h3>
+                <Badge
+                  variant="outline"
+                  className="font-mono"
+                  style={{ borderColor: tierColor.accent, color: tierColor.accent }}
+                >
+                  {tierLabel}
+                </Badge>
+              </div>
+            )}
             <div>
               <h3 className="mb-1 font-mono text-xs font-semibold text-muted-foreground">
                 Type
@@ -84,6 +106,9 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
               {workflow.filePath}
             </p>
           </div>
+
+          {/* Chain Navigation */}
+          <WorkflowChain workflow={workflow} />
         </CardContent>
       </Card>
 
@@ -103,34 +128,14 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
         </Card>
       )}
 
-      {/* Sections */}
+      {/* Step Timeline */}
       {workflow.sections.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-mono text-sm">Workflow Steps</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {workflow.sections.map((section, i) => (
-              <div key={i}>
-                <h3
-                  className={`mb-2 font-semibold ${
-                    section.level === 2
-                      ? 'text-base'
-                      : section.level === 3
-                        ? 'text-sm'
-                        : 'text-xs'
-                  }`}
-                >
-                  {section.heading}
-                </h3>
-                <div className="prose prose-sm prose-invert max-w-none">
-                  <div
-                    className="text-sm text-muted-foreground whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
-                  />
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <WorkflowTimeline sections={workflow.sections} />
           </CardContent>
         </Card>
       )}
