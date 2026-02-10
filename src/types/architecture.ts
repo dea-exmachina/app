@@ -308,3 +308,11 @@ export const ARCHITECTURE_TIERS = [
   { id: 'instance' as const, label: 'Instance', description: 'Per-user vaults — local, private, independent' },
   { id: 'infrastructure' as const, label: 'Infra', description: 'Cross-cutting services — hosting, DB, storage' },
 ] as const
+
+export const TIER_LABELS: Record<ArchitectureTier, string> = {
+  council: 'Council',
+  advisory: 'Advisory',
+  operations: 'Operations',
+  instance: 'Instance',
+  infrastructure: 'Infra',
+}

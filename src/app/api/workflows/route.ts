@@ -33,6 +33,9 @@ export async function GET(): Promise<
           filePath: (record.file_path as string) ?? row.markdown_path,
           sections: (row.sections as unknown as WorkflowSection[]) ?? [],
           prerequisites: (row.prerequisites as unknown as string[]) ?? [],
+          layer: (record.layer as Workflow['layer']) ?? null,
+          chainNext: (record.chain_next as string) ?? null,
+          chainPrev: null,
         }
       })
 

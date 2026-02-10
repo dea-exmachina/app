@@ -31,6 +31,23 @@ export async function GET(
     // Map database columns to Workflow interface
     // Handle both old schema (slug, markdown_path) and new schema (name, file_path)
     const record = row as Record<string, unknown>
+
+    // Resolve chain context: next slug and prev slug
+    const chainNextId = record.chain_next as string | null
+    let chainNextSlug: string | null = null
+    if (chainNextId) {
+      const { data: nextData } = await tables.workflows
+        .select('slug')
+        .eq('id', chainNextId)
+        .single()
+      chainNextSlug = nextData?.slug ?? null
+    }
+
+    const { data: prevData } = await tables.workflows
+      .select('slug')
+      .eq('chain_next', row.id)
+      .single()
+
     const workflow: Workflow = {
       name: (record.name as string) ?? row.slug,
       title: row.title,
@@ -43,6 +60,9 @@ export async function GET(
       filePath: (record.file_path as string) ?? row.markdown_path,
       sections: (row.sections as unknown as WorkflowSection[]) ?? [],
       prerequisites: (row.prerequisites as unknown as string[]) ?? [],
+      layer: (record.layer as Workflow['layer']) ?? null,
+      chainNext: chainNextSlug,
+      chainPrev: prevData?.slug ?? null,
     }
 
     return NextResponse.json({ data: workflow, cached: false })

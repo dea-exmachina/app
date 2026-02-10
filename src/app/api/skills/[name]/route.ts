@@ -57,6 +57,9 @@ export async function GET(
           filePath: (record.file_path as string) ?? workflow.markdown_path,
           sections: (workflow.sections as unknown as WorkflowSection[]) ?? [],
           prerequisites: (workflow.prerequisites as unknown as string[]) ?? [],
+          layer: (record.layer as Workflow['layer']) ?? null,
+          chainNext: (record.chain_next as string) ?? null,
+          chainPrev: null,
         }
       }
     }

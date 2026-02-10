@@ -1,5 +1,7 @@
 // Interface contracts for the Workflows module
 
+import type { ArchitectureTier } from './architecture'
+
 export interface Workflow {
   name: string
   title: string
@@ -12,6 +14,9 @@ export interface Workflow {
   filePath: string
   sections: WorkflowSection[]
   prerequisites: string[]
+  layer: ArchitectureTier | null
+  chainNext: string | null
+  chainPrev: string | null
 }
 
 export interface WorkflowSection {
