@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import type { Node } from 'reactflow'
 import {
   Sheet,
@@ -11,7 +12,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import type { EnhancedNodeData } from '@/lib/architecture/nodes'
 import { STATUS_COLORS, ARCHITECTURE_EDGES, TIER_COLORS } from '@/lib/architecture/nodes'
-import { DATA_FLOW_COLORS, type DataFlowType } from '@/types/architecture'
+import { DATA_FLOW_COLORS, type DataFlowType, type ArchitectureAnnotation } from '@/types/architecture'
+import { SuggestionForm } from '@/components/architecture/SuggestionForm'
+import { AnnotationList } from '@/components/architecture/AnnotationList'
 
 interface NodeDetailPanelProps {
   node: Node<EnhancedNodeData> | null
@@ -20,6 +23,48 @@ interface NodeDetailPanelProps {
 }
 
 export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
+  const [annotations, setAnnotations] = useState<ArchitectureAnnotation[]>([])
+  const [loadingAnnotations, setLoadingAnnotations] = useState(false)
+
+  const fetchAnnotations = useCallback(async (targetId: string) => {
+    setLoadingAnnotations(true)
+    try {
+      const res = await fetch(`/api/architecture/annotations?target_id=${targetId}`)
+      if (res.ok) {
+        const json = await res.json()
+        setAnnotations(json.data ?? [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch annotations:', err)
+    } finally {
+      setLoadingAnnotations(false)
+    }
+  }, [])
+
+  // Fetch annotations when node changes
+  useEffect(() => {
+    if (node && open) {
+      fetchAnnotations(node.id)
+    } else {
+      setAnnotations([])
+    }
+  }, [node?.id, open, fetchAnnotations])
+
+  const handleResolve = useCallback(async (id: string, resolved: boolean) => {
+    try {
+      const res = await fetch('/api/architecture/annotations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, resolved, resolvedBy: 'george' }),
+      })
+      if (res.ok && node) {
+        fetchAnnotations(node.id)
+      }
+    } catch (err) {
+      console.error('Failed to update annotation:', err)
+    }
+  }, [node, fetchAnnotations])
+
   if (!node) return null
 
   const data = node.data
@@ -32,7 +77,7 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center gap-3">
             <span
@@ -223,6 +268,32 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
                 <p className="text-sm text-muted-foreground">No direct connections</p>
               )}
             </div>
+          </div>
+
+          {/* ── Work: Annotations + Suggestions ─────────────── */}
+          <div className="border-t border-border pt-4">
+            <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3">
+              Annotations
+              {annotations.length > 0 && (
+                <span className="ml-1.5 text-foreground">({annotations.length})</span>
+              )}
+            </h4>
+
+            {loadingAnnotations ? (
+              <p className="text-xs text-muted-foreground font-mono">Loading...</p>
+            ) : (
+              <div className="space-y-3">
+                <AnnotationList
+                  annotations={annotations}
+                  onResolve={handleResolve}
+                />
+                <SuggestionForm
+                  targetId={node.id}
+                  targetTier={data.tier}
+                  onSubmit={() => fetchAnnotations(node.id)}
+                />
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>
