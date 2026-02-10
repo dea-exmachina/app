@@ -7,47 +7,14 @@ import type {
   SecretReference,
   DataFlowType,
 } from '@/types/architecture'
+import { DATA_FLOW_COLORS } from '@/types/architecture'
 
-// ── Legacy Types (backwards compatibility) ─────────────────
-
-export type { NodeStatus }
-
-export interface SystemNodeData {
-  label: string
-  status: NodeStatus
-  description: string
-  phase: number[]
-  cards?: string[]
-  // Extended fields
-  tier?: ArchitectureTier
-  category?: NodeCategory
-  brief?: string
-  tables?: string[]
-  secrets?: SecretReference[]
-  workflows?: WorkflowStep[]
-  cardTags?: string[]
-}
-
-export interface InfraNodeData {
-  label: string
-  status: NodeStatus
-  description: string
-  phase: number[]
-  // Extended fields
-  tier?: ArchitectureTier
-  category?: NodeCategory
-  brief?: string
-  tables?: string[]
-  secrets?: SecretReference[]
-}
-
-// ── Enhanced Node Data ─────────────────────────────────────
+// ── Node Data Interface ──────────────────────────────────────
 
 export interface EnhancedNodeData {
   label: string
   status: NodeStatus
   description: string
-  phase: number[]
   tier: ArchitectureTier
   category: NodeCategory
   brief: string
@@ -58,115 +25,260 @@ export interface EnhancedNodeData {
   workflows?: WorkflowStep[]
 }
 
-// ── META Tier Nodes ────────────────────────────────────────
+export type { NodeStatus }
 
-const META_NODES: Node<EnhancedNodeData>[] = [
+// ── Group Node Data ──────────────────────────────────────────
+
+export interface TierGroupData {
+  label: string
+  tier: ArchitectureTier
+  description: string
+  nodeCount: number
+}
+
+// ── Tier Group Containers ────────────────────────────────────
+// React Flow group nodes act as parents for child nodes.
+// Children use relative positioning within the parent bounds.
+
+const TIER_GROUPS: Node<TierGroupData>[] = [
   {
-    id: 'hive',
-    type: 'system',
-    position: { x: 100, y: 50 },
+    id: 'council-group',
+    type: 'tierGroup',
+    position: { x: 0, y: 0 },
     data: {
-      label: 'HIVE \u2014 Architect',
+      label: 'Tier 0 — Council',
+      tier: 'council',
+      description: 'Governance constructs — strategy, arbitration, standards',
+      nodeCount: 5,
+    },
+    style: {
+      width: 920,
+      height: 280,
+      padding: 20,
+    },
+  },
+  {
+    id: 'advisory-group',
+    type: 'tierGroup',
+    position: { x: 960, y: 0 },
+    data: {
+      label: 'Advisory',
+      tier: 'advisory',
+      description: 'Outside counsel — research, not governance',
+      nodeCount: 1,
+    },
+    style: {
+      width: 220,
+      height: 280,
+      padding: 20,
+    },
+  },
+  {
+    id: 'operations-group',
+    type: 'tierGroup',
+    position: { x: 0, y: 340 },
+    data: {
+      label: 'Tier 1 — Operations',
+      tier: 'operations',
+      description: 'Execution layer — kanban, benders, inbox, projects, skills, workflows',
+      nodeCount: 7,
+    },
+    style: {
+      width: 1180,
+      height: 280,
+      padding: 20,
+    },
+  },
+  {
+    id: 'instance-group',
+    type: 'tierGroup',
+    position: { x: 0, y: 680 },
+    data: {
+      label: 'Tier 2 — Instance',
+      tier: 'instance',
+      description: 'Per-user dea-exmachina vaults — local, private, independent',
+      nodeCount: 3,
+    },
+    style: {
+      width: 560,
+      height: 250,
+      padding: 20,
+    },
+  },
+  {
+    id: 'infra-group',
+    type: 'tierGroup',
+    position: { x: 0, y: 990 },
+    data: {
+      label: 'Tier ∞ — Infrastructure',
+      tier: 'infrastructure',
+      description: 'Cross-cutting services — hosting, database, storage, auth',
+      nodeCount: 8,
+    },
+    style: {
+      width: 1180,
+      height: 280,
+      padding: 20,
+    },
+  },
+]
+
+// ── Tier 0: Council (Governance Constructs) ──────────────────
+
+const COUNCIL_NODES: Node<EnhancedNodeData>[] = [
+  {
+    id: 'kerrigan',
+    type: 'construct',
+    position: { x: 350, y: 50 },
+    parentNode: 'council-group',
+    extent: 'parent',
+    data: {
+      label: 'THE SWARM — Kerrigan',
+      status: 'live',
+      description: 'Supreme Authority',
+      tier: 'council',
+      category: 'construct',
+      brief:
+        'Supreme governance authority. Owns strategy, arbitration, meta-framework integrity, and delegation policy. Manages NEXUS card lifecycle and multi-agent coordination.',
+      cards: ['DEA-035', 'DEA-042', 'DEA-047'],
+      cardTags: ['#swarm', '#kerrigan'],
+      tables: [
+        'nexus_cards',
+        'nexus_events',
+        'meta_constructs',
+      ],
+    },
+  },
+  {
+    id: 'architect',
+    type: 'construct',
+    position: { x: 30, y: 50 },
+    parentNode: 'council-group',
+    extent: 'parent',
+    data: {
+      label: 'HIVE — Architect',
       status: 'live',
       description: 'Team Construction',
-      tier: 'meta',
-      category: 'kerrigan',
+      tier: 'council',
+      category: 'construct',
       brief:
         'Team construction factory. Assembles bender teams from goal descriptions using the capability registry. Produces team manifests with roles, identities, task breakdown, and context packages.',
-      phase: [0, 1],
       cards: ['DEA-031'],
       cardTags: ['#hive', '#swarm'],
       tables: [
         'bender_identities',
         'bender_teams',
         'bender_platforms',
-        'project_benders',
       ],
     },
   },
   {
-    id: 'creep',
-    type: 'system',
-    position: { x: 400, y: 50 },
+    id: 'abathur',
+    type: 'construct',
+    position: { x: 190, y: 150 },
+    parentNode: 'council-group',
+    extent: 'parent',
     data: {
-      label: 'CREEP \u2014 Zagara',
+      label: 'EVOLUTION — Abathur',
+      status: 'live',
+      description: 'Quality & Standards',
+      tier: 'council',
+      category: 'construct',
+      brief:
+        'Quality and knowledge management. Maintains capability registry, builds context packages, extracts learnings from completed work, enforces standards and compliance.',
+      cards: ['DEA-034'],
+      cardTags: ['#evolution', '#swarm'],
+      tables: ['skills', 'workflows', 'bender_performance'],
+    },
+  },
+  {
+    id: 'zagara',
+    type: 'construct',
+    position: { x: 510, y: 150 },
+    parentNode: 'council-group',
+    extent: 'parent',
+    data: {
+      label: 'CREEP — Zagara',
       status: 'building',
       description: 'External Orchestration',
-      tier: 'meta',
-      category: 'kerrigan',
+      tier: 'council',
+      category: 'construct',
       brief:
-        'External orchestration engine. Receives webhooks from external platforms (Jira, Linear), transforms them to internal entities, syncs bidirectionally with circuit breakers, and emits events for other systems to consume.',
-      phase: [0, 2],
+        'External orchestration engine. Receives webhooks from external platforms, transforms to internal entities, syncs bidirectionally with circuit breakers, emits events.',
       cards: ['DEA-032', 'DEA-040'],
       cardTags: ['#creep', '#swarm'],
       tables: ['queen_events', 'agent_health', 'webhook_configs', 'sync_state'],
       workflows: [
-        {
-          order: 1,
-          name: 'Webhook Receive',
-          type: 'webhook',
-          description: 'Accept inbound webhooks from external platforms',
-        },
-        {
-          order: 2,
-          name: 'Transform',
-          type: 'transform',
-          description: 'Convert external payload to internal entity format',
-        },
-        {
-          order: 3,
-          name: 'Store Event',
-          type: 'store',
-          description: 'Persist to queen_events table',
-        },
-        {
-          order: 4,
-          name: 'Sync',
-          type: 'sync',
-          description: 'Push changes to kanban/tasks with circuit breakers',
-        },
-        {
-          order: 5,
-          name: 'Emit',
-          type: 'emit',
-          description: 'Broadcast via Supabase Realtime',
-        },
+        { order: 1, name: 'Webhook Receive', type: 'webhook', description: 'Accept inbound webhooks' },
+        { order: 2, name: 'Transform', type: 'transform', description: 'Convert to internal format' },
+        { order: 3, name: 'Store Event', type: 'store', description: 'Persist to queen_events' },
+        { order: 4, name: 'Sync', type: 'sync', description: 'Push to kanban with circuit breakers' },
+        { order: 5, name: 'Emit', type: 'emit', description: 'Broadcast via Supabase Realtime' },
       ],
     },
   },
   {
-    id: 'evolution',
-    type: 'system',
-    position: { x: 100, y: 200 },
+    id: 'keeper',
+    type: 'construct',
+    position: { x: 700, y: 50 },
+    parentNode: 'council-group',
+    extent: 'parent',
     data: {
-      label: 'EVOLUTION \u2014 Abathur',
+      label: 'VAULT — Keeper',
       status: 'live',
-      description: 'Quality & Knowledge',
-      tier: 'meta',
-      category: 'kerrigan',
+      description: 'Data Custodianship',
+      tier: 'council',
+      category: 'construct',
       brief:
-        'Quality and knowledge management system. Maintains the capability registry, builds context packages for bender tasks, extracts learnings from completed work, and enforces standards/compliance.',
-      phase: [0, 1, 3],
-      cards: ['DEA-034'],
-      cardTags: ['#evolution', '#swarm'],
-      tables: ['skills', 'workflows'],
+        'Data custodianship. Manages architecture annotations, secrets registry, inbox items, session records, and INDEX file maintenance across the vault.',
+      cards: ['DEA-033'],
+      cardTags: ['#vault', '#swarm'],
+      tables: ['architecture_annotations', 'architecture_secrets', 'inbox_items'],
     },
   },
+]
+
+// ── Advisory (Outside Counsel) ───────────────────────────────
+
+const ADVISORY_NODES: Node<EnhancedNodeData>[] = [
   {
-    id: 'swarm',
-    type: 'system',
-    position: { x: 400, y: 200 },
+    id: 'overseer',
+    type: 'construct',
+    position: { x: 30, y: 90 },
+    parentNode: 'advisory-group',
+    extent: 'parent',
     data: {
-      label: 'THE SWARM \u2014 Kerrigan',
-      status: 'pending',
-      description: 'Supreme Authority & Coordination',
-      tier: 'meta',
-      category: 'kerrigan',
+      label: 'INTEL — Overseer',
+      status: 'live',
+      description: 'External Intelligence',
+      tier: 'advisory',
+      category: 'advisory',
       brief:
-        'Emergent multi-agent coordination system. Manages card lifecycle, three-tier locking, real-time agent coordination, progressive context loading, and vault sync. The unified execution layer.',
-      phase: [0, 4],
-      cards: ['DEA-035', 'DEA-042'],
-      cardTags: ['#swarm', '#kerrigan', '#nexus'],
+        'Advisory entity — researches external tools, technologies, best practices. Provides recommendations to inform Council decisions. Not a governance construct.',
+      cardTags: ['#overseer', '#intel'],
+      tables: [],
+    },
+  },
+]
+
+// ── Tier 1: Operations (Execution Layer) ─────────────────────
+
+const OPERATIONS_NODES: Node<EnhancedNodeData>[] = [
+  {
+    id: 'nexus',
+    type: 'system',
+    position: { x: 30, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'NEXUS Kanban',
+      status: 'live',
+      description: 'Card Lifecycle & Boards',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'Project-scoped kanban system. Standard lanes (backlog → ready → in_progress → review → done) + bender dual-view. Subtasks, locking, context engine, event system.',
+      cardTags: ['#kanban', '#nexus'],
       tables: [
         'nexus_projects',
         'nexus_cards',
@@ -179,88 +291,191 @@ const META_NODES: Node<EnhancedNodeData>[] = [
       ],
     },
   },
-]
-
-// ── PROJECT Tier Nodes ─────────────────────────────────────
-
-const PROJECT_NODES: Node<EnhancedNodeData>[] = [
   {
-    id: 'projects',
+    id: 'bender-mgmt',
     type: 'system',
-    position: { x: -100, y: 350 },
+    position: { x: 200, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
     data: {
-      label: 'Projects',
+      label: 'Bender Management',
       status: 'live',
-      description: 'Portfolio Projects',
-      tier: 'project',
-      category: 'project',
+      description: 'Agent Workforce',
+      tier: 'operations',
+      category: 'operational',
       brief:
-        'Project registry for the dea-exmachina portfolio. Each project has dashboard layout, bender assignments, kanban boards, and integration configs.',
-      phase: [1, 2],
-      cardTags: ['#project'],
-      tables: ['projects', 'project_templates'],
-    },
-  },
-  {
-    id: 'kanban',
-    type: 'system',
-    position: { x: 100, y: 350 },
-    data: {
-      label: 'Kanban',
-      status: 'live',
-      description: 'Task Boards',
-      tier: 'project',
-      category: 'kanban',
-      brief:
-        'NEXUS kanban — project-scoped card lifecycle. Standard lanes (backlog → ready → in_progress → review → done) + bender dual-view. Subtasks, locking, context engine, event system.',
-      phase: [1, 2],
-      cardTags: ['#kanban'],
-      tables: ['nexus_projects', 'nexus_cards', 'nexus_task_details', 'nexus_comments', 'nexus_locks', 'nexus_events'],
-    },
-  },
-  {
-    id: 'bender-tasks',
-    type: 'system',
-    position: { x: 300, y: 350 },
-    data: {
-      label: 'Bender Tasks',
-      status: 'live',
-      description: 'Agent Work Items',
-      tier: 'project',
-      category: 'bender_team',
-      brief:
-        'Work items assigned to bender agents. Each task has requirements, acceptance criteria, branch, status, and review workflow. Tasks are proposed → queued → executing → delivered → integrated.',
-      phase: [1, 2],
-      cardTags: ['#bender', '#task'],
-      tables: ['bender_tasks'],
+        'Bender lifecycle management. EWMA scoring, identity persistence, task assignment, team composition, platform routing. Named benders with slugs.',
+      cardTags: ['#bender'],
+      tables: [
+        'bender_identities',
+        'bender_performance',
+        'bender_tasks',
+        'bender_teams',
+        'bender_team_members',
+        'bender_platforms',
+      ],
     },
   },
   {
     id: 'inbox',
     type: 'system',
-    position: { x: 500, y: 350 },
+    position: { x: 370, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
     data: {
       label: 'Inbox',
       status: 'live',
       description: 'Message Queue',
-      tier: 'project',
-      category: 'project',
+      tier: 'operations',
+      category: 'operational',
       brief:
-        'Inbox for notes, links, files, and instructions. Items flow pending → processing → done. Webapp writes trigger local sync.',
-      phase: [1, 2],
+        'Inbox for notes, links, files, and instructions. Items flow pending → processing → done. Webapp writes trigger local sync via /dea-inbox.',
       cardTags: ['#inbox'],
       tables: ['inbox_items'],
     },
   },
+  {
+    id: 'projects',
+    type: 'system',
+    position: { x: 540, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Projects',
+      status: 'live',
+      description: 'Portfolio Registry',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'Project registry for the dea-exmachina portfolio. Each project has dashboard layout, bender assignments, kanban boards, and integration configs.',
+      cardTags: ['#project'],
+      tables: ['projects', 'project_templates', 'project_benders'],
+    },
+  },
+  {
+    id: 'skills-reg',
+    type: 'system',
+    position: { x: 710, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Skills Registry',
+      status: 'live',
+      description: 'Skill Definitions',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'Registry of all dea skills (40+). Each skill has triggers, workflows, dependencies, and platform requirements. Skills are the atomic unit of capability.',
+      cardTags: ['#skills'],
+      tables: ['skills'],
+    },
+  },
+  {
+    id: 'workflows-reg',
+    type: 'system',
+    position: { x: 880, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Workflows',
+      status: 'live',
+      description: 'Process Templates',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'Workflow registry (31 workflows). Repeatable process templates with phases, gates, and checkpoints. Public (shared) and private (user-only) variants.',
+      cardTags: ['#workflows'],
+      tables: ['workflows'],
+    },
+  },
+  {
+    id: 'teams',
+    type: 'system',
+    position: { x: 1050, y: 50 },
+    parentNode: 'operations-group',
+    extent: 'parent',
+    data: {
+      label: 'Teams',
+      status: 'live',
+      description: 'Team Composition',
+      tier: 'operations',
+      category: 'operational',
+      brief:
+        'Team management — compositions of named benders assembled by HIVE. Each team has manifests, sequencing, file ownership, and coordination rules.',
+      cardTags: ['#teams'],
+      tables: ['bender_teams', 'bender_team_members', 'identity_project_context'],
+    },
+  },
 ]
 
-// ── INFRASTRUCTURE Tier Nodes ──────────────────────────────
+// ── Tier 2: Instance (Per-User Vaults) ───────────────────────
+
+const INSTANCE_NODES: Node<EnhancedNodeData>[] = [
+  {
+    id: 'dea-instance',
+    type: 'system',
+    position: { x: 30, y: 60 },
+    parentNode: 'instance-group',
+    extent: 'parent',
+    data: {
+      label: 'dea Instance',
+      status: 'live',
+      description: 'Local AI Partner',
+      tier: 'instance',
+      category: 'instance',
+      brief:
+        'The local dea-exmachina instance. Runs on Claude Code, interacts via terminal. Holds identity, voice, decision authority. Each instance is independent.',
+      cardTags: ['#dea'],
+      tables: [],
+    },
+  },
+  {
+    id: 'vault',
+    type: 'system',
+    position: { x: 200, y: 60 },
+    parentNode: 'instance-group',
+    extent: 'parent',
+    data: {
+      label: 'Vault (Obsidian)',
+      status: 'live',
+      description: 'Knowledge Store',
+      tier: 'instance',
+      category: 'instance',
+      brief:
+        'File-system knowledge store synced via git. Contains CLAUDE.md, identity/, benders/, workflows/, templates/, logging/. Obsidian-compatible markdown.',
+      cardTags: ['#vault'],
+      tables: [],
+    },
+  },
+  {
+    id: 'logging',
+    type: 'system',
+    position: { x: 370, y: 60 },
+    parentNode: 'instance-group',
+    extent: 'parent',
+    data: {
+      label: 'Logging & Records',
+      status: 'live',
+      description: 'Session History',
+      tier: 'instance',
+      category: 'instance',
+      brief:
+        'Session logging and records. Daily logs, error tracking, feedback capture, plan archives. Provides audit trail and learning extraction source.',
+      cardTags: ['#logging'],
+      tables: [],
+    },
+  },
+]
+
+// ── Tier ∞: Infrastructure (Cross-Cutting Services) ──────────
 
 const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
   {
     id: 'supabase',
     type: 'infra',
-    position: { x: 250, y: 500 },
+    position: { x: 30, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'Supabase',
       status: 'live',
@@ -268,40 +483,21 @@ const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
       tier: 'infrastructure',
       category: 'database',
       brief:
-        'PostgreSQL database with Realtime subscriptions, Row Level Security, and auto-generated APIs. Primary data store for Control Center v2.',
-      phase: [1, 2],
+        'PostgreSQL database with Realtime subscriptions, RLS, and auto-generated APIs. 40 tables. Primary data store for Control Center v2.',
       secrets: [
-        {
-          variableName: 'SUPABASE_URL',
-          secretType: 'URL',
-          location: 'webapp',
-          required: true,
-        },
-        {
-          variableName: 'SUPABASE_SERVICE_KEY',
-          secretType: 'API_KEY',
-          location: 'webapp',
-          required: true,
-        },
-        {
-          variableName: 'NEXT_PUBLIC_SUPABASE_URL',
-          secretType: 'URL',
-          location: 'webapp',
-          required: true,
-        },
-        {
-          variableName: 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-          secretType: 'API_KEY',
-          location: 'webapp',
-          required: true,
-        },
+        { variableName: 'SUPABASE_URL', secretType: 'URL', location: 'webapp', required: true },
+        { variableName: 'SUPABASE_SERVICE_KEY', secretType: 'API_KEY', location: 'webapp', required: true },
+        { variableName: 'NEXT_PUBLIC_SUPABASE_URL', secretType: 'URL', location: 'webapp', required: true },
+        { variableName: 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', secretType: 'API_KEY', location: 'webapp', required: true },
       ],
     },
   },
   {
     id: 'vercel',
     type: 'infra',
-    position: { x: 450, y: 500 },
+    position: { x: 200, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'Vercel',
       status: 'live',
@@ -309,45 +505,37 @@ const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
       tier: 'infrastructure',
       category: 'hosting',
       brief:
-        'Edge hosting and deployment platform. Serves Control Center webapp at dea-exmachina.xyz. Auto-deploys from GitHub master branch.',
-      phase: [1],
+        'Edge hosting platform. Serves Control Center at dea-exmachina.xyz. Auto-deploys from GitHub master. Card branches get preview URLs.',
       secrets: [
-        {
-          variableName: 'VERCEL_TOKEN',
-          secretType: 'TOKEN',
-          location: 'webapp',
-          required: false,
-        },
+        { variableName: 'VERCEL_TOKEN', secretType: 'TOKEN', location: 'webapp', required: false },
       ],
     },
   },
   {
     id: 'github',
     type: 'infra',
-    position: { x: 50, y: 500 },
+    position: { x: 370, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'GitHub',
       status: 'live',
-      description: 'Code Repository',
+      description: 'Code + API',
       tier: 'infrastructure',
       category: 'storage',
       brief:
         'Code repository and file storage. Vault (dea-exmachina) and webapp (control-center) repos. REST API for file reads/writes.',
-      phase: [1],
       secrets: [
-        {
-          variableName: 'GITHUB_TOKEN',
-          secretType: 'TOKEN',
-          location: 'webapp',
-          required: true,
-        },
+        { variableName: 'GITHUB_TOKEN', secretType: 'TOKEN', location: 'webapp', required: true },
       ],
     },
   },
   {
     id: 'gcp-vm',
     type: 'infra',
-    position: { x: 650, y: 500 },
+    position: { x: 540, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'GCP VM',
       status: 'live',
@@ -356,49 +544,34 @@ const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
       category: 'runtime',
       brief:
         'Google Cloud e2-micro VM running dea_runtime.py. Polls Supabase messages table, processes with Claude API, responds via Realtime.',
-      phase: [2],
-      secrets: [],
     },
   },
   {
     id: 'google-oauth',
     type: 'infra',
-    position: { x: 50, y: 600 },
+    position: { x: 710, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'Google OAuth',
       status: 'live',
-      description: 'Sheets & Drive',
+      description: 'Auth + Sheets',
       tier: 'infrastructure',
       category: 'oauth',
       brief:
         'OAuth integration for Google Sheets and Drive. Used by job tracker and other vault scripts.',
-      phase: [1],
       secrets: [
-        {
-          variableName: 'GOOGLE_CLIENT_ID',
-          secretType: 'API_KEY',
-          location: 'vault',
-          required: true,
-        },
-        {
-          variableName: 'GOOGLE_CLIENT_SECRET',
-          secretType: 'SECRET',
-          location: 'vault',
-          required: true,
-        },
-        {
-          variableName: 'GOOGLE_SHEET_ID',
-          secretType: 'OTHER',
-          location: 'vault',
-          required: true,
-        },
+        { variableName: 'GOOGLE_CLIENT_ID', secretType: 'API_KEY', location: 'vault', required: true },
+        { variableName: 'GOOGLE_CLIENT_SECRET', secretType: 'SECRET', location: 'vault', required: true },
       ],
     },
   },
   {
     id: 'r2',
     type: 'infra',
-    position: { x: 250, y: 600 },
+    position: { x: 880, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
       label: 'Cloudflare R2',
       status: 'live',
@@ -407,84 +580,65 @@ const INFRASTRUCTURE_NODES: Node<EnhancedNodeData>[] = [
       category: 'storage',
       brief:
         'S3-compatible object storage for job batch files. Email worker writes here, job tracker reads.',
-      phase: [1],
       secrets: [
-        {
-          variableName: 'R2_ENDPOINT',
-          secretType: 'URL',
-          location: 'vault',
-          required: true,
-        },
-        {
-          variableName: 'R2_KEY_ID',
-          secretType: 'API_KEY',
-          location: 'vault',
-          required: true,
-        },
-        {
-          variableName: 'R2_SECRET',
-          secretType: 'SECRET',
-          location: 'vault',
-          required: true,
-        },
+        { variableName: 'R2_ENDPOINT', secretType: 'URL', location: 'vault', required: true },
+        { variableName: 'R2_KEY_ID', secretType: 'API_KEY', location: 'vault', required: true },
+        { variableName: 'R2_SECRET', secretType: 'SECRET', location: 'vault', required: true },
       ],
     },
   },
   {
-    id: 'api',
+    id: 'resend',
     type: 'infra',
-    position: { x: 450, y: 600 },
+    position: { x: 1050, y: 60 },
+    parentNode: 'infra-group',
+    extent: 'parent',
     data: {
-      label: 'API Routes',
+      label: 'Resend',
+      status: 'pending',
+      description: 'Email Service',
+      tier: 'infrastructure',
+      category: 'email',
+      brief:
+        'Transactional email service. Sends from dea@dea-exmachina.xyz. Used by /dea-email skill and notification pipeline.',
+      secrets: [
+        { variableName: 'RESEND_API_KEY', secretType: 'API_KEY', location: 'webapp', required: true },
+      ],
+    },
+  },
+  {
+    id: 'discord',
+    type: 'infra',
+    position: { x: 540, y: 170 },
+    parentNode: 'infra-group',
+    extent: 'parent',
+    data: {
+      label: 'Discord',
       status: 'live',
-      description: 'Next.js App Router',
+      description: 'Webhooks',
       tier: 'infrastructure',
-      category: 'api',
+      category: 'messaging',
       brief:
-        'Next.js 16 API routes. Server-side endpoints for all CRUD operations. Cookie-based auth, service role Supabase client.',
-      phase: [1, 2],
+        'Discord webhook integration. Receives NEXUS comment notifications and bender status updates.',
       secrets: [
-        {
-          variableName: 'AUTH_SECRET',
-          secretType: 'SECRET',
-          location: 'webapp',
-          required: true,
-        },
+        { variableName: 'DISCORD_WEBHOOK_URL', secretType: 'URL', location: 'webapp', required: true },
       ],
-    },
-  },
-  {
-    id: 'ui',
-    type: 'infra',
-    position: { x: 650, y: 600 },
-    data: {
-      label: 'UI Layer',
-      status: 'building',
-      description: 'Dashboard Components',
-      tier: 'infrastructure',
-      category: 'api',
-      brief:
-        'React components for Control Center dashboard. Tailwind v4, shadcn/ui, react-grid-layout. Theme support (dark/light).',
-      phase: [2],
-      secrets: [],
     },
   },
 ]
 
-// ── All Nodes Combined ─────────────────────────────────────
+// ── All Nodes Combined ───────────────────────────────────────
 
-export const ARCHITECTURE_NODES: Node<EnhancedNodeData>[] = [
-  ...META_NODES,
-  ...PROJECT_NODES,
+export const ARCHITECTURE_NODES: Node<EnhancedNodeData | TierGroupData>[] = [
+  ...TIER_GROUPS,
+  ...COUNCIL_NODES,
+  ...ADVISORY_NODES,
+  ...OPERATIONS_NODES,
+  ...INSTANCE_NODES,
   ...INFRASTRUCTURE_NODES,
 ]
 
-// ── Legacy KERRIGAN_NODES (backwards compatibility, deprecated) ──
-
-export const KERRIGAN_NODES: Node<SystemNodeData | InfraNodeData>[] =
-  ARCHITECTURE_NODES as Node<SystemNodeData | InfraNodeData>[]
-
-// ── Enhanced Edges with Data Flow Types ────────────────────
+// ── Enhanced Edges with Data Flow Types & Color ──────────────
 
 export type EnhancedEdge = Edge & {
   data?: {
@@ -492,215 +646,134 @@ export type EnhancedEdge = Edge & {
   }
 }
 
+/** Apply data-flow color to edge style */
+function coloredEdge(
+  id: string,
+  source: string,
+  target: string,
+  dataType: DataFlowType,
+  opts?: {
+    label?: string
+    animated?: boolean
+    dashed?: boolean
+  }
+): EnhancedEdge {
+  const color = DATA_FLOW_COLORS[dataType].hex
+  return {
+    id,
+    source,
+    target,
+    data: { dataType },
+    style: {
+      stroke: color,
+      strokeWidth: 2,
+      ...(opts?.dashed ? { strokeDasharray: '6,3' } : {}),
+    },
+    ...(opts?.animated ? { animated: true } : {}),
+    ...(opts?.label
+      ? {
+          label: opts.label,
+          labelStyle: { fill: color, fontSize: 10, fontWeight: 500 },
+          labelBgStyle: {
+            fill: 'hsl(var(--background))',
+            fillOpacity: 0.8,
+          },
+        }
+      : {}),
+  }
+}
+
 export const ARCHITECTURE_EDGES: EnhancedEdge[] = [
-  // META: Core SWARM connections
-  {
-    id: 'hive-creep',
-    source: 'hive',
-    target: 'creep',
-    animated: true,
-    label: 'teams.build',
-    data: { dataType: 'event' },
-  },
-  {
-    id: 'creep-evolution',
-    source: 'creep',
-    target: 'evolution',
-    label: 'feeds context',
-    data: { dataType: 'sync' },
-  },
-  {
-    id: 'evolution-swarm',
-    source: 'evolution',
-    target: 'swarm',
-    label: 'enables',
-    data: { dataType: 'sync' },
-  },
-  {
-    id: 'swarm-hive',
-    source: 'swarm',
-    target: 'hive',
-    animated: true,
-    label: 'triggers',
-    data: { dataType: 'event' },
-  },
+  // ── Governance → Operations (Tier 0 → Tier 1) ─────────────
+  coloredEdge('kerrigan-nexus', 'kerrigan', 'nexus', 'event', { label: 'card lifecycle', animated: true }),
+  coloredEdge('architect-bender', 'architect', 'bender-mgmt', 'api', { label: 'creates teams' }),
+  coloredEdge('architect-nexus', 'architect', 'nexus', 'api', { label: 'task breakdown' }),
+  coloredEdge('abathur-bender', 'abathur', 'bender-mgmt', 'api', { label: 'compliance scoring' }),
+  coloredEdge('abathur-skills', 'abathur', 'skills-reg', 'sync', { label: 'standards' }),
+  coloredEdge('abathur-workflows', 'abathur', 'workflows-reg', 'sync', { label: 'quality gates' }),
+  coloredEdge('zagara-nexus', 'zagara', 'nexus', 'sync', { label: 'external → cards' }),
+  coloredEdge('keeper-inbox', 'keeper', 'inbox', 'file', { label: 'inbox mgmt' }),
+  coloredEdge('keeper-logging', 'keeper', 'logging', 'file', { label: 'session records' }),
+  coloredEdge('keeper-projects', 'keeper', 'projects', 'file', { label: 'INDEX maintenance' }),
 
-  // META to PROJECT
-  {
-    id: 'hive-tasks',
-    source: 'hive',
-    target: 'bender-tasks',
-    label: 'creates tasks',
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'creep-kanban',
-    source: 'creep',
-    target: 'kanban',
-    label: 'syncs cards',
-    data: { dataType: 'sync' },
-  },
+  // ── Advisory → Council ─────────────────────────────────────
+  coloredEdge('overseer-kerrigan', 'overseer', 'kerrigan', 'api', { label: 'advises', dashed: true }),
 
-  // PROJECT to INFRASTRUCTURE
-  {
-    id: 'projects-db',
-    source: 'projects',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'kanban-db',
-    source: 'kanban',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'tasks-db',
-    source: 'bender-tasks',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'inbox-db',
-    source: 'inbox',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
+  // ── Operations ↔ Operations (Tier 1 internal) ──────────────
+  coloredEdge('nexus-bender', 'nexus', 'bender-mgmt', 'event', { label: 'task assignment', animated: true }),
+  coloredEdge('nexus-projects', 'nexus', 'projects', 'api', { label: 'project cards' }),
+  coloredEdge('bender-teams', 'bender-mgmt', 'teams', 'api', { label: 'composition' }),
+  coloredEdge('bender-skills', 'bender-mgmt', 'skills-reg', 'api', { label: 'capability lookup' }),
+  coloredEdge('inbox-nexus', 'inbox', 'nexus', 'api', { label: 'inbox → card' }),
+  coloredEdge('workflows-skills', 'workflows-reg', 'skills-reg', 'sync', { label: 'skill links' }),
 
-  // META to INFRASTRUCTURE
-  {
-    id: 'hive-db',
-    source: 'hive',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'creep-db',
-    source: 'creep',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'evolution-db',
-    source: 'evolution',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'swarm-db',
-    source: 'swarm',
-    target: 'supabase',
-    style: { strokeDasharray: '5,5' },
-    data: { dataType: 'api' },
-  },
+  // ── Operations → Infrastructure (Tier 1 → Infra) ──────────
+  coloredEdge('nexus-db', 'nexus', 'supabase', 'api', { dashed: true }),
+  coloredEdge('bender-db', 'bender-mgmt', 'supabase', 'api', { dashed: true }),
+  coloredEdge('inbox-db', 'inbox', 'supabase', 'api', { dashed: true }),
+  coloredEdge('projects-db', 'projects', 'supabase', 'api', { dashed: true }),
+  coloredEdge('skills-db', 'skills-reg', 'supabase', 'api', { dashed: true }),
+  coloredEdge('workflows-db', 'workflows-reg', 'supabase', 'api', { dashed: true }),
 
-  // External webhooks
-  {
-    id: 'external-creep',
-    source: 'github',
-    target: 'creep',
-    label: 'webhooks',
-    data: { dataType: 'webhook' },
-  },
+  // ── Council → Infrastructure ───────────────────────────────
+  coloredEdge('kerrigan-db', 'kerrigan', 'supabase', 'api', { dashed: true }),
+  coloredEdge('zagara-db', 'zagara', 'supabase', 'api', { dashed: true }),
 
-  // Infrastructure stack
-  {
-    id: 'db-api',
-    source: 'supabase',
-    target: 'api',
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'api-ui',
-    source: 'api',
-    target: 'ui',
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'db-ui',
-    source: 'supabase',
-    target: 'ui',
-    animated: true,
-    label: 'realtime',
-    data: { dataType: 'realtime' },
-  },
-  {
-    id: 'db-vm',
-    source: 'supabase',
-    target: 'gcp-vm',
-    label: 'polls',
-    data: { dataType: 'api' },
-  },
-  {
-    id: 'vercel-ui',
-    source: 'vercel',
-    target: 'ui',
-    label: 'hosts',
-    data: { dataType: 'file' },
-  },
-  {
-    id: 'github-vercel',
-    source: 'github',
-    target: 'vercel',
-    label: 'deploys',
-    data: { dataType: 'file' },
-  },
+  // ── Instance ↔ Operations (Tier 2 ↔ Tier 1) ───────────────
+  coloredEdge('dea-nexus', 'dea-instance', 'nexus', 'api', { label: 'card updates' }),
+  coloredEdge('dea-bender', 'dea-instance', 'bender-mgmt', 'api', { label: 'invokes benders' }),
+  coloredEdge('vault-github', 'vault', 'github', 'sync', { label: 'git push/pull' }),
+  coloredEdge('vault-inbox', 'vault', 'inbox', 'file', { label: 'file sync' }),
+
+  // ── Infrastructure internal ────────────────────────────────
+  coloredEdge('supabase-vercel', 'supabase', 'vercel', 'api', { label: 'API routes' }),
+  coloredEdge('supabase-gcp', 'supabase', 'gcp-vm', 'api', { label: 'polls' }),
+  coloredEdge('supabase-discord', 'supabase', 'discord', 'webhook', { label: 'notifications' }),
+  coloredEdge('github-vercel', 'github', 'vercel', 'file', { label: 'auto-deploy' }),
+  coloredEdge('resend-gcp', 'resend', 'gcp-vm', 'api', { label: 'email sending' }),
+
+  // ── External → Infrastructure ──────────────────────────────
+  coloredEdge('github-zagara', 'github', 'zagara', 'webhook', { label: 'webhooks', animated: true }),
 ]
 
-// ── Legacy KERRIGAN_EDGES (backwards compatibility, deprecated) ──
-
-export const KERRIGAN_EDGES: Edge[] = ARCHITECTURE_EDGES
-
-// ── Phase definitions ──────────────────────────────────────
-
-export const PHASES = [
-  { id: null, label: 'All', description: 'Show all nodes' },
-  { id: 0, label: 'Architecture', description: 'System design phase' },
-  { id: 1, label: 'Core Infra', description: 'HIVE, EVOLUTION, database' },
-  { id: 2, label: 'Integration', description: 'CREEP, API routes' },
-  { id: 3, label: 'Standards', description: 'EVOLUTION standards library' },
-  { id: 4, label: 'Swarm', description: 'Emergent coordination' },
-] as const
-
-// ── Tier definitions ───────────────────────────────────────
+// ── Tier definitions ─────────────────────────────────────────
 
 export const TIERS = [
   { id: null, label: 'All', description: 'Show all tiers' },
-  { id: 'meta', label: 'META', description: 'System-wide orchestration' },
-  { id: 'project', label: 'PROJECT', description: 'Project-level entities' },
-  {
-    id: 'infrastructure',
-    label: 'INFRA',
-    description: 'External services & hosting',
-  },
+  { id: 'council' as const, label: 'Council', description: 'Governance constructs' },
+  { id: 'advisory' as const, label: 'Advisory', description: 'Outside counsel' },
+  { id: 'operations' as const, label: 'Operations', description: 'Execution layer' },
+  { id: 'instance' as const, label: 'Instance', description: 'Per-user vaults' },
+  { id: 'infrastructure' as const, label: 'Infra', description: 'Cross-cutting services' },
 ] as const
 
-// ── Helper functions ───────────────────────────────────────
-
-export function getNodesForPhase(phase: number | null): string[] {
-  if (phase === null) return ARCHITECTURE_NODES.map((n) => n.id)
-  return ARCHITECTURE_NODES.filter((n) => n.data.phase.includes(phase)).map(
-    (n) => n.id
-  )
-}
+// ── Helper functions ─────────────────────────────────────────
 
 export function getNodesForTier(tier: ArchitectureTier | null): string[] {
   if (tier === null) return ARCHITECTURE_NODES.map((n) => n.id)
-  return ARCHITECTURE_NODES.filter((n) => n.data.tier === tier).map((n) => n.id)
+  return ARCHITECTURE_NODES.filter((n) => {
+    const data = n.data as EnhancedNodeData | TierGroupData
+    return 'tier' in data && data.tier === tier
+  }).map((n) => n.id)
 }
 
 export function getNodeById(id: string): Node<EnhancedNodeData> | undefined {
-  return ARCHITECTURE_NODES.find((n) => n.id === id)
+  return ARCHITECTURE_NODES.find((n) => n.id === id) as Node<EnhancedNodeData> | undefined
 }
 
-// ── Status color mapping ───────────────────────────────────
+export function getChildNodes(groupId: string): Node<EnhancedNodeData>[] {
+  return ARCHITECTURE_NODES.filter(
+    (n) => n.parentNode === groupId
+  ) as Node<EnhancedNodeData>[]
+}
+
+export function getEdgesForNode(nodeId: string): EnhancedEdge[] {
+  return ARCHITECTURE_EDGES.filter(
+    (e) => e.source === nodeId || e.target === nodeId
+  )
+}
+
+// ── Status color mapping ─────────────────────────────────────
 
 export const STATUS_COLORS = {
   live: {
@@ -723,39 +796,11 @@ export const STATUS_COLORS = {
   },
 } as const
 
-// ── Tier color mapping ─────────────────────────────────────
+// ── Re-export tier/flow colors from types ────────────────────
 
-export const TIER_COLORS = {
-  meta: {
-    border: 'border-purple-500',
-    bg: 'bg-purple-500/10',
-    dot: 'bg-purple-400',
-    text: 'text-purple-400',
-    accent: 'rgb(168, 85, 247)',
-  },
-  project: {
-    border: 'border-blue-500',
-    bg: 'bg-blue-500/10',
-    dot: 'bg-blue-400',
-    text: 'text-blue-400',
-    accent: 'rgb(59, 130, 246)',
-  },
-  infrastructure: {
-    border: 'border-emerald-500',
-    bg: 'bg-emerald-500/10',
-    dot: 'bg-emerald-400',
-    text: 'text-emerald-400',
-    accent: 'rgb(16, 185, 129)',
-  },
-} as const
+export { TIER_COLORS, DATA_FLOW_COLORS } from '@/types/architecture'
 
-// ── Data flow color mapping ────────────────────────────────
+// ── Legacy exports (backwards compatibility) ─────────────────
 
-export const DATA_FLOW_COLORS = {
-  event: { stroke: 'stroke-amber-400', hex: 'rgb(251, 191, 36)' },
-  file: { stroke: 'stroke-cyan-400', hex: 'rgb(34, 211, 238)' },
-  api: { stroke: 'stroke-blue-400', hex: 'rgb(96, 165, 250)' },
-  webhook: { stroke: 'stroke-pink-400', hex: 'rgb(244, 114, 182)' },
-  realtime: { stroke: 'stroke-emerald-400', hex: 'rgb(52, 211, 153)' },
-  sync: { stroke: 'stroke-purple-400', hex: 'rgb(192, 132, 252)' },
-} as const
+export const KERRIGAN_NODES = ARCHITECTURE_NODES
+export const KERRIGAN_EDGES = ARCHITECTURE_EDGES

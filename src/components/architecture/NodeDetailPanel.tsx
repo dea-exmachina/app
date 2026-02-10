@@ -9,11 +9,12 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
-import type { SystemNodeData, InfraNodeData } from '@/lib/architecture/nodes'
-import { STATUS_COLORS, PHASES, ARCHITECTURE_EDGES } from '@/lib/architecture/nodes'
+import type { EnhancedNodeData } from '@/lib/architecture/nodes'
+import { STATUS_COLORS, ARCHITECTURE_EDGES, TIER_COLORS } from '@/lib/architecture/nodes'
+import { DATA_FLOW_COLORS, type DataFlowType } from '@/types/architecture'
 
 interface NodeDetailPanelProps {
-  node: Node<SystemNodeData | InfraNodeData> | null
+  node: Node<EnhancedNodeData> | null
   open: boolean
   onClose: () => void
 }
@@ -22,18 +23,12 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
   if (!node) return null
 
   const data = node.data
-  const colors = STATUS_COLORS[data.status as keyof typeof STATUS_COLORS]
-  const isSystem = node.type === 'system'
-  const systemData = isSystem ? (data as SystemNodeData) : null
+  const statusColors = STATUS_COLORS[data.status]
+  const tierColors = TIER_COLORS[data.tier]
 
-  // Find connected nodes
+  // Find connected edges
   const incomingEdges = ARCHITECTURE_EDGES.filter((e) => e.target === node.id)
   const outgoingEdges = ARCHITECTURE_EDGES.filter((e) => e.source === node.id)
-
-  // Get phase names
-  const phaseNames = data.phase
-    .map((p) => PHASES.find((ph) => ph.id === p)?.label)
-    .filter(Boolean)
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -41,52 +36,123 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
         <SheetHeader>
           <div className="flex items-center gap-3">
             <span
-              className={`inline-block h-3 w-3 rounded-full ${colors.dot} ${
+              className={`inline-block h-3 w-3 rounded-full ${statusColors.dot} ${
                 data.status === 'live' ? 'animate-pulse' : ''
               }`}
             />
             <SheetTitle className="font-mono text-lg">{data.label}</SheetTitle>
-            <Badge
-              variant="outline"
-              className={`${colors.bg} ${colors.text} border-current`}
-            >
-              {data.status}
-            </Badge>
           </div>
           <SheetDescription>{data.description}</SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Node Type */}
-          <div>
-            <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              Type
-            </h4>
-            <p className="text-sm">{isSystem ? 'Core System' : 'Infrastructure'}</p>
+          {/* Tier + Status badges */}
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`${tierColors.bg} ${tierColors.text} border-current font-mono`}
+            >
+              {data.tier}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={`${statusColors.bg} ${statusColors.text} border-current`}
+            >
+              {data.status}
+            </Badge>
+            <Badge variant="secondary" className="font-mono text-xs">
+              {data.category}
+            </Badge>
           </div>
 
-          {/* Phases */}
+          {/* Brief */}
           <div>
             <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              Build Phases
+              Overview
             </h4>
-            <div className="flex flex-wrap gap-2">
-              {phaseNames.map((name) => (
-                <Badge key={name} variant="secondary" className="font-mono text-xs">
-                  {name}
-                </Badge>
-              ))}
+            <p className="text-sm leading-relaxed">{data.brief}</p>
+          </div>
+
+          {/* Tables */}
+          {data.tables && data.tables.length > 0 && (
+            <div>
+              <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Tables ({data.tables.length})
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {data.tables.map((table) => (
+                  <Badge
+                    key={table}
+                    variant="outline"
+                    className="font-mono text-xs"
+                  >
+                    {table}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Related Cards (only for system nodes) */}
-          {systemData?.cards && systemData.cards.length > 0 && (
+          {/* Secrets */}
+          {data.secrets && data.secrets.length > 0 && (
+            <div>
+              <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Secrets ({data.secrets.length})
+              </h4>
+              <div className="space-y-1">
+                {data.secrets.map((secret) => (
+                  <div
+                    key={secret.variableName}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <span className="font-mono text-muted-foreground">
+                      {secret.variableName}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {secret.secretType}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {secret.location}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Workflows */}
+          {data.workflows && data.workflows.length > 0 && (
+            <div>
+              <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Workflow Steps
+              </h4>
+              <div className="space-y-1.5">
+                {data.workflows.map((step) => (
+                  <div key={step.order} className="flex items-start gap-2 text-xs">
+                    <span className="font-mono text-muted-foreground w-4 text-right shrink-0">
+                      {step.order}.
+                    </span>
+                    <div>
+                      <span className="font-medium">{step.name}</span>
+                      <span className="text-muted-foreground ml-1.5">
+                        ({step.type})
+                      </span>
+                      <p className="text-muted-foreground">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Cards */}
+          {data.cards && data.cards.length > 0 && (
             <div>
               <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
                 Related Cards
               </h4>
               <div className="flex flex-wrap gap-2">
-                {systemData.cards.map((card) => (
+                {data.cards.map((card) => (
                   <Badge
                     key={card}
                     variant="outline"
@@ -99,58 +165,63 @@ export function NodeDetailPanel({ node, open, onClose }: NodeDetailPanelProps) {
             </div>
           )}
 
-          {/* Dependencies */}
+          {/* Data Flows (Connections) */}
           <div>
             <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              Dependencies
+              Data Flows
             </h4>
             <div className="space-y-2">
               {incomingEdges.length > 0 && (
                 <div>
-                  <span className="text-xs text-muted-foreground">Receives from: </span>
-                  {incomingEdges.map((e) => (
-                    <Badge key={e.id} variant="outline" className="font-mono text-xs ml-1">
-                      {e.source}
-                      {e.label && ` (${e.label})`}
-                    </Badge>
-                  ))}
+                  <span className="text-xs text-muted-foreground">Receives from:</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {incomingEdges.map((e) => {
+                      const dataType = e.data?.dataType as DataFlowType | undefined
+                      const flowColor = dataType
+                        ? DATA_FLOW_COLORS[dataType].hex
+                        : undefined
+                      return (
+                        <Badge
+                          key={e.id}
+                          variant="outline"
+                          className="font-mono text-xs"
+                          style={flowColor ? { borderColor: flowColor, color: flowColor } : {}}
+                        >
+                          {e.source}
+                          {e.label && ` · ${e.label}`}
+                        </Badge>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
               {outgoingEdges.length > 0 && (
                 <div>
-                  <span className="text-xs text-muted-foreground">Sends to: </span>
-                  {outgoingEdges.map((e) => (
-                    <Badge key={e.id} variant="outline" className="font-mono text-xs ml-1">
-                      {e.target}
-                      {e.label && ` (${e.label})`}
-                    </Badge>
-                  ))}
+                  <span className="text-xs text-muted-foreground">Sends to:</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {outgoingEdges.map((e) => {
+                      const dataType = e.data?.dataType as DataFlowType | undefined
+                      const flowColor = dataType
+                        ? DATA_FLOW_COLORS[dataType].hex
+                        : undefined
+                      return (
+                        <Badge
+                          key={e.id}
+                          variant="outline"
+                          className="font-mono text-xs"
+                          style={flowColor ? { borderColor: flowColor, color: flowColor } : {}}
+                        >
+                          {e.target}
+                          {e.label && ` · ${e.label}`}
+                        </Badge>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
               {incomingEdges.length === 0 && outgoingEdges.length === 0 && (
-                <p className="text-sm text-muted-foreground">No direct dependencies</p>
+                <p className="text-sm text-muted-foreground">No direct connections</p>
               )}
-            </div>
-          </div>
-
-          {/* Status Legend */}
-          <div className="border-t border-border pt-4">
-            <h4 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              Status Legend
-            </h4>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-muted-foreground">Live</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
-                <span className="text-muted-foreground">Building</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-zinc-400" />
-                <span className="text-muted-foreground">Pending</span>
-              </div>
             </div>
           </div>
         </div>

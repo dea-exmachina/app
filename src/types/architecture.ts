@@ -3,27 +3,39 @@
  *
  * Defines the data structures for the tiered architecture map,
  * including nodes, connections, secrets, and annotations.
+ *
+ * 5-Tier Model (from system audit):
+ *   Tier 0: Council (purple) — governance constructs
+ *   Advisory: (amber) — outside counsel
+ *   Tier 1: Operations (blue) — execution layer
+ *   Tier 2: Instance (cyan) — per-user vaults
+ *   Tier ∞: Infrastructure (emerald) — cross-cutting services
  */
 
 // ── Tier Types ─────────────────────────────────────────────
 
-export type ArchitectureTier = 'meta' | 'project' | 'infrastructure'
+export type ArchitectureTier =
+  | 'council'
+  | 'advisory'
+  | 'operations'
+  | 'instance'
+  | 'infrastructure'
 
 // ── Node Types ─────────────────────────────────────────────
 
 export type NodeCategory =
-  | 'kerrigan' // HIVE, QUEEN, CREEP, SWARM
-  | 'skill' // Skills registry
-  | 'workflow' // Workflows
-  | 'project' // Projects
-  | 'kanban' // Kanban boards
-  | 'bender_team' // Bender teams
-  | 'database' // Supabase/PostgreSQL
-  | 'hosting' // Vercel
-  | 'storage' // R2, GitHub
-  | 'oauth' // Google OAuth
-  | 'api' // API routes
-  | 'runtime' // GCP VM
+  | 'construct'     // SWARM governance constructs (Kerrigan, Architect, etc.)
+  | 'advisory'      // Outside counsel (Overseer)
+  | 'operational'   // Execution-layer modules (NEXUS, Bender Mgmt, etc.)
+  | 'instance'      // Per-user vault entities (dea Instance, Vault, Logging)
+  | 'runtime'       // Infrastructure services (GCP VM, etc.)
+  | 'database'      // Supabase/PostgreSQL
+  | 'hosting'       // Vercel
+  | 'storage'       // R2, GitHub
+  | 'oauth'         // Google OAuth
+  | 'api'           // API routes
+  | 'email'         // Resend
+  | 'messaging'     // Discord
 
 export type NodeStatus = 'live' | 'building' | 'pending'
 
@@ -66,7 +78,6 @@ export interface ArchitectureNode {
 
   // Visual
   position: { x: number; y: number }
-  phase: number[]
 
   // Metadata
   cards?: string[] // Specific card IDs (DEA-xxx)
@@ -107,7 +118,7 @@ export type SecretLocation = 'vault' | 'webapp' | 'both'
 export interface ArchitectureSecret {
   id: string
   componentId: string
-  componentType: 'infrastructure' | 'meta' | 'project'
+  componentType: ArchitectureTier
   variableName: string
   secretType: SecretType
   description: string | null
@@ -193,7 +204,6 @@ export interface ArchitectureViewState {
   drillDownLevel: 0 | 1 | 2 | 3 // 0=tier, 1=module, 2=tables, 3=details
   filters: {
     tier: ArchitectureTier | null
-    phase: number | null
     status: NodeStatus[]
     showDataFlows: boolean
     showAnnotations: boolean
@@ -203,19 +213,33 @@ export interface ArchitectureViewState {
 // ── Color Configuration ────────────────────────────────────
 
 export const TIER_COLORS = {
-  meta: {
+  council: {
     border: 'border-purple-500',
     bg: 'bg-purple-500/10',
     dot: 'bg-purple-400',
     text: 'text-purple-400',
     accent: 'rgb(168, 85, 247)', // purple-500
   },
-  project: {
+  advisory: {
+    border: 'border-amber-500',
+    bg: 'bg-amber-500/10',
+    dot: 'bg-amber-400',
+    text: 'text-amber-400',
+    accent: 'rgb(245, 158, 11)', // amber-500
+  },
+  operations: {
     border: 'border-blue-500',
     bg: 'bg-blue-500/10',
     dot: 'bg-blue-400',
     text: 'text-blue-400',
     accent: 'rgb(59, 130, 246)', // blue-500
+  },
+  instance: {
+    border: 'border-cyan-500',
+    bg: 'bg-cyan-500/10',
+    dot: 'bg-cyan-400',
+    text: 'text-cyan-400',
+    accent: 'rgb(6, 182, 212)', // cyan-500
   },
   infrastructure: {
     border: 'border-emerald-500',
@@ -274,26 +298,13 @@ export const DATA_FLOW_COLORS = {
   },
 } as const
 
-// ── Phase Definitions ──────────────────────────────────────
-
-export const ARCHITECTURE_PHASES = [
-  { id: null, label: 'All', description: 'Show all nodes' },
-  { id: 0, label: 'Architecture', description: 'System design phase' },
-  { id: 1, label: 'Core Infra', description: 'HIVE, CREEP, database' },
-  { id: 2, label: 'Integration', description: 'QUEEN, API routes' },
-  { id: 3, label: 'Standards', description: 'CREEP standards library' },
-  { id: 4, label: 'Swarm', description: 'Emergent coordination' },
-] as const
-
-// ── Tier Definitions ───────────────────────────────────────
+// ── Tier Definitions ──────────────────────────────────────
 
 export const ARCHITECTURE_TIERS = [
   { id: null, label: 'All', description: 'Show all tiers' },
-  { id: 'meta', label: 'META', description: 'System-wide orchestration' },
-  { id: 'project', label: 'PROJECT', description: 'Project-level entities' },
-  {
-    id: 'infrastructure',
-    label: 'INFRA',
-    description: 'External services & hosting',
-  },
+  { id: 'council' as const, label: 'Council', description: 'Governance constructs — strategy, arbitration, standards' },
+  { id: 'advisory' as const, label: 'Advisory', description: 'Outside counsel — research, recommendations' },
+  { id: 'operations' as const, label: 'Operations', description: 'Execution layer — kanban, benders, inbox, skills' },
+  { id: 'instance' as const, label: 'Instance', description: 'Per-user vaults — local, private, independent' },
+  { id: 'infrastructure' as const, label: 'Infra', description: 'Cross-cutting services — hosting, DB, storage' },
 ] as const
