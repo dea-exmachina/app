@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Workflow } from '@/types/workflow'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import type { ArchitectureTier } from '@/types/architecture'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TierFilter } from '@/components/shared/TierFilter'
 import { WorkflowCard } from './WorkflowCard'
 
 interface WorkflowListProps {
@@ -10,24 +12,72 @@ interface WorkflowListProps {
 }
 
 export function WorkflowList({ workflows }: WorkflowListProps) {
+  const [search, setSearch] = useState('')
+  const [layerFilter, setLayerFilter] = useState<ArchitectureTier | null>(null)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Filter workflows
-  let filtered = workflows
+  // Filter chain: search → layer → type → status
+  const filtered = useMemo(() => {
+    let result = workflows
 
-  if (typeFilter !== 'all') {
-    filtered = filtered.filter((w) => w.workflowType === typeFilter)
-  }
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (w) =>
+          w.title.toLowerCase().includes(q) ||
+          w.name.toLowerCase().includes(q) ||
+          w.purpose.toLowerCase().includes(q)
+      )
+    }
 
-  if (statusFilter !== 'all') {
-    filtered = filtered.filter((w) => w.status === statusFilter)
-  }
+    if (layerFilter) {
+      result = result.filter((w) => w.layer === layerFilter)
+    }
+
+    if (typeFilter !== 'all') {
+      result = result.filter((w) => w.workflowType === typeFilter)
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter((w) => w.status === statusFilter)
+    }
+
+    return result
+  }, [workflows, search, layerFilter, typeFilter, statusFilter])
+
+  // Compute tier counts from full list (before layer filter)
+  const tierCounts = useMemo(() => {
+    const counts: Partial<Record<ArchitectureTier | 'all', number>> = {
+      all: workflows.length,
+    }
+    for (const w of workflows) {
+      if (w.layer) {
+        counts[w.layer] = (counts[w.layer] ?? 0) + 1
+      }
+    }
+    return counts
+  }, [workflows])
 
   return (
     <div className="space-y-4">
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="Search workflows..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <TierFilter
+          selectedTier={layerFilter}
+          onTierChange={setLayerFilter}
+          counts={tierCounts}
+        />
+
         <Tabs value={typeFilter} onValueChange={setTypeFilter}>
           <TabsList variant="line">
             <TabsTrigger value="all">All Types</TabsTrigger>
