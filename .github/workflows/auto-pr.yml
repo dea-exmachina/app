@@ -1,0 +1,68 @@
+name: Auto-PR on Feature Branch Push
+
+on:
+  push:
+    branches:
+      - 'task/**'
+      - 'card/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for existing PR
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_COUNT=$(gh pr list --head "${{ github.ref_name }}" --state open --json number --jq length)
+          echo "exists=$([ "$PR_COUNT" -gt 0 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Extract branch info
+        if: steps.check.outputs.exists == 'false'
+        id: info
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          ID=$(echo "$BRANCH" | sed 's|^task/||;s|^card/||')
+          SUMMARY=$(git log origin/dev.."$BRANCH" --oneline --reverse 2>/dev/null | head -1 | sed 's/^[a-f0-9]* //')
+          if [ -z "$SUMMARY" ]; then
+            SUMMARY="Feature branch delivery"
+          fi
+          echo "id=$ID" >> $GITHUB_OUTPUT
+          echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+
+      - name: Create PR
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          CARD_ID: ${{ steps.info.outputs.id }}
+          CARD_SUMMARY: ${{ steps.info.outputs.summary }}
+        run: |
+          BODY="## Auto-PR: ${CARD_ID}
+
+          Branch \`${BRANCH_NAME}\` → \`dev\`
+
+          ### Review Checklist
+          - [ ] Code review complete
+          - [ ] No protected files modified
+          - [ ] Commit messages follow convention
+          - [ ] Tests pass (if applicable)
+
+          ---
+          *Auto-created by GitHub Actions on push*"
+
+          gh pr create \
+            --base dev \
+            --head "${BRANCH_NAME}" \
+            --title "[${CARD_ID}] ${CARD_SUMMARY}" \
+            --body "${BODY}" \
+            --label "auto-pr"
