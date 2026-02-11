@@ -19,6 +19,15 @@ const LANE_LABELS: Record<string, string> = {
   done: 'Done',
 }
 
+const BENDER_LANES = ['proposed', 'queued', 'executing', 'delivered', 'integrated'] as const
+const BENDER_LANE_LABELS: Record<string, string> = {
+  proposed: 'Proposed',
+  queued: 'Queued',
+  executing: 'Executing',
+  delivered: 'Delivered',
+  integrated: 'Integrated',
+}
+
 interface NexusCardRow {
   id: string
   card_id: string
@@ -89,11 +98,13 @@ function mapToKanbanCard(row: NexusCardRow): KanbanCard {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ boardId: string }> }
 ): Promise<NextResponse<ApiResponse<KanbanBoard> | ApiError>> {
   try {
     const { boardId } = await params
+    const { searchParams } = new URL(request.url)
+    const view = searchParams.get('view') // 'bender' or default (standard)
 
     // Look up project by slug
     const { data: project, error: projError } = await tables.nexus_projects
@@ -118,13 +129,23 @@ export async function GET(
 
     const allCards = (cards ?? []) as NexusCardRow[]
 
-    // Group cards by lane
-    const lanes: KanbanLane[] = STANDARD_LANES.map(lane => ({
-      name: LANE_LABELS[lane],
-      cards: allCards
-        .filter(c => c.lane === lane)
-        .map(mapToKanbanCard),
-    }))
+    // Group cards by lane (standard or bender view)
+    let lanes: KanbanLane[]
+    if (view === 'bender') {
+      lanes = BENDER_LANES.map(lane => ({
+        name: BENDER_LANE_LABELS[lane],
+        cards: allCards
+          .filter(c => c.bender_lane === lane)
+          .map(mapToKanbanCard),
+      }))
+    } else {
+      lanes = STANDARD_LANES.map(lane => ({
+        name: LANE_LABELS[lane],
+        cards: allCards
+          .filter(c => c.lane === lane)
+          .map(mapToKanbanCard),
+      }))
+    }
 
     const board: KanbanBoard = {
       id: (project as Record<string, unknown>).slug as string,

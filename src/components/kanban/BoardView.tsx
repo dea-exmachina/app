@@ -38,6 +38,7 @@ export function BoardView({ board }: BoardViewProps) {
   const [lanes, setLanes] = useState<KanbanLane[]>(board.lanes)
   const [locked, setLocked] = useState(true)
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null)
+  const [viewMode, setViewMode] = useState<'standard' | 'bender'>('standard')
 
   const [selectedCard, setSelectedCard] = useState<{
     card: KanbanCard
@@ -127,6 +128,21 @@ export function BoardView({ board }: BoardViewProps) {
     setSelectedCard(null)
   }, [])
 
+  const handleViewToggle = useCallback(() => {
+    const newMode = viewMode === 'standard' ? 'bender' : 'standard'
+    setViewMode(newMode)
+    // Fetch board with new view mode
+    const url = `/api/kanban/boards/${board.id}${newMode === 'bender' ? '?view=bender' : ''}`
+    fetch(url)
+      .then(res => res.json())
+      .then(json => {
+        if (json.data) {
+          setLanes(json.data.lanes)
+        }
+      })
+      .catch(err => console.error('Failed to switch view:', err))
+  }, [viewMode, board.id])
+
   return (
     <div className="space-y-3">
       {/* Board Header — terminal style */}
@@ -149,6 +165,12 @@ export function BoardView({ board }: BoardViewProps) {
               {cardsNeedingAttention} NEED ATTENTION
             </span>
           )}
+          <button
+            onClick={handleViewToggle}
+            className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
+          >
+            {viewMode === 'standard' ? 'STANDARD' : 'BENDER'}
+          </button>
           <button
             onClick={() => setLocked((v) => !v)}
             className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
