@@ -15,7 +15,7 @@ import type {
 import type { ProjectLegacy as Project, ProjectDetail, ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
-import type { NexusComment, CardCommentSummary } from '@/types/nexus'
+import type { NexusComment, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -231,6 +231,14 @@ export async function getUnresolvedComments(projectId?: string): Promise<{
     ? `/api/nexus/comments/unresolved?project_id=${projectId}`
     : '/api/nexus/comments/unresolved'
   return fetchApi<CardCommentSummary[]>(url)
+}
+
+// Release Queue
+export async function getReleaseQueue(): Promise<{
+  data: ReleaseQueueResponse
+  cached: boolean
+}> {
+  return fetchApi<ReleaseQueueResponse>('/api/nexus/release-queue')
 }
 
 // Projects
