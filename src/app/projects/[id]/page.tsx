@@ -16,7 +16,7 @@ export default function ProjectDetailPage({
 
   return (
     <ProjectDashboardProvider slugOrId={id}>
-      <div className="space-y-4">
+      <div className="space-y-2">
         <ProjectBanner />
         <WidgetGrid config={config} />
       </div>

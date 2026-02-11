@@ -17,7 +17,7 @@ export function ProjectBanner() {
         >
           &larr;
         </Link>
-        <h1 className="font-mono text-lg font-bold text-terminal-fg-primary tracking-tight">
+        <h1 className="font-mono text-2xl font-bold text-terminal-fg-primary tracking-tight">
           {project.name}
         </h1>
         <Badge variant="terminal">{project.type}</Badge>
