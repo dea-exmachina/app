@@ -42,18 +42,16 @@ function TickerStat({
   dot?: 'ok' | 'warn' | 'error' | 'info'
 }) {
   return (
-    <div className="flex flex-col items-start px-4 py-1">
-      <span className="terminal-label">{label}</span>
-      <span className="flex items-center gap-1.5">
-        {dot && <StatusDot status={dot} size={5} />}
-        <span className="terminal-value text-[14px]">{value}</span>
-      </span>
+    <div className="flex items-center gap-1.5 px-3">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-terminal-fg-tertiary">{label}</span>
+      {dot && <StatusDot status={dot} size={5} />}
+      <span className="text-xs font-mono font-semibold text-terminal-fg-primary">{value}</span>
     </div>
   )
 }
 
 function TickerDivider() {
-  return <div className="w-px h-6 bg-terminal-border-strong shrink-0" />
+  return <div className="w-px h-3.5 bg-terminal-border-strong shrink-0" />
 }
 
 function timeAgo(dateStr: string): string {
