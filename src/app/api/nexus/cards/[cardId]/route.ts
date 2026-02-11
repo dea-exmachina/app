@@ -77,6 +77,18 @@ export async function PATCH(
           { status: 422 }
         )
       }
+      if (error.message?.includes('Concurrent modification detected')) {
+        return NextResponse.json(
+          { error: { code: 'CONFLICT', message: error.message } },
+          { status: 409 }
+        )
+      }
+      if (error.message?.includes('is locked for lane move')) {
+        return NextResponse.json(
+          { error: { code: 'LOCKED', message: error.message } },
+          { status: 423 }
+        )
+      }
       return NextResponse.json(
         { error: { code: 'UPDATE_ERROR', message: error.message } },
         { status: 500 }

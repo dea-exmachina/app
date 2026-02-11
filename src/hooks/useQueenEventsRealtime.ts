@@ -1,8 +1,16 @@
 'use client'
 
+/**
+ * Event feed hook — subscribes to nexus_events via Supabase Realtime.
+ *
+ * CC-014: Redirected from queen_events (0 rows) to nexus_events (real data).
+ * Maps nexus_events to QueenEvent shape for backward-compatible rendering.
+ */
+
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { QueenEvent } from '@/types/queen'
+import type { NexusEvent } from '@/types/nexus'
 
 const MAX_EVENTS = 200
 const REALTIME_TIMEOUT_MS = 5000
@@ -24,19 +32,40 @@ interface UseQueenEventsRealtimeResult {
   lastUpdated: Date | null
 }
 
+/**
+ * Map nexus_events row to QueenEvent shape for backward-compatible rendering.
+ * nexus_events: event_type, card_id, actor, payload, created_at
+ * QueenEvent:   type, source, actor, summary, payload, trace_id, project, processed
+ */
+function nexusToQueen(ne: NexusEvent): QueenEvent {
+  const payload = (ne.payload ?? {}) as Record<string, unknown>
+  return {
+    id: ne.id,
+    type: ne.event_type,
+    source: 'nexus',
+    actor: ne.actor,
+    summary: (payload.summary as string)
+      || (payload.comment as string)
+      || `${ne.event_type} by ${ne.actor}`,
+    payload,
+    trace_id: null,
+    project: null,
+    processed: true,
+    created_at: ne.created_at,
+  }
+}
+
 function buildUrl(params: UseQueenEventsRealtimeParams): string {
-  const url = new URL('/api/queen/events', window.location.origin)
+  // CC-014: Use nexus events API instead of queen events
+  const url = new URL('/api/nexus/events', window.location.origin)
   if (params.type) url.searchParams.set('type', params.type)
-  if (params.source) url.searchParams.set('source', params.source)
   if (params.limit) url.searchParams.set('limit', String(params.limit))
-  if (params.traceId) url.searchParams.set('trace_id', params.traceId)
   return url.toString()
 }
 
 function matchesFilters(event: QueenEvent, params: UseQueenEventsRealtimeParams): boolean {
   if (params.type && !event.type.startsWith(params.type)) return false
   if (params.source && event.source !== params.source) return false
-  if (params.traceId && event.trace_id !== params.traceId) return false
   return true
 }
 
@@ -59,7 +88,7 @@ export function useQueenEventsRealtime(
     [params.type, params.source, params.limit, params.traceId]
   )
 
-  // Fetch events via API
+  // Fetch events via API (nexus_events)
   const fetchEvents = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true)
     setError(null)
@@ -71,7 +100,9 @@ export function useQueenEventsRealtime(
         throw new Error(body.error || `HTTP ${res.status}`)
       }
       const json = await res.json()
-      const data = (json.data ?? []) as QueenEvent[]
+      // Map nexus_events to QueenEvent shape
+      const rawData = (json.data ?? []) as NexusEvent[]
+      const data = rawData.map(nexusToQueen)
       setEvents(data)
       // Update ID set for de-duplication
       eventIdsRef.current = new Set(data.map((e) => e.id))
@@ -88,7 +119,7 @@ export function useQueenEventsRealtime(
     fetchEvents(true)
   }, [fetchEvents])
 
-  // Supabase Realtime subscription
+  // Supabase Realtime subscription — nexus_events
   useEffect(() => {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,16 +135,17 @@ export function useQueenEventsRealtime(
     }, REALTIME_TIMEOUT_MS)
 
     const channel = supabase
-      .channel('queen-events-feed')
+      .channel('nexus-events-feed')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'queen_events',
+          table: 'nexus_events',
         },
         (payload) => {
-          const newEvent = payload.new as QueenEvent
+          const rawEvent = payload.new as NexusEvent
+          const newEvent = nexusToQueen(rawEvent)
 
           // De-duplicate: skip if we already have this event
           if (eventIdsRef.current.has(newEvent.id)) return
