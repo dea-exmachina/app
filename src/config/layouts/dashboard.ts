@@ -6,6 +6,7 @@ import { BoardSummaryWidget } from '@/components/widgets/dashboard/BoardSummaryW
 import { InboxWidget } from '@/components/widgets/inbox/InboxWidget'
 import { BenderActivityWidget } from '@/components/widgets/dashboard/BenderActivityWidget'
 import { DelegationRatioWidget } from '@/components/widgets/dashboard/DelegationRatioWidget'
+import { ReleaseQueueWidget } from '@/components/widgets/dashboard/ReleaseQueueWidget'
 
 export const dashboardConfig: PageLayoutConfig = {
   pageId: 'dashboard',
@@ -52,6 +53,12 @@ export const dashboardConfig: PageLayoutConfig = {
       component: DelegationRatioWidget,
       defaultSize: { w: 4, h: 3, minH: 2 },
     },
+    {
+      id: 'release-queue',
+      title: 'Release Queue',
+      component: ReleaseQueueWidget,
+      defaultSize: { w: 4, h: 4, minW: 3, minH: 3 },
+    },
   ],
   defaultLayouts: {
     lg: [
@@ -60,7 +67,8 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'bender-status', x: 8, y: 1, w: 4, h: 4, minW: 3, minH: 2 },
       { i: 'board-summary', x: 0, y: 6, w: 8, h: 3, minH: 2 },
       { i: 'inbox-preview', x: 8, y: 5, w: 4, h: 3, minH: 2 },
-      { i: 'bender-activity', x: 0, y: 9, w: 8, h: 4, minH: 3 },
+      { i: 'bender-activity', x: 0, y: 9, w: 4, h: 4, minH: 3 },
+      { i: 'release-queue', x: 4, y: 9, w: 4, h: 4, minW: 3, minH: 3 },
       { i: 'delegation-ratio', x: 8, y: 8, w: 4, h: 3, minH: 2 },
     ],
     md: [
@@ -70,7 +78,8 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'board-summary', x: 0, y: 9, w: 8, h: 3, minH: 2 },
       { i: 'inbox-preview', x: 0, y: 12, w: 8, h: 3, minH: 2 },
       { i: 'bender-activity', x: 0, y: 15, w: 8, h: 4, minH: 3 },
-      { i: 'delegation-ratio', x: 0, y: 19, w: 8, h: 3, minH: 2 },
+      { i: 'release-queue', x: 0, y: 19, w: 8, h: 4, minW: 3, minH: 3 },
+      { i: 'delegation-ratio', x: 0, y: 23, w: 8, h: 3, minH: 2 },
     ],
     sm: [
       { i: 'ticker', x: 0, y: 0, w: 4, h: 2, minH: 1 },
@@ -79,7 +88,8 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'board-summary', x: 0, y: 12, w: 4, h: 4, minH: 2 },
       { i: 'inbox-preview', x: 0, y: 16, w: 4, h: 4, minH: 2 },
       { i: 'bender-activity', x: 0, y: 20, w: 4, h: 4, minH: 3 },
-      { i: 'delegation-ratio', x: 0, y: 24, w: 4, h: 4, minH: 2 },
+      { i: 'release-queue', x: 0, y: 24, w: 4, h: 4, minW: 3, minH: 3 },
+      { i: 'delegation-ratio', x: 0, y: 28, w: 4, h: 4, minH: 2 },
     ],
   },
 }

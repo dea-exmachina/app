@@ -45,6 +45,7 @@ export interface NexusCard {
   subtasks: Subtask[]
   due_date: string | null
   completed_at: string | null
+  ready_for_production: boolean
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string
@@ -100,7 +101,25 @@ export interface NexusCardUpdate {
   subtasks?: Subtask[]
   due_date?: string | null
   completed_at?: string | null
+  ready_for_production?: boolean
   metadata?: Record<string, unknown>
+}
+
+// ── Release Queue Types ─────────────────────────────────
+
+export interface ReleaseQueueCard {
+  card_id: string
+  title: string
+  priority: CardPriority
+  project_name: string
+  project_prefix: string
+  lane: string
+  flagged_at: string
+}
+
+export interface ReleaseQueueResponse {
+  cards: ReleaseQueueCard[]
+  total: number
 }
 
 // ── Task Detail Types ───────────────────────────────────
