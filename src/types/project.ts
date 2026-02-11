@@ -114,6 +114,13 @@ export interface ProjectNotes {
   freeform: string
 }
 
+export interface ProjectLink {
+  id: string
+  label: string
+  url: string
+  type: 'folder' | 'file' | 'url'
+}
+
 export interface ProjectTeamMember {
   identity_id: string
   slug: string
@@ -133,6 +140,7 @@ export interface ProjectDashboardData {
   openCards: NexusCard[]
   teamMembers: ProjectTeamMember[]
   notes: ProjectNotes
+  links: ProjectLink[]
   lastCardActivity: string | null
   benderCount: number
 }

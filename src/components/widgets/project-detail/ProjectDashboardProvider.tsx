@@ -3,11 +3,12 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import { useProjectDashboard } from '@/hooks/useProjectDashboard'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { ProjectDashboardData, ProjectNotes } from '@/types/project'
+import type { ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
 
 interface ProjectDashboardContextValue {
   data: ProjectDashboardData
   saveNotes: (notes: Partial<ProjectNotes>) => Promise<void>
+  saveLinks: (items: ProjectLink[]) => Promise<void>
 }
 
 const ProjectDashboardContext = createContext<ProjectDashboardContextValue | undefined>(undefined)
@@ -19,7 +20,7 @@ export function ProjectDashboardProvider({
   slugOrId: string
   children: ReactNode
 }) {
-  const { data, loading, error, saveNotes } = useProjectDashboard(slugOrId)
+  const { data, loading, error, saveNotes, saveLinks } = useProjectDashboard(slugOrId)
 
   if (loading) {
     return (
@@ -44,7 +45,7 @@ export function ProjectDashboardProvider({
   }
 
   return (
-    <ProjectDashboardContext.Provider value={{ data, saveNotes }}>
+    <ProjectDashboardContext.Provider value={{ data, saveNotes, saveLinks }}>
       {children}
     </ProjectDashboardContext.Provider>
   )

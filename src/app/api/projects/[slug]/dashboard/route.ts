@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { tables } from '@/lib/server/database'
-import type { ProjectDashboardData, ProjectNotes } from '@/types/project'
+import type { ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
 import type { NexusCard, NexusProject } from '@/types/nexus'
 import type { ErrorResponse } from '@/types/project'
 
@@ -150,6 +150,7 @@ export async function GET(
     // 6. Extract notes from settings
     const settings = (project.settings || {}) as Record<string, unknown>
     const notes: ProjectNotes = (settings.notes as ProjectNotes) || DEFAULT_NOTES
+    const links: ProjectLink[] = (settings.links as ProjectLink[]) || []
 
     const dashboardData: ProjectDashboardData = {
       project,
@@ -161,6 +162,7 @@ export async function GET(
       openCards,
       teamMembers,
       notes,
+      links,
       lastCardActivity,
       benderCount: projectBenders?.length || 0,
     }

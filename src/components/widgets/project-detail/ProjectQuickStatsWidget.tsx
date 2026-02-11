@@ -9,7 +9,7 @@ export function ProjectQuickStatsWidget() {
   const inProgress = data.cardsByLane['in_progress'] || 0
 
   return (
-    <div className="flex items-center gap-0 h-full font-mono">
+    <div className="flex items-center justify-between w-full h-full font-mono">
       <TickerStat label="TYPE" value={data.project.type || '—'} />
       <TickerDivider />
       <TickerStat label="OPEN" value={data.totalCards - (data.cardsByLane['done'] || 0)} />
@@ -42,7 +42,7 @@ function TickerStat({
   dot?: 'ok' | 'warn' | 'error' | 'info'
 }) {
   return (
-    <div className="flex flex-col items-start px-3 py-1">
+    <div className="flex flex-col items-start px-4 py-1">
       <span className="terminal-label">{label}</span>
       <span className="flex items-center gap-1.5">
         {dot && <StatusDot status={dot} size={5} />}

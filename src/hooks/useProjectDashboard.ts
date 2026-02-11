@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ProjectDashboardData, ProjectNotes } from '@/types/project'
-import { getProjectDashboard, updateProjectNotes } from '@/lib/client/api'
+import type { ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
+import { getProjectDashboard, updateProjectNotes, updateProjectLinks } from '@/lib/client/api'
 
 export function useProjectDashboard(slugOrId: string) {
   const [data, setData] = useState<ProjectDashboardData | null>(null)
@@ -43,5 +43,19 @@ export function useProjectDashboard(slugOrId: string) {
     [slugOrId, data]
   )
 
-  return { data, loading, error, saveNotes }
+  const saveLinks = useCallback(
+    async (items: ProjectLink[]) => {
+      if (!data) return
+      const prev = data.links
+      setData((d) => (d ? { ...d, links: items } : d))
+      try {
+        await updateProjectLinks(slugOrId, items)
+      } catch {
+        setData((d) => (d ? { ...d, links: prev } : d))
+      }
+    },
+    [slugOrId, data]
+  )
+
+  return { data, loading, error, saveNotes, saveLinks }
 }

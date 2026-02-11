@@ -12,7 +12,7 @@ import type {
   BenderTaskCreateRequest,
   BenderTeam,
 } from '@/types/bender'
-import type { ProjectLegacy as Project, ProjectDetail, ProjectDashboardData, ProjectNotes } from '@/types/project'
+import type { ProjectLegacy as Project, ProjectDetail, ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
 import type { NexusComment, CardCommentSummary } from '@/types/nexus'
@@ -263,6 +263,22 @@ export async function updateProjectNotes(
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(notes),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateProjectLinks(
+  slugOrId: string,
+  items: ProjectLink[]
+): Promise<{ data: ProjectLink[]; cached: boolean }> {
+  const res = await fetch(`/api/projects/${slugOrId}/links`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
   })
   if (!res.ok) {
     const error: ApiError = await res.json()
