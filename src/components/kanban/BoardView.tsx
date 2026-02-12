@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, type MouseEvent } from 'react'
 import Link from 'next/link'
 import {
   DndContext,
@@ -13,12 +13,13 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
-import { moveCard } from '@/lib/client/api'
+import { moveCard, updateCard } from '@/lib/client/api'
 import { useUnresolvedComments } from '@/hooks/useUnresolvedComments'
 import { LaneColumn } from './LaneColumn'
 import { BoardStats } from './BoardStats'
 import { CardDetailPanel } from './CardDetailPanel'
 import { CardItem } from './CardItem'
+import { CardContextMenu, type ContextMenuAction } from './CardContextMenu'
 
 /** Map display lane names back to DB lane values for NEXUS persistence */
 const LANE_TO_DB: Record<string, string> = {
@@ -27,6 +28,14 @@ const LANE_TO_DB: Record<string, string> = {
   'In Progress': 'in_progress',
   'Review': 'review',
   'Done': 'done',
+}
+
+const DB_TO_LANE: Record<string, string> = {
+  backlog: 'Backlog',
+  ready: 'Ready',
+  in_progress: 'In Progress',
+  review: 'Review',
+  done: 'Done',
 }
 
 interface BoardViewProps {
@@ -43,6 +52,16 @@ export function BoardView({ board }: BoardViewProps) {
   const [selectedCard, setSelectedCard] = useState<{
     card: KanbanCard
     lane: string
+  } | null>(null)
+
+  // Multi-select state
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set())
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    cards: KanbanCard[]
   } | null>(null)
 
   // Unresolved comments for badge display
@@ -128,6 +147,122 @@ export function BoardView({ board }: BoardViewProps) {
     setSelectedCard(null)
   }, [])
 
+  // ── Multi-select ──────────────────────────────────────
+
+  const handleCardSelect = useCallback((cardId: string) => {
+    setSelectedCards((prev) => {
+      const next = new Set(prev)
+      if (next.has(cardId)) {
+        next.delete(cardId)
+      } else {
+        next.add(cardId)
+      }
+      return next
+    })
+  }, [])
+
+  // Clear selection when clicking empty area
+  const handleBoardClick = useCallback(() => {
+    if (selectedCards.size > 0) {
+      setSelectedCards(new Set())
+    }
+  }, [selectedCards.size])
+
+  // ── Context Menu ──────────────────────────────────────
+
+  const handleCardContextMenu = useCallback(
+    (e: MouseEvent, card: KanbanCard) => {
+      // If right-clicked card isn't selected, select it alone
+      let targetCards: KanbanCard[]
+      if (selectedCards.has(card.id)) {
+        // Collect all selected cards from lanes
+        targetCards = []
+        for (const lane of lanes) {
+          for (const c of lane.cards) {
+            if (selectedCards.has(c.id)) targetCards.push(c)
+          }
+        }
+      } else {
+        setSelectedCards(new Set([card.id]))
+        targetCards = [card]
+      }
+
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        cards: targetCards,
+      })
+    },
+    [selectedCards, lanes]
+  )
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu(null)
+  }, [])
+
+  const handleContextMenuAction = useCallback(
+    async (action: ContextMenuAction) => {
+      if (!contextMenu) return
+      const cards = contextMenu.cards
+
+      for (const card of cards) {
+        try {
+          switch (action.type) {
+            case 'flag':
+              await updateCard(card.id, { ready_for_production: true })
+              break
+            case 'unflag':
+              await updateCard(card.id, { ready_for_production: false })
+              break
+            case 'move':
+              if (action.value) {
+                await moveCard(card.id, action.value)
+                // Optimistic lane move
+                const displayLane = DB_TO_LANE[action.value]
+                if (displayLane) {
+                  setLanes((prev) => {
+                    const next = prev.map((l) => ({ ...l, cards: [...l.cards] }))
+                    // Remove from current lane
+                    for (const lane of next) {
+                      const idx = lane.cards.findIndex((c) => c.id === card.id)
+                      if (idx !== -1) {
+                        lane.cards.splice(idx, 1)
+                        break
+                      }
+                    }
+                    // Add to target lane
+                    const target = next.find((l) => l.name === displayLane)
+                    if (target) target.cards.push(card)
+                    return next
+                  })
+                }
+              }
+              break
+            case 'priority':
+              if (action.value) {
+                await updateCard(card.id, { priority: action.value })
+              }
+              break
+          }
+        } catch (err) {
+          console.error(`Failed to ${action.type} card ${card.id}:`, err)
+        }
+      }
+
+      setSelectedCards(new Set())
+    },
+    [contextMenu]
+  )
+
+  // Check if all selected context cards are in review lane
+  const contextAllInReview = useMemo(() => {
+    if (!contextMenu) return false
+    return contextMenu.cards.every((card) => {
+      const laneName = cardLaneMap.get(card.id)
+      return laneName === 'Review'
+    })
+  }, [contextMenu, cardLaneMap])
+
   const handleViewToggle = useCallback(() => {
     const newMode = viewMode === 'standard' ? 'bender' : 'standard'
     setViewMode(newMode)
@@ -144,7 +279,7 @@ export function BoardView({ board }: BoardViewProps) {
   }, [viewMode, board.id])
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" onClick={handleBoardClick}>
       {/* Board Header — terminal style */}
       <div className="flex items-center justify-between border-b border-terminal-border pb-2">
         <div className="flex items-center gap-3">
@@ -160,6 +295,11 @@ export function BoardView({ board }: BoardViewProps) {
           </h2>
         </div>
         <div className="flex items-center gap-3">
+          {selectedCards.size > 0 && (
+            <span className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-user-accent/40 text-user-accent bg-user-accent/10">
+              {selectedCards.size} SELECTED
+            </span>
+          )}
           {cardsNeedingAttention > 0 && (
             <span className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-amber-500/40 text-amber-400 bg-amber-500/10">
               {cardsNeedingAttention} NEED ATTENTION
@@ -199,6 +339,9 @@ export function BoardView({ board }: BoardViewProps) {
                 key={lane.name}
                 lane={lane}
                 onCardClick={handleCardClick(lane.name)}
+                onCardSelect={handleCardSelect}
+                onCardContextMenu={handleCardContextMenu}
+                selectedCards={selectedCards}
                 droppable={!locked}
                 unresolvedMap={unresolvedMap}
               />
@@ -221,6 +364,18 @@ export function BoardView({ board }: BoardViewProps) {
           card={selectedCard.card}
           lane={selectedCard.lane}
           onClose={handleClose}
+        />
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <CardContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          cardCount={contextMenu.cards.length}
+          allInReview={contextAllInReview}
+          onAction={handleContextMenuAction}
+          onClose={handleContextMenuClose}
         />
       )}
     </div>

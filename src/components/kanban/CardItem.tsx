@@ -1,3 +1,4 @@
+import { useCallback, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import type { KanbanCard } from '@/types/kanban'
@@ -7,7 +8,10 @@ import { StatusDot, statusToType } from '@/components/ui/status-dot'
 interface CardItemProps {
   card: KanbanCard
   onClick?: () => void
+  onSelect?: (cardId: string, additive: boolean) => void
+  onContextMenu?: (e: MouseEvent, card: KanbanCard) => void
   draggable?: boolean
+  selected?: boolean
   unresolvedCount?: number
   hasQuestions?: boolean
 }
@@ -36,7 +40,16 @@ function cardStatus(card: KanbanCard): string {
   return 'pending'
 }
 
-export function CardItem({ card, onClick, draggable = false, unresolvedCount, hasQuestions }: CardItemProps) {
+export function CardItem({
+  card,
+  onClick,
+  onSelect,
+  onContextMenu,
+  draggable = false,
+  selected = false,
+  unresolvedCount,
+  hasQuestions,
+}: CardItemProps) {
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
@@ -50,15 +63,44 @@ export function CardItem({ card, onClick, draggable = false, unresolvedCount, ha
     ? { transform: CSS.Translate.toString(transform) }
     : undefined
 
+  const handleClick = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging) return
+      // Ctrl/Cmd+Click = toggle selection
+      if ((e.ctrlKey || e.metaKey) && onSelect) {
+        e.preventDefault()
+        e.stopPropagation()
+        onSelect(card.id, true)
+        return
+      }
+      onClick?.()
+    },
+    [isDragging, onClick, onSelect, card.id]
+  )
+
+  const handleContextMenu = useCallback(
+    (e: MouseEvent) => {
+      if (onContextMenu) {
+        e.preventDefault()
+        e.stopPropagation()
+        onContextMenu(e, card)
+      }
+    },
+    [onContextMenu, card]
+  )
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...(draggable ? { ...listeners, ...attributes } : {})}
-      onClick={isDragging ? undefined : onClick}
-      className={`rounded-sm border border-terminal-border bg-terminal-bg-surface p-2 transition-colors hover:border-terminal-border-strong cursor-pointer ${
-        card.completed ? 'opacity-50' : ''
-      } ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      className={`rounded-sm border p-2 transition-colors cursor-pointer ${
+        selected
+          ? 'border-user-accent ring-1 ring-user-accent/40 bg-user-accent/5'
+          : 'border-terminal-border bg-terminal-bg-surface hover:border-terminal-border-strong'
+      } ${card.completed ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
       {/* Line 1: ID + unresolved badge + tags + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">
