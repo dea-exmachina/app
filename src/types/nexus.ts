@@ -115,11 +115,19 @@ export interface ReleaseQueueCard {
   project_prefix: string
   lane: string
   flagged_at: string
+  review_required: boolean
+  blocked: boolean
+  unresolved_council_comments: number
 }
+
+export type ReleaseCardStatus = 'clear' | 'blocked' | 'pending_review'
 
 export interface ReleaseQueueResponse {
   cards: ReleaseQueueCard[]
   total: number
+  blocked_count: number
+  clear_count: number
+  needs_review_count: number
 }
 
 // ── Task Detail Types ───────────────────────────────────
