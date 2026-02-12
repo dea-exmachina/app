@@ -6,6 +6,7 @@ import { LayoutProvider } from '@/contexts/LayoutContext'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AccentInitializer } from '@/components/providers/AccentInitializer'
 import { TextSizeInitializer } from '@/components/providers/TextSizeInitializer'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const geistSans = Geist({
@@ -59,6 +60,7 @@ export default function RootLayout({
             </div>
           </LayoutProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
