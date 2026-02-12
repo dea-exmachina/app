@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { CommentThread } from '@/components/kanban/CommentThread'
+import { EventTimeline } from '@/components/kanban/EventTimeline'
 import { moveCard } from '@/lib/client/api'
 import type { ReleaseQueueCard, ReleaseCardStatus } from '@/types/nexus'
 
@@ -51,6 +52,7 @@ interface ReleaseDetailPanelProps {
 
 export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
   const [moveState, setMoveState] = useState<'idle' | 'confirm' | 'moving' | 'done'>('idle')
+  const [activeTab, setActiveTab] = useState<'comments' | 'audit'>('comments')
 
   // Close on Escape key
   useEffect(() => {
@@ -194,11 +196,36 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
             </div>
           )}
 
-          {/* Divider */}
-          <SectionDivider label="Council & Comments" />
+          {/* Tab switcher */}
+          <div className="flex border-b border-terminal-border">
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'comments'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Comments
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'audit'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Audit Trail
+            </button>
+          </div>
 
-          {/* Comment Thread — reuse existing component */}
-          <CommentThread cardId={card.card_id} />
+          {/* Tab content */}
+          {activeTab === 'comments' ? (
+            <CommentThread cardId={card.card_id} />
+          ) : (
+            <EventTimeline cardId={card.card_id} />
+          )}
         </div>
       </div>
     </>

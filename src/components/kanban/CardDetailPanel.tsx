@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Flag } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { CommentThread } from './CommentThread'
+import { EventTimeline } from './EventTimeline'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { formatDate } from '@/lib/client/formatters'
@@ -22,6 +23,8 @@ function cardStatus(card: KanbanCard): string {
 }
 
 export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
+  const [activeTab, setActiveTab] = useState<'comments' | 'audit'>('comments')
+
   // Close on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -170,8 +173,36 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
             </details>
           )}
 
-          {/* Comments Thread */}
-          <CommentThread cardId={card.id} />
+          {/* Tab switcher */}
+          <div className="flex border-b border-terminal-border">
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'comments'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Comments
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'audit'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Audit Trail
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {activeTab === 'comments' ? (
+            <CommentThread cardId={card.id} />
+          ) : (
+            <EventTimeline cardId={card.id} />
+          )}
         </div>
       </div>
     </>
