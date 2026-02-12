@@ -222,9 +222,9 @@ export function BoardView({ board }: BoardViewProps) {
               // Fire-and-forget tracking comment
               postComment(card.id, {
                 author: 'webapp',
-                content: '🚩 Flagged for release',
+                content: '✅ Marked as reviewed',
                 comment_type: 'note',
-              }).catch(() => {})
+              }).catch((err) => console.warn('Tracking comment failed:', err))
               break
             case 'unflag':
               await updateCard(card.id, { ready_for_production: false })
@@ -238,9 +238,9 @@ export function BoardView({ board }: BoardViewProps) {
               )
               postComment(card.id, {
                 author: 'webapp',
-                content: '⛳ Unflagged for release',
+                content: '⏳ Marked as pending',
                 comment_type: 'note',
-              }).catch(() => {})
+              }).catch((err) => console.warn('Tracking comment failed:', err))
               break
             case 'move':
               if (action.value) {

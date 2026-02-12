@@ -89,13 +89,13 @@ export async function GET(
     const projectIds = [...new Set(cards.map((c) => c.project_id).filter(Boolean))]
 
     const { data: projects, error: projError } = await tables.nexus_projects
-      .select('id, name, card_id_prefix')
+      .select('id, name, slug, card_id_prefix')
       .in('id', projectIds)
 
     if (projError) throw projError
 
     const projectMap = new Map(
-      ((projects ?? []) as Array<{ id: string; name: string; card_id_prefix: string }>).map(
+      ((projects ?? []) as Array<{ id: string; name: string; slug: string; card_id_prefix: string }>).map(
         (p) => [p.id, p]
       )
     )
@@ -145,6 +145,7 @@ export async function GET(
         title: card.title,
         priority: card.priority as ReleaseQueueCard['priority'],
         project_name: project?.name ?? 'Unknown',
+        project_slug: project?.slug ?? '',
         project_prefix: project?.card_id_prefix ?? '',
         lane: card.lane,
         flagged_at: card.updated_at,

@@ -126,14 +126,14 @@ export function CardContextMenu({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-primary hover:bg-terminal-bg-elevated transition-colors"
           >
             <Flag className="h-3 w-3" />
-            Flag for Release
+            Mark as Reviewed
           </button>
           <button
             onClick={handleAction({ type: 'unflag' })}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-primary hover:bg-terminal-bg-elevated transition-colors"
           >
             <FlagOff className="h-3 w-3" />
-            Unflag for Release
+            Mark as Pending
           </button>
           <div className="border-t border-terminal-border my-1" />
         </>
