@@ -340,3 +340,50 @@ export async function deleteCanvas(id: string): Promise<void> {
     throw new Error(error.error.message)
   }
 }
+
+// ── Release Pipeline ────────────────────────────────────
+
+export interface ReleaseRunResponse {
+  run_id: string
+  dispatched_cards: string[]
+  skipped_cards: string[]
+  invalid_cards: string[]
+}
+
+export interface ReleaseRunStatus {
+  id: string
+  status: 'pending' | 'dispatched' | 'in_progress' | 'completed' | 'partial_failure' | 'failed'
+  card_ids: string[]
+  github_run_id: number | null
+  results: Array<{
+    card_id: string
+    status: string
+    error?: string
+    merge_sha?: string
+    branch_deleted?: boolean
+  }>
+  summary: string | null
+  started_at: string
+  completed_at: string | null
+}
+
+export async function triggerRelease(
+  cardIds: string[]
+): Promise<{ data: ReleaseRunResponse; cached: boolean }> {
+  const res = await fetch('/api/nexus/release-queue/trigger', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ card_ids: cardIds }),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function getReleaseRunStatus(
+  runId: string
+): Promise<{ data: ReleaseRunStatus; cached: boolean }> {
+  return fetchApi<ReleaseRunStatus>(`/api/nexus/release-queue/trigger?run_id=${runId}`)
+}

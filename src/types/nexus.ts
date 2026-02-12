@@ -118,6 +118,8 @@ export interface ReleaseQueueCard {
   review_required: boolean
   blocked: boolean
   unresolved_council_comments: number
+  /** Always true for cards in the release queue (they're filtered by this flag) */
+  ready_for_production: boolean
 }
 
 export type ReleaseCardStatus = 'clear' | 'blocked' | 'pending_review'

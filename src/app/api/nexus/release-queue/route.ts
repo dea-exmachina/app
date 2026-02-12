@@ -132,6 +132,7 @@ export async function GET(): Promise<
         review_required: reviewRequired,
         blocked,
         unresolved_council_comments: unresolvedCouncilComments,
+        ready_for_production: true,
       }
     })
 

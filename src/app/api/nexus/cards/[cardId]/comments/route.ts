@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // Validate author: dea, user, bender, or bender+{slug}
-    const validAuthor = ['dea', 'user', 'bender'].includes(body.author)
+    const validAuthor = ['dea', 'user', 'bender', 'webapp', 'github-actions'].includes(body.author)
       || /^bender\+[a-z0-9-]+$/.test(body.author)
     if (!validAuthor) {
       return NextResponse.json(
