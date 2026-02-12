@@ -153,6 +153,21 @@ export async function moveCard(
   }
 }
 
+export async function updateCard(
+  cardId: string,
+  updates: Record<string, unknown>
+): Promise<void> {
+  const res = await fetch(`/api/nexus/cards/${cardId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
 // NEXUS Comment Operations
 export async function getComments(cardId: string): Promise<{
   data: NexusComment[]

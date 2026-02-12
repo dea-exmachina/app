@@ -44,6 +44,8 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
   const [routingRules, setRoutingRules] = useState<RoutingRule[]>([])
   const [routingSaved, setRoutingSaved] = useState<string | null>(null)
+  const [autoFlagEnabled, setAutoFlagEnabled] = useState(true)
+  const [autoFlagSaved, setAutoFlagSaved] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -53,6 +55,15 @@ export default function SettingsPage() {
     fetch('/api/routing/config')
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setRoutingRules(data) })
+      .catch(() => {})
+
+    fetch('/api/settings?key=auto_flag_on_review')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.value !== null && data.value !== undefined) {
+          setAutoFlagEnabled(data.value.enabled ?? true)
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -80,6 +91,35 @@ export default function SettingsPage() {
       setTimeout(() => setRoutingSaved(null), 3000)
     }
   }, [])
+
+  const handleAutoFlagToggle = useCallback(async () => {
+    const newValue = !autoFlagEnabled
+    setAutoFlagEnabled(newValue)
+    setAutoFlagSaved(null)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'auto_flag_on_review',
+          value: { enabled: newValue },
+          description: 'Auto-flag cards for release when moved to review lane',
+        }),
+      })
+      if (res.ok) {
+        setAutoFlagSaved('saved')
+        setTimeout(() => setAutoFlagSaved(null), 2000)
+      } else {
+        setAutoFlagEnabled(!newValue)
+        setAutoFlagSaved('error')
+        setTimeout(() => setAutoFlagSaved(null), 3000)
+      }
+    } catch {
+      setAutoFlagEnabled(!newValue)
+      setAutoFlagSaved('error')
+      setTimeout(() => setAutoFlagSaved(null), 3000)
+    }
+  }, [autoFlagEnabled])
 
   const handleResetLayout = (pageId: string) => {
     localStorage.removeItem(`cc-layout-${pageId}`)
@@ -206,6 +246,46 @@ export default function SettingsPage() {
         >
           Reset All Layouts
         </button>
+      </div>
+
+      {/* Release */}
+      <div>
+        <SectionDivider label="Release" />
+        <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
+          Controls how cards are flagged for production release.
+        </p>
+        <div className="flex items-center justify-between border-b border-terminal-border py-2">
+          <div className="flex-1">
+            <span className="font-mono text-[11px] text-terminal-fg-primary">
+              Auto-flag on review
+            </span>
+            <p className="font-mono text-[10px] text-terminal-fg-tertiary mt-0.5">
+              Automatically flag cards for release when moved to the review lane. Un-flag cards that don&apos;t pass testing.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            {autoFlagSaved === 'saved' && (
+              <span className="font-mono text-[9px] text-status-ok">saved</span>
+            )}
+            {autoFlagSaved === 'error' && (
+              <span className="font-mono text-[9px] text-status-error">error</span>
+            )}
+            <button
+              onClick={handleAutoFlagToggle}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                autoFlagEnabled
+                  ? 'bg-user-accent'
+                  : 'bg-terminal-border-strong'
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                  autoFlagEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Model Routing */}
