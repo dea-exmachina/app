@@ -249,11 +249,13 @@ export async function getUnresolvedComments(projectId?: string): Promise<{
 }
 
 // Release Queue
-export async function getReleaseQueue(): Promise<{
+export async function getReleaseQueue(
+  filter: 'flagged' | 'unflagged' | 'all' = 'flagged'
+): Promise<{
   data: ReleaseQueueResponse
   cached: boolean
 }> {
-  return fetchApi<ReleaseQueueResponse>('/api/nexus/release-queue')
+  return fetchApi<ReleaseQueueResponse>(`/api/nexus/release-queue?filter=${filter}`)
 }
 
 // Projects

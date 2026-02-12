@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Flag } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { CommentThread } from './CommentThread'
@@ -81,6 +82,17 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
             <div>
               <span className="text-terminal-fg-tertiary uppercase tracking-wider">Lane </span>
               <span className="text-terminal-fg-primary">{lane}</span>
+            </div>
+            <div>
+              <span className="text-terminal-fg-tertiary uppercase tracking-wider">Release </span>
+              {card.readyForProduction ? (
+                <span className="inline-flex items-center gap-1 text-status-ok">
+                  <Flag className="h-3 w-3" />
+                  Flagged
+                </span>
+              ) : (
+                <span className="text-terminal-fg-tertiary">—</span>
+              )}
             </div>
             {assignee && (
               <div>

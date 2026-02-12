@@ -49,6 +49,7 @@ interface NexusCardRow {
   created_at: string
   updated_at: string
   parent_id: string | null
+  ready_for_production: boolean
 }
 
 /** Map a nexus_card row into a KanbanCard for the frontend */
@@ -94,6 +95,7 @@ function mapToKanbanCard(row: NexusCardRow): KanbanCard {
       ? (row.metadata as Record<string, string>)?.started_at || row.updated_at
       : null,
     completedAt: row.completed_at ?? null,
+    readyForProduction: row.ready_for_production ?? false,
   }
 }
 
