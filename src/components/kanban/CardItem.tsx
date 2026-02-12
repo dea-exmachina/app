@@ -1,6 +1,7 @@
 import { useCallback, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
+import { Flag } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -121,6 +122,9 @@ export function CardItem({
             <CardBadge key={tag} tag={tag} />
           ))}
         </div>
+        {card.readyForProduction && (
+          <Flag className="h-3 w-3 text-status-ok shrink-0" />
+        )}
         <StatusDot status={statusToType(status)} size={5} />
       </div>
 
