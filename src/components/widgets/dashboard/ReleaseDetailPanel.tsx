@@ -1,10 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
+import { ExternalLink, CheckCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { CommentThread } from '@/components/kanban/CommentThread'
+import { moveCard } from '@/lib/client/api'
 import type { ReleaseQueueCard, ReleaseCardStatus } from '@/types/nexus'
 
 // ── Status helpers ──────────────────────────────────────
@@ -46,6 +50,8 @@ interface ReleaseDetailPanelProps {
 }
 
 export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
+  const [moveState, setMoveState] = useState<'idle' | 'confirm' | 'moving' | 'done'>('idle')
+
   // Close on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -54,6 +60,23 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  const handleMoveToDone = useCallback(async () => {
+    if (moveState === 'idle') {
+      setMoveState('confirm')
+      return
+    }
+    if (moveState !== 'confirm') return
+    setMoveState('moving')
+    try {
+      await moveCard(card.card_id, 'done')
+      setMoveState('done')
+      // Auto-close after brief delay so user sees success
+      setTimeout(onClose, 800)
+    } catch {
+      setMoveState('idle')
+    }
+  }, [moveState, card.card_id, onClose])
 
   const status = getCardStatus(card)
 
@@ -118,6 +141,46 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
                     : 'Passed'}
                 </span>
               </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            {card.project_slug && (
+              <Link
+                href={`/kanban/${card.project_slug}`}
+                className="flex-1"
+              >
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="w-full font-mono text-[10px]"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Open in Board
+                </Button>
+              </Link>
+            )}
+            {!card.blocked && (
+              <Button
+                variant="outline"
+                size="xs"
+                className={`flex-1 font-mono text-[10px] ${
+                  moveState === 'done'
+                    ? 'border-status-ok/30 text-status-ok'
+                    : moveState === 'confirm'
+                      ? 'border-status-warn/30 text-status-warn hover:bg-status-warn/10'
+                      : ''
+                }`}
+                onClick={handleMoveToDone}
+                disabled={moveState === 'moving' || moveState === 'done'}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                {moveState === 'idle' && 'Move to Done'}
+                {moveState === 'confirm' && 'Confirm?'}
+                {moveState === 'moving' && 'Moving...'}
+                {moveState === 'done' && 'Done'}
+              </Button>
             )}
           </div>
 

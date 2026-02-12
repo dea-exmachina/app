@@ -88,12 +88,12 @@ export async function POST(
       )
     }
 
-    // Validate author: dea, user, bender, or bender+{slug}
-    const validAuthor = ['dea', 'user', 'bender'].includes(body.author)
+    // Validate author: dea, user, webapp, bender, or bender+{slug}
+    const validAuthor = ['dea', 'user', 'bender', 'webapp'].includes(body.author)
       || /^bender\+[a-z0-9-]+$/.test(body.author)
     if (!validAuthor) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'Invalid author. Must be dea, user, bender, or bender+{slug}' } },
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid author. Must be dea, user, webapp, bender, or bender+{slug}' } },
         { status: 400 }
       )
     }

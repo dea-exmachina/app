@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Rocket, ShieldCheck, Wrench, Flag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -54,8 +55,8 @@ function FilterToggle({
   const modes: FilterMode[] = ['all', 'flagged', 'unflagged']
   const labels: Record<FilterMode, string> = {
     all: 'ALL',
-    flagged: 'FLAGGED',
-    unflagged: 'UNFLAGGED',
+    flagged: 'REVIEWED',
+    unflagged: 'PENDING',
   }
 
   return (
@@ -187,9 +188,9 @@ export function ReleaseQueueWidget() {
     )
   }
 
-  // Compute flagged count for header ratio display
+  // Compute reviewed count for header ratio display
   const totalInReview = data?.total_in_review ?? 0
-  const displayFlagged = filter === 'all'
+  const displayReviewed = filter === 'all'
     ? data?.cards.filter((c) => c.ready_for_production).length ?? 0
     : filter === 'flagged'
       ? data?.total ?? 0
@@ -202,7 +203,7 @@ export function ReleaseQueueWidget() {
         <div className="flex items-center gap-2">
           <Flag className="h-3 w-3 text-status-ok" />
           <span className="font-mono text-[10px] text-terminal-fg-secondary">
-            {loading ? '...' : `${displayFlagged}/${totalInReview} flagged`}
+            {loading ? '...' : `${displayReviewed}/${totalInReview} reviewed`}
           </span>
           {data && data.blocked_count > 0 && (
             <StatusDot status="error" label={`${data.blocked_count} blocked`} size={5} />
@@ -219,8 +220,8 @@ export function ReleaseQueueWidget() {
         <div className="flex flex-col items-center justify-center flex-1 gap-2 text-terminal-fg-tertiary">
           <Rocket className="h-5 w-5 opacity-40" />
           <span className="font-mono text-xs">
-            {filter === 'flagged' ? 'No cards flagged for release'
-              : filter === 'unflagged' ? 'No unflagged cards in review'
+            {filter === 'flagged' ? 'No cards reviewed for release'
+              : filter === 'unflagged' ? 'No pending cards in review'
               : 'No cards in review'}
           </span>
         </div>
@@ -331,12 +332,13 @@ export function ReleaseQueueWidget() {
         </>
       )}
 
-      {/* Detail panel overlay */}
-      {selectedCard && (
+      {/* Detail panel — portal to body to escape grid transform containment */}
+      {selectedCard && createPortal(
         <ReleaseDetailPanel
           card={selectedCard}
           onClose={handlePanelClose}
-        />
+        />,
+        document.body
       )}
     </div>
   )

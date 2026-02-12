@@ -88,7 +88,7 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
               {card.readyForProduction ? (
                 <span className="inline-flex items-center gap-1 text-status-ok">
                   <Flag className="h-3 w-3" />
-                  Flagged
+                  Reviewed
                 </span>
               ) : (
                 <span className="text-terminal-fg-tertiary">—</span>

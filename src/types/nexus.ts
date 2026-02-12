@@ -112,6 +112,7 @@ export interface ReleaseQueueCard {
   title: string
   priority: CardPriority
   project_name: string
+  project_slug: string
   project_prefix: string
   lane: string
   flagged_at: string
