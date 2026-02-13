@@ -101,24 +101,28 @@ export async function GET(
     )
 
     // For meta cards, check for unresolved council comments
-    const metaCardIds = cards
-      .filter((c) => isMetaCard(c.card_id))
-      .map((c) => c.card_id)
+    // nexus_comments.card_id is a UUID (references nexus_cards.id), not the display card_id
+    const metaCards = cards.filter((c) => isMetaCard(c.card_id))
+    const metaCardUuids = metaCards.map((c) => c.id)
+    const uuidToDisplayId = new Map(metaCards.map((c) => [c.id, c.card_id]))
 
     const councilCommentCounts = new Map<string, number>()
 
-    if (metaCardIds.length > 0) {
+    if (metaCardUuids.length > 0) {
       const { data: councilComments, error: commentError } = await tables.nexus_comments
         .select('card_id')
         .eq('author', 'council')
         .eq('resolved', false)
-        .in('card_id', metaCardIds)
+        .in('card_id', metaCardUuids)
 
       if (commentError) throw commentError
 
       for (const comment of (councilComments ?? []) as Array<{ card_id: string }>) {
-        const current = councilCommentCounts.get(comment.card_id) ?? 0
-        councilCommentCounts.set(comment.card_id, current + 1)
+        const displayId = uuidToDisplayId.get(comment.card_id)
+        if (displayId) {
+          const current = councilCommentCounts.get(displayId) ?? 0
+          councilCommentCounts.set(displayId, current + 1)
+        }
       }
     }
 
