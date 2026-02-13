@@ -118,30 +118,26 @@ export function CardContextMenu({
         {cardCount} card{cardCount !== 1 ? 's' : ''} selected
       </div>
 
-      {/* Flag for Release */}
-      <button
-        onClick={handleAction({ type: 'flag' })}
-        disabled={!allInReview}
-        className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors ${
-          allInReview
-            ? 'text-terminal-fg-primary hover:bg-terminal-bg-elevated'
-            : 'text-terminal-fg-tertiary/40 cursor-not-allowed'
-        }`}
-      >
-        <Flag className="h-3 w-3" />
-        Flag for Release
-      </button>
-
-      {/* Unflag for Release */}
-      <button
-        onClick={handleAction({ type: 'unflag' })}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-primary hover:bg-terminal-bg-elevated transition-colors"
-      >
-        <FlagOff className="h-3 w-3" />
-        Unflag for Release
-      </button>
-
-      <div className="border-t border-terminal-border my-1" />
+      {/* Flag / Unflag — only shown when all selected cards are in review */}
+      {allInReview && (
+        <>
+          <button
+            onClick={handleAction({ type: 'flag' })}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-primary hover:bg-terminal-bg-elevated transition-colors"
+          >
+            <Flag className="h-3 w-3" />
+            Mark as Reviewed
+          </button>
+          <button
+            onClick={handleAction({ type: 'unflag' })}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-primary hover:bg-terminal-bg-elevated transition-colors"
+          >
+            <FlagOff className="h-3 w-3" />
+            Mark as Pending
+          </button>
+          <div className="border-t border-terminal-border my-1" />
+        </>
+      )}
 
       {/* Move to Lane (submenu) */}
       <div

@@ -11,6 +11,7 @@ export interface KanbanCard {
   rawMarkdown: string
   startedAt?: string | null
   completedAt?: string | null
+  readyForProduction?: boolean
 }
 
 export interface KanbanLane {

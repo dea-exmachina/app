@@ -1,13 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Rocket, ShieldCheck, Wrench } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Rocket, ShieldCheck, Wrench, Flag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
 import { getReleaseQueue, postInbox } from '@/lib/client/api'
 import { ReleaseDetailPanel } from './ReleaseDetailPanel'
 import type { ReleaseQueueCard, ReleaseQueueResponse, ReleaseCardStatus } from '@/types/nexus'
+
+// ── Types ──────────────────────────────────────────────
+
+type FilterMode = 'all' | 'flagged' | 'unflagged'
 
 // ── Status helpers ──────────────────────────────────────
 
@@ -23,10 +28,10 @@ function getCardStatus(card: ReleaseQueueCard): ReleaseCardStatus {
   return 'clear'
 }
 
-/** Row background color based on release status */
+/** Row background color based on release + flag status */
 function rowStatusClass(card: ReleaseQueueCard): string {
   if (card.blocked) return 'bg-red-500/10 hover:bg-red-500/20'
-  if (card.review_required) return 'bg-emerald-500/8 hover:bg-emerald-500/15'
+  if (!card.ready_for_production) return 'hover:bg-terminal-bg-elevated'
   return 'bg-emerald-500/8 hover:bg-emerald-500/15'
 }
 
@@ -38,36 +43,82 @@ function statusDotType(status: ReleaseCardStatus): 'ok' | 'warn' | 'error' {
   }
 }
 
+// ── Filter Toggle ──────────────────────────────────────
+
+function FilterToggle({
+  active,
+  onChange,
+}: {
+  active: FilterMode
+  onChange: (mode: FilterMode) => void
+}) {
+  const modes: FilterMode[] = ['all', 'flagged', 'unflagged']
+  const labels: Record<FilterMode, string> = {
+    all: 'ALL',
+    flagged: 'REVIEWED',
+    unflagged: 'PENDING',
+  }
+
+  return (
+    <div className="flex rounded-sm border border-terminal-border overflow-hidden">
+      {modes.map((mode) => (
+        <button
+          key={mode}
+          onClick={() => onChange(mode)}
+          className={`font-mono text-[9px] px-2 py-0.5 transition-colors ${
+            active === mode
+              ? 'bg-user-accent/15 text-user-accent border-user-accent/30'
+              : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary hover:bg-terminal-bg-elevated'
+          } ${mode !== 'all' ? 'border-l border-terminal-border' : ''}`}
+        >
+          {labels[mode]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── Widget ──────────────────────────────────────────────
 
 export function ReleaseQueueWidget() {
   const [data, setData] = useState<ReleaseQueueResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<FilterMode>('all')
   const [actionState, setActionState] = useState<'idle' | 'requesting' | 'done'>('idle')
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<ReleaseQueueCard | null>(null)
 
-  useEffect(() => {
-    getReleaseQueue()
+  const fetchData = useCallback((filterMode: FilterMode) => {
+    setLoading(true)
+    getReleaseQueue(filterMode)
       .then(({ data: d }) => setData(d))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
-  // Refetch after panel close (comments may have changed blocking status)
+  // Initial load
+  useEffect(() => {
+    fetchData(filter)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleFilterChange = useCallback((mode: FilterMode) => {
+    setFilter(mode)
+    fetchData(mode)
+  }, [fetchData])
+
+  // Refetch after panel close
   const handlePanelClose = useCallback(() => {
     setSelectedCard(null)
-    getReleaseQueue()
-      .then(({ data: d }) => setData(d))
-      .catch(() => {/* silent refetch failure */})
-  }, [])
+    fetchData(filter)
+  }, [fetchData, filter])
 
   // ── Action handlers ────────────────────────────────────
 
   const handleReleaseClear = useCallback(async () => {
     if (!data) return
-    const clearCards = data.cards.filter((c) => !c.blocked)
+    const clearCards = data.cards.filter((c) => !c.blocked && c.ready_for_production)
     if (clearCards.length === 0) return
     setActionState('requesting')
     try {
@@ -129,14 +180,6 @@ export function ReleaseQueueWidget() {
 
   // ── Render states ──────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-xs font-mono text-terminal-fg-tertiary">
-        Loading release queue...
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center h-full text-xs font-mono text-status-error">
@@ -145,141 +188,157 @@ export function ReleaseQueueWidget() {
     )
   }
 
-  if (!data || data.total === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 text-terminal-fg-tertiary">
-        <Rocket className="h-5 w-5 opacity-40" />
-        <span className="font-mono text-xs">No cards flagged for release</span>
-      </div>
-    )
-  }
-
-  const { cards, total, blocked_count, clear_count } = data
-  const projectCount = new Set(cards.map((c) => c.project_prefix)).size
-  const hasBlocked = blocked_count > 0
-  const hasClear = clear_count > 0
+  // Compute reviewed count for header ratio display
+  const totalInReview = data?.total_in_review ?? 0
+  const displayReviewed = filter === 'all'
+    ? data?.cards.filter((c) => c.ready_for_production).length ?? 0
+    : filter === 'flagged'
+      ? data?.total ?? 0
+      : (totalInReview - (data?.total ?? 0))
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header with counts */}
+      {/* Header: ratio + filter toggle */}
       <div className="flex items-center justify-between px-2 pb-2">
-        <span className="font-mono text-[10px] text-terminal-fg-secondary">
-          {total} card{total !== 1 ? 's' : ''} across {projectCount} project{projectCount !== 1 ? 's' : ''}
-        </span>
         <div className="flex items-center gap-2">
-          {clear_count > 0 && (
-            <StatusDot status="ok" label={`${clear_count} clear`} size={5} />
-          )}
-          {blocked_count > 0 && (
-            <StatusDot status="error" label={`${blocked_count} blocked`} size={5} />
+          <Flag className="h-3 w-3 text-status-ok" />
+          <span className="font-mono text-[10px] text-terminal-fg-secondary">
+            {loading ? '...' : `${displayReviewed}/${totalInReview} reviewed`}
+          </span>
+          {data && data.blocked_count > 0 && (
+            <StatusDot status="error" label={`${data.blocked_count} blocked`} size={5} />
           )}
         </div>
+        <FilterToggle active={filter} onChange={handleFilterChange} />
       </div>
 
-      {/* Card list with status-colored rows */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse font-mono text-xs">
-          <thead>
-            <tr className="border-b border-terminal-border-strong sticky top-0 z-10 bg-terminal-bg-surface">
-              <th className="terminal-label px-2 py-1 text-left font-normal w-[18px]" />
-              <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '22%' }}>ID</th>
-              <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '38%' }}>TITLE</th>
-              <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '20%' }}>PROJECT</th>
-              <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '15%' }}>PRI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cards.map((card) => {
-              const status = getCardStatus(card)
-              return (
-                <tr
-                  key={card.card_id}
-                  className={`h-7 border-b border-terminal-border cursor-pointer transition-colors ${rowStatusClass(card)}`}
-                  onClick={() => setSelectedCard(card)}
-                >
-                  <td className="px-1 py-1">
-                    <StatusDot status={statusDotType(status)} size={5} />
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="font-mono text-user-accent">{card.card_id}</span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="text-terminal-fg-primary truncate block">{card.title}</span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <Badge variant="terminal">{card.project_prefix}</Badge>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className={`font-mono uppercase ${PRIORITY_COLORS[card.priority] || ''}`}>
-                      {card.priority}
-                    </span>
-                  </td>
+      {loading ? (
+        <div className="flex items-center justify-center flex-1 text-xs font-mono text-terminal-fg-tertiary">
+          Loading...
+        </div>
+      ) : !data || data.total === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 gap-2 text-terminal-fg-tertiary">
+          <Rocket className="h-5 w-5 opacity-40" />
+          <span className="font-mono text-xs">
+            {filter === 'flagged' ? 'No cards reviewed for release'
+              : filter === 'unflagged' ? 'No pending cards in review'
+              : 'No cards in review'}
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* Card list */}
+          <div className="flex-1 overflow-auto">
+            <table className="w-full border-collapse font-mono text-xs">
+              <thead>
+                <tr className="border-b border-terminal-border-strong sticky top-0 z-10 bg-terminal-bg-surface">
+                  <th className="terminal-label px-2 py-1 text-left font-normal w-[18px]" />
+                  <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '22%' }}>ID</th>
+                  <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '38%' }}>TITLE</th>
+                  <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '20%' }}>PROJECT</th>
+                  <th className="terminal-label px-2 py-1 text-left font-normal" style={{ width: '15%' }}>PRI</th>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Smart action buttons */}
-      <div className="pt-2 px-2 border-t border-terminal-border space-y-1.5">
-        {actionState === 'done' && actionMessage ? (
-          <div className="text-center font-mono text-[10px] text-status-ok py-1">
-            {actionMessage} — check inbox
+              </thead>
+              <tbody>
+                {data.cards.map((card) => {
+                  const status = getCardStatus(card)
+                  return (
+                    <tr
+                      key={card.card_id}
+                      className={`h-7 border-b border-terminal-border cursor-pointer transition-colors ${rowStatusClass(card)}`}
+                      onClick={() => setSelectedCard(card)}
+                    >
+                      <td className="px-1 py-1">
+                        {card.ready_for_production ? (
+                          <StatusDot status={statusDotType(status)} size={5} />
+                        ) : (
+                          <span className="inline-block w-[5px] h-[5px] rounded-full bg-terminal-border-strong" />
+                        )}
+                      </td>
+                      <td className="px-2 py-1">
+                        <span className="font-mono text-user-accent">{card.card_id}</span>
+                      </td>
+                      <td className="px-2 py-1">
+                        <span className="text-terminal-fg-primary truncate block">{card.title}</span>
+                      </td>
+                      <td className="px-2 py-1">
+                        <Badge variant="terminal">{card.project_prefix}</Badge>
+                      </td>
+                      <td className="px-2 py-1">
+                        <span className={`font-mono uppercase ${PRIORITY_COLORS[card.priority] || ''}`}>
+                          {card.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <>
-            {/* Primary: Release clear cards */}
-            {hasClear && (
-              <Button
-                variant="outline"
-                size="xs"
-                className="w-full font-mono text-[10px]"
-                onClick={handleReleaseClear}
-                disabled={actionState === 'requesting'}
-              >
-                <Rocket className="h-3 w-3 mr-1" />
-                {actionState === 'requesting' ? 'Requesting...' : `Release ${clear_count} Clear Card${clear_count !== 1 ? 's' : ''}`}
-              </Button>
-            )}
 
-            {/* Secondary: Fix blocked */}
-            {hasBlocked && (
-              <Button
-                variant="outline"
-                size="xs"
-                className="w-full font-mono text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10"
-                onClick={handleFixBlocked}
-                disabled={actionState === 'requesting'}
-              >
-                <Wrench className="h-3 w-3 mr-1" />
-                Fix Blocked ({blocked_count})
-              </Button>
-            )}
+          {/* Smart action buttons — only show when viewing flagged cards */}
+          {filter !== 'unflagged' && (
+            <div className="pt-2 px-2 border-t border-terminal-border space-y-1.5">
+              {actionState === 'done' && actionMessage ? (
+                <div className="text-center font-mono text-[10px] text-status-ok py-1">
+                  {actionMessage} — check inbox
+                </div>
+              ) : (
+                <>
+                  {data.cards.some((c) => !c.blocked && c.ready_for_production) && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="w-full font-mono text-[10px]"
+                      onClick={handleReleaseClear}
+                      disabled={actionState === 'requesting'}
+                    >
+                      <Rocket className="h-3 w-3 mr-1" />
+                      {actionState === 'requesting'
+                        ? 'Requesting...'
+                        : `Release ${data.cards.filter((c) => !c.blocked && c.ready_for_production).length} Clear Card${data.cards.filter((c) => !c.blocked && c.ready_for_production).length !== 1 ? 's' : ''}`}
+                    </Button>
+                  )}
 
-            {/* Tertiary: Request council review */}
-            {data.cards.some((c) => c.review_required) && (
-              <Button
-                variant="outline"
-                size="xs"
-                className="w-full font-mono text-[10px] border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                onClick={handleRequestReview}
-                disabled={actionState === 'requesting'}
-              >
-                <ShieldCheck className="h-3 w-3 mr-1" />
-                Request Council Review
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+                  {data.blocked_count > 0 && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="w-full font-mono text-[10px] border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      onClick={handleFixBlocked}
+                      disabled={actionState === 'requesting'}
+                    >
+                      <Wrench className="h-3 w-3 mr-1" />
+                      Fix Blocked ({data.blocked_count})
+                    </Button>
+                  )}
 
-      {/* Detail panel overlay */}
-      {selectedCard && (
+                  {data.cards.some((c) => c.review_required) && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="w-full font-mono text-[10px] border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                      onClick={handleRequestReview}
+                      disabled={actionState === 'requesting'}
+                    >
+                      <ShieldCheck className="h-3 w-3 mr-1" />
+                      Request Council Review
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Detail panel — portal to body to escape grid transform containment */}
+      {selectedCard && createPortal(
         <ReleaseDetailPanel
           card={selectedCard}
           onClose={handlePanelClose}
-        />
+        />,
+        document.body
       )}
     </div>
   )

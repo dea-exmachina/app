@@ -112,9 +112,11 @@ export interface ReleaseQueueCard {
   title: string
   priority: CardPriority
   project_name: string
+  project_slug: string
   project_prefix: string
   lane: string
   flagged_at: string
+  ready_for_production: boolean
   review_required: boolean
   blocked: boolean
   unresolved_council_comments: number
@@ -125,6 +127,7 @@ export type ReleaseCardStatus = 'clear' | 'blocked' | 'pending_review'
 export interface ReleaseQueueResponse {
   cards: ReleaseQueueCard[]
   total: number
+  total_in_review: number
   blocked_count: number
   clear_count: number
   needs_review_count: number

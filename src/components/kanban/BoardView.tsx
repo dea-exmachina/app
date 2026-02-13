@@ -13,7 +13,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
-import { moveCard, updateCard } from '@/lib/client/api'
+import { moveCard, updateCard, postComment } from '@/lib/client/api'
 import { useUnresolvedComments } from '@/hooks/useUnresolvedComments'
 import { LaneColumn } from './LaneColumn'
 import { BoardStats } from './BoardStats'
@@ -210,9 +210,37 @@ export function BoardView({ board }: BoardViewProps) {
           switch (action.type) {
             case 'flag':
               await updateCard(card.id, { ready_for_production: true })
+              // Optimistic: update local card state
+              setLanes((prev) =>
+                prev.map((l) => ({
+                  ...l,
+                  cards: l.cards.map((c) =>
+                    c.id === card.id ? { ...c, readyForProduction: true } : c
+                  ),
+                }))
+              )
+              // Fire-and-forget tracking comment
+              postComment(card.id, {
+                author: 'webapp',
+                content: '✅ Marked as reviewed',
+                comment_type: 'note',
+              }).catch((err) => console.warn('Tracking comment failed:', err))
               break
             case 'unflag':
               await updateCard(card.id, { ready_for_production: false })
+              setLanes((prev) =>
+                prev.map((l) => ({
+                  ...l,
+                  cards: l.cards.map((c) =>
+                    c.id === card.id ? { ...c, readyForProduction: false } : c
+                  ),
+                }))
+              )
+              postComment(card.id, {
+                author: 'webapp',
+                content: '⏳ Marked as pending',
+                comment_type: 'note',
+              }).catch((err) => console.warn('Tracking comment failed:', err))
               break
             case 'move':
               if (action.value) {
