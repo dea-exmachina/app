@@ -42,6 +42,8 @@ export const tables = {
   project_benders: db.from('project_benders'),
   bender_platforms: db.from('bender_platforms'),
   bender_teams: db.from('bender_teams'),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bender_team_members: (db as any).from('bender_team_members') as ReturnType<typeof db.from>,
   bender_tasks: db.from('bender_tasks'),
   kanban_boards: db.from('kanban_boards'),
   kanban_cards: db.from('kanban_cards'),
