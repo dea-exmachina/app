@@ -33,7 +33,7 @@ jobs:
           BRANCH="${{ github.ref_name }}"
           ID=$(echo "$BRANCH" | sed 's|^task/||;s|^card/||')
           # Get first commit summary, strip any leading [CARD-ID] prefix to avoid duplication
-          SUMMARY=$(git log origin/dev.."$BRANCH" --oneline --reverse 2>/dev/null | head -1 | sed 's/^[a-f0-9]* //' | sed 's/^\[[^]]*\] *//')
+          SUMMARY=$(git log origin/master.."$BRANCH" --oneline --reverse 2>/dev/null | head -1 | sed 's/^[a-f0-9]* //' | sed 's/^\[[^]]*\] *//')
           if [ -z "$SUMMARY" ]; then
             SUMMARY="Feature branch delivery"
           fi
@@ -50,7 +50,7 @@ jobs:
         run: |
           BODY="## Auto-PR: ${CARD_ID}
 
-          Branch \`${BRANCH_NAME}\` → \`dev\`
+          Branch \`${BRANCH_NAME}\` → \`master\`
 
           ### Review Checklist
           - [ ] Code review complete
@@ -62,7 +62,7 @@ jobs:
           *Auto-created by GitHub Actions on push*"
 
           gh pr create \
-            --base dev \
+            --base master \
             --head "${BRANCH_NAME}" \
             --title "[${CARD_ID}] ${CARD_SUMMARY}" \
             --body "${BODY}" \
