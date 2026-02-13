@@ -1,7 +1,15 @@
 'use client'
 
+/**
+ * Event feed hook — fetches nexus_events via API with optional polling.
+ *
+ * CC-014: Redirected from queen_events to nexus_events.
+ * Maps nexus_events to QueenEvent shape for backward-compatible rendering.
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { QueenEvent } from '@/types/queen'
+import type { NexusEvent } from '@/types/nexus'
 
 interface UseQueenEventsParams {
   type?: string
@@ -19,12 +27,28 @@ interface UseQueenEventsResult {
   lastUpdated: Date | null
 }
 
+function nexusToQueen(ne: NexusEvent): QueenEvent {
+  const payload = (ne.payload ?? {}) as Record<string, unknown>
+  return {
+    id: ne.id,
+    type: ne.event_type,
+    source: 'nexus',
+    actor: ne.actor,
+    summary: (payload.summary as string)
+      || (payload.comment as string)
+      || `${ne.event_type} by ${ne.actor}`,
+    payload,
+    trace_id: null,
+    project: null,
+    processed: true,
+    created_at: ne.created_at,
+  }
+}
+
 function buildUrl(params: UseQueenEventsParams): string {
-  const url = new URL('/api/queen/events', window.location.origin)
+  const url = new URL('/api/nexus/events', window.location.origin)
   if (params.type) url.searchParams.set('type', params.type)
-  if (params.source) url.searchParams.set('source', params.source)
   if (params.limit) url.searchParams.set('limit', String(params.limit))
-  if (params.traceId) url.searchParams.set('trace_id', params.traceId)
   return url.toString()
 }
 
@@ -46,7 +70,8 @@ export function useQueenEvents(params: UseQueenEventsParams = {}): UseQueenEvent
         throw new Error(body.error || `HTTP ${res.status}`)
       }
       const json = await res.json()
-      setEvents(json.data ?? [])
+      const rawData = (json.data ?? []) as NexusEvent[]
+      setEvents(rawData.map(nexusToQueen))
       setLastUpdated(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
