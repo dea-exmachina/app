@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
         query = query.eq('parent_id', parent_id)
       }
     }
+    // UUID lookup — find card by internal id
+    const id = params.get('id')
+    if (id) query = query.eq('id', id)
     if (due_before) query = query.lte('due_date', due_before)
     if (due_after) query = query.gte('due_date', due_after)
 
