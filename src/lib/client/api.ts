@@ -15,7 +15,7 @@ import type {
 import type { ProjectLegacy as Project, ProjectDetail } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
-import type { NexusComment, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
+import type { NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -174,6 +174,12 @@ export async function getComments(cardId: string): Promise<{
   cached: boolean
 }> {
   return fetchApi<NexusComment[]>(`/api/nexus/cards/${cardId}/comments`)
+}
+
+export async function getCardEvents(
+  cardId: string
+): Promise<{ data: NexusEvent[]; cached: boolean }> {
+  return fetchApi<NexusEvent[]>(`/api/nexus/cards/${cardId}/events`)
 }
 
 export async function postComment(

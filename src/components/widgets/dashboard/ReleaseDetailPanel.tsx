@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ExternalLink, CheckCircle } from 'lucide-react'
+import { ExternalLink, Flag, FlagOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
-import { SectionDivider } from '@/components/ui/section-divider'
 import { CommentThread } from '@/components/kanban/CommentThread'
-import { moveCard } from '@/lib/client/api'
+import { EventTimeline } from '@/components/kanban/EventTimeline'
+import { updateCard } from '@/lib/client/api'
 import type { ReleaseQueueCard, ReleaseCardStatus } from '@/types/nexus'
 
 // ── Status helpers ──────────────────────────────────────
@@ -50,7 +50,9 @@ interface ReleaseDetailPanelProps {
 }
 
 export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
-  const [moveState, setMoveState] = useState<'idle' | 'confirm' | 'moving' | 'done'>('idle')
+  const [isReviewed, setIsReviewed] = useState(card.ready_for_production)
+  const [flagState, setFlagState] = useState<'idle' | 'toggling'>('idle')
+  const [activeTab, setActiveTab] = useState<'comments' | 'audit'>('comments')
 
   // Close on Escape key
   useEffect(() => {
@@ -61,22 +63,19 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  const handleMoveToDone = useCallback(async () => {
-    if (moveState === 'idle') {
-      setMoveState('confirm')
-      return
-    }
-    if (moveState !== 'confirm') return
-    setMoveState('moving')
+  const handleToggleFlag = useCallback(async () => {
+    if (flagState !== 'idle') return
+    setFlagState('toggling')
+    const newValue = !isReviewed
     try {
-      await moveCard(card.card_id, 'done')
-      setMoveState('done')
-      // Auto-close after brief delay so user sees success
-      setTimeout(onClose, 800)
-    } catch {
-      setMoveState('idle')
+      await updateCard(card.card_id, { ready_for_production: newValue })
+      setIsReviewed(newValue)
+    } catch (err) {
+      console.warn('Toggle flag failed:', err)
+    } finally {
+      setFlagState('idle')
     }
-  }, [moveState, card.card_id, onClose])
+  }, [flagState, isReviewed, card.card_id])
 
   const status = getCardStatus(card)
 
@@ -166,20 +165,24 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
                 variant="outline"
                 size="xs"
                 className={`flex-1 font-mono text-[10px] ${
-                  moveState === 'done'
-                    ? 'border-status-ok/30 text-status-ok'
-                    : moveState === 'confirm'
-                      ? 'border-status-warn/30 text-status-warn hover:bg-status-warn/10'
-                      : ''
+                  isReviewed
+                    ? 'border-status-ok/30 text-status-ok hover:bg-status-ok/10'
+                    : 'border-terminal-border text-terminal-fg-secondary hover:bg-terminal-bg-elevated'
                 }`}
-                onClick={handleMoveToDone}
-                disabled={moveState === 'moving' || moveState === 'done'}
+                onClick={handleToggleFlag}
+                disabled={flagState === 'toggling'}
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                {moveState === 'idle' && 'Move to Done'}
-                {moveState === 'confirm' && 'Confirm?'}
-                {moveState === 'moving' && 'Moving...'}
-                {moveState === 'done' && 'Done'}
+                {isReviewed ? (
+                  <>
+                    <FlagOff className="h-3 w-3 mr-1" />
+                    {flagState === 'toggling' ? 'Updating...' : 'Mark as Pending'}
+                  </>
+                ) : (
+                  <>
+                    <Flag className="h-3 w-3 mr-1" />
+                    {flagState === 'toggling' ? 'Updating...' : 'Mark as Reviewed'}
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -194,11 +197,36 @@ export function ReleaseDetailPanel({ card, onClose }: ReleaseDetailPanelProps) {
             </div>
           )}
 
-          {/* Divider */}
-          <SectionDivider label="Council & Comments" />
+          {/* Tab switcher */}
+          <div className="flex border-b border-terminal-border">
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'comments'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Comments
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                activeTab === 'audit'
+                  ? 'text-user-accent border-b-2 border-user-accent'
+                  : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+              }`}
+            >
+              Audit Trail
+            </button>
+          </div>
 
-          {/* Comment Thread — reuse existing component */}
-          <CommentThread cardId={card.card_id} />
+          {/* Tab content */}
+          {activeTab === 'comments' ? (
+            <CommentThread cardId={card.card_id} />
+          ) : (
+            <EventTimeline cardId={card.card_id} />
+          )}
         </div>
       </div>
     </>
