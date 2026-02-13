@@ -3,6 +3,18 @@ import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderTeam, BenderAgent } from '@/types/bender'
 
+/** Parse legacy JSONB members column as fallback (e.g. The Council) */
+function parseLegacyMembers(raw: unknown): BenderAgent[] {
+  const arr = Array.isArray(raw) ? raw : []
+  return arr.map((m: { name?: string; role?: string }) => ({
+    name: m.name ?? 'Unknown',
+    role: m.role ?? '',
+    platform: '',
+    invocation: '',
+    team: null,
+  }))
+}
+
 export async function GET(): Promise<
   NextResponse<ApiResponse<BenderTeam[]> | ApiError>
 > {
@@ -23,13 +35,13 @@ export async function GET(): Promise<
       (identitiesRes.data ?? []).map((i: { id: string; display_name: string | null; slug: string }) => [i.id, i])
     )
 
-    // Group members by team_id
+    // Group members by team_id from junction table
     const membersByTeam = new Map<string, BenderAgent[]>()
     for (const m of membersRes.data ?? []) {
       const row = m as { team_id: string; identity_id: string; role: string; platform: string }
       const identity = identityMap.get(row.identity_id) as { display_name: string | null; slug: string } | undefined
       const agent: BenderAgent = {
-        name: identity?.display_name ?? 'Unknown',
+        name: identity?.display_name ?? row.role ?? 'Unknown',
         role: row.role ?? '',
         platform: row.platform ?? '',
         invocation: identity?.slug ? `bender+${identity.slug}` : '',
@@ -42,9 +54,11 @@ export async function GET(): Promise<
 
     const teams: BenderTeam[] = (teamsRes.data ?? []).map((row) => {
       const r = row as Record<string, unknown>
+      const junctionMembers = membersByTeam.get(row.id as string) ?? []
       return {
         name: row.name as string,
-        members: membersByTeam.get(row.id as string) ?? [],
+        // Use junction table members; fall back to legacy JSONB (e.g. The Council)
+        members: junctionMembers.length > 0 ? junctionMembers : parseLegacyMembers(r.members),
         sequencing: (row.sequencing as string) ?? '',
         fileOwnership: (r.file_ownership as BenderTeam['fileOwnership']) ?? {},
         branchStrategy: (row.branch_strategy as string) ?? '',
