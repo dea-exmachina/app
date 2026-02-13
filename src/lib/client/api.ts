@@ -15,7 +15,7 @@ import type {
 import type { ProjectLegacy as Project, ProjectDetail } from '@/types/project'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
-import type { NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
+import type { NexusCard, NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -138,6 +138,18 @@ export async function createTask(
 }
 
 // NEXUS Card Operations
+export async function getCard(
+  cardId: string
+): Promise<{ data: NexusCard; cached: boolean }> {
+  return fetchApi<NexusCard>(`/api/nexus/cards/${cardId}`)
+}
+
+export async function getCardChildren(
+  parentId: string
+): Promise<{ data: NexusCard[]; cached: boolean }> {
+  return fetchApi<NexusCard[]>(`/api/nexus/cards?parent_id=${parentId}`)
+}
+
 export async function moveCard(
   cardId: string,
   lane: string
