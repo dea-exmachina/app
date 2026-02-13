@@ -3,15 +3,6 @@ import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { BenderTeam, BenderAgent } from '@/types/bender'
 
-function parseMembers(raw: unknown): BenderAgent[] {
-  if (Array.isArray(raw)) return raw
-  if (typeof raw === 'string') {
-    try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : [] }
-    catch { return [] }
-  }
-  return []
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
@@ -36,9 +27,30 @@ export async function GET(
       )
     }
 
+    // Fetch members for this team from junction table
+    const [membersRes, identitiesRes] = await Promise.all([
+      tables.bender_team_members.select('*').eq('team_id', row.id),
+      tables.bender_identities.select('id, display_name, slug'),
+    ])
+
+    const identityMap = new Map(
+      (identitiesRes.data ?? []).map((i: { id: string; display_name: string | null; slug: string }) => [i.id, i])
+    )
+
+    const members: BenderAgent[] = (membersRes.data ?? []).map((m: Record<string, unknown>) => {
+      const identity = identityMap.get(m.identity_id as string) as { display_name: string | null; slug: string } | undefined
+      return {
+        name: identity?.display_name ?? 'Unknown',
+        role: (m.role as string) ?? '',
+        platform: (m.platform as string) ?? '',
+        invocation: identity?.slug ? `bender+${identity.slug}` : '',
+        team: name,
+      }
+    })
+
     const team: BenderTeam = {
       name: row.name,
-      members: parseMembers((row as Record<string, unknown>).members),
+      members,
       sequencing: row.sequencing ?? '',
       fileOwnership: ((row as Record<string, unknown>).file_ownership as BenderTeam['fileOwnership']) ?? {},
       branchStrategy: row.branch_strategy ?? '',
