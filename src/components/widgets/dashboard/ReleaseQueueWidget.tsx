@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Rocket, ShieldCheck, Wrench, Flag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
-import { getReleaseQueue, postInbox } from '@/lib/client/api'
+import { getReleaseQueue, postInbox, getReleaseRunStatus } from '@/lib/client/api'
 import { ReleaseDetailPanel } from './ReleaseDetailPanel'
+import { ReleaseConfirmModal } from './ReleaseConfirmModal'
 import type { ReleaseQueueCard, ReleaseQueueResponse, ReleaseCardStatus } from '@/types/nexus'
 
 // ── Types ──────────────────────────────────────────────
@@ -88,6 +89,10 @@ export function ReleaseQueueWidget() {
   const [actionState, setActionState] = useState<'idle' | 'requesting' | 'done'>('idle')
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<ReleaseQueueCard | null>(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [activeRunId, setActiveRunId] = useState<string | null>(null)
+  const [releaseStatus, setReleaseStatus] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchData = useCallback((filterMode: FilterMode) => {
     setLoading(true)
@@ -108,6 +113,38 @@ export function ReleaseQueueWidget() {
     fetchData(mode)
   }, [fetchData])
 
+  // Poll release run status when active
+  useEffect(() => {
+    if (!activeRunId) return
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data: status } = await getReleaseRunStatus(activeRunId)
+        if (['completed', 'partial_failure', 'failed'].includes(status.status)) {
+          setActiveRunId(null)
+          setReleaseStatus(
+            status.status === 'completed'
+              ? `Release complete: ${status.summary}`
+              : status.status === 'partial_failure'
+                ? `Partial release: ${status.summary}`
+                : `Release failed: ${status.summary}`
+          )
+          fetchData(filter) // Refresh queue
+        } else {
+          setReleaseStatus(
+            status.status === 'in_progress'
+              ? 'Merging to production...'
+              : 'Pipeline dispatched...'
+          )
+        }
+      } catch {
+        /* ignore polling errors */
+      }
+    }, 15000)
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [activeRunId, fetchData, filter])
+
   // Refetch after panel close
   const handlePanelClose = useCallback(() => {
     setSelectedCard(null)
@@ -116,25 +153,20 @@ export function ReleaseQueueWidget() {
 
   // ── Action handlers ────────────────────────────────────
 
-  const handleReleaseClear = useCallback(async () => {
+  const handleReleaseClear = useCallback(() => {
     if (!data) return
     const clearCards = data.cards.filter((c) => !c.blocked && c.ready_for_production)
     if (clearCards.length === 0) return
-    setActionState('requesting')
-    try {
-      const cardList = clearCards.map((c) => `- ${c.card_id}: ${c.title}`).join('\n')
-      await postInbox({
-        title: `Release requested — ${clearCards.length} clear card(s)`,
-        content: `${clearCards.length} cards cleared for production:\n\n${cardList}\n\nRequested from Control Center dashboard.`,
-        type: 'instruction',
-      })
-      setActionState('done')
-      setActionMessage(`Release requested for ${clearCards.length} card(s)`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to request release')
-      setActionState('idle')
-    }
+    setShowConfirmModal(true)
   }, [data])
+
+  const handleReleaseComplete = useCallback((result: { runId: string; dispatched: string[]; skipped: string[] }) => {
+    setShowConfirmModal(false)
+    setActiveRunId(result.runId)
+    setActionState('done')
+    setReleaseStatus('Pipeline dispatched...')
+    setActionMessage(`Release dispatched for ${result.dispatched.length} card(s)`)
+  }, [])
 
   const handleRequestReview = useCallback(async () => {
     if (!data) return
@@ -279,9 +311,19 @@ export function ReleaseQueueWidget() {
           {/* Smart action buttons — only show when viewing flagged cards */}
           {filter !== 'unflagged' && (
             <div className="pt-2 px-2 border-t border-terminal-border space-y-1.5">
-              {actionState === 'done' && actionMessage ? (
+              {/* Release pipeline status */}
+              {releaseStatus && (
+                <div className={`text-center font-mono text-[10px] py-1 ${
+                  releaseStatus.includes('complete') ? 'text-status-ok'
+                    : releaseStatus.includes('failed') || releaseStatus.includes('Partial') ? 'text-status-error'
+                      : 'text-user-accent animate-pulse'
+                }`}>
+                  {releaseStatus}
+                </div>
+              )}
+              {actionState === 'done' && actionMessage && !releaseStatus ? (
                 <div className="text-center font-mono text-[10px] text-status-ok py-1">
-                  {actionMessage} — check inbox
+                  {actionMessage}
                 </div>
               ) : (
                 <>
@@ -339,6 +381,15 @@ export function ReleaseQueueWidget() {
           onClose={handlePanelClose}
         />,
         document.body
+      )}
+
+      {/* Release confirmation modal */}
+      {showConfirmModal && data && (
+        <ReleaseConfirmModal
+          cards={data.cards.filter((c) => !c.blocked && c.ready_for_production)}
+          onClose={() => setShowConfirmModal(false)}
+          onReleaseComplete={handleReleaseComplete}
+        />
       )}
     </div>
   )

@@ -1,0 +1,262 @@
+name: Release CC Cards to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      card_ids:
+        description: 'JSON array of CC card IDs to release'
+        required: true
+        type: string
+      run_id:
+        description: 'Release run UUID for status tracking'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://cpfhgisfkudoiajcoujx.supabase.co
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Configure git author
+        run: |
+          git config user.name "George"
+          git config user.email "george.a.ata@gmail.com"
+
+      - name: Update release run to in_progress
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          curl -sf -X PATCH \
+            "$SUPABASE_URL/rest/v1/release_runs?id=eq.${{ inputs.run_id }}" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"status\": \"in_progress\", \"github_run_id\": ${{ github.run_id }}}"
+
+      - name: Merge card branches to master
+        id: merge
+        run: |
+          CARD_IDS='${{ inputs.card_ids }}'
+          RESULTS="[]"
+          MERGED_COUNT=0
+          FAILED_COUNT=0
+
+          git checkout master
+          git pull origin master
+
+          for CARD_ID in $(echo "$CARD_IDS" | jq -r '.[]'); do
+            BRANCH="card/${CARD_ID}"
+            echo "::group::Processing ${CARD_ID}"
+
+            # Check if branch exists on remote
+            if ! git ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+              echo "::error::Branch ${BRANCH} does not exist on remote"
+              RESULTS=$(echo "$RESULTS" | jq --arg cid "$CARD_ID" \
+                '. + [{"card_id": $cid, "status": "failed", "error": "Branch not found", "branch_deleted": false}]')
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Fetch the branch
+            git fetch origin "${BRANCH}"
+
+            # Attempt merge
+            if git merge "origin/${BRANCH}" --no-ff -m "[${CARD_ID}] Promote to production"; then
+              MERGE_SHA=$(git rev-parse HEAD)
+              RESULTS=$(echo "$RESULTS" | jq --arg cid "$CARD_ID" --arg sha "$MERGE_SHA" \
+                '. + [{"card_id": $cid, "status": "success", "merge_sha": $sha, "branch_deleted": false}]')
+              MERGED_COUNT=$((MERGED_COUNT + 1))
+              echo "Merged ${CARD_ID} (${MERGE_SHA})"
+            else
+              echo "::error::Merge conflict for ${CARD_ID}"
+              git merge --abort
+              RESULTS=$(echo "$RESULTS" | jq --arg cid "$CARD_ID" \
+                '. + [{"card_id": $cid, "status": "failed", "error": "Merge conflict", "branch_deleted": false}]')
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+            fi
+
+            echo "::endgroup::"
+          done
+
+          echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+          echo "merged_count=${MERGED_COUNT}" >> $GITHUB_OUTPUT
+          echo "failed_count=${FAILED_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Push master
+        if: steps.merge.outputs.merged_count != '0'
+        run: git push origin master
+
+      - name: Wait for Vercel deployment
+        if: steps.merge.outputs.merged_count != '0'
+        id: vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: |
+          echo "Waiting for Vercel production deployment..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 20
+
+            DEPLOY_STATUS=$(curl -sf \
+              "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&target=production&limit=1" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              | jq -r '.deployments[0].readyState // "not_found"')
+
+            echo "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: status=${DEPLOY_STATUS}"
+
+            if [ "$DEPLOY_STATUS" = "READY" ]; then
+              echo "vercel_status=ready" >> $GITHUB_OUTPUT
+              echo "Vercel production deployment is READY"
+              break
+            elif [ "$DEPLOY_STATUS" = "ERROR" ]; then
+              echo "vercel_status=error" >> $GITHUB_OUTPUT
+              echo "::warning::Vercel production deployment FAILED"
+              break
+            fi
+          done
+
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "vercel_status=timeout" >> $GITHUB_OUTPUT
+            echo "::warning::Vercel deployment timed out after $((MAX_ATTEMPTS * 20))s"
+          fi
+
+      - name: Delete merged card branches
+        if: steps.merge.outputs.merged_count != '0'
+        id: cleanup
+        run: |
+          RESULTS='${{ steps.merge.outputs.results }}'
+          UPDATED="$RESULTS"
+
+          for CARD_ID in $(echo "$RESULTS" | jq -r '.[] | select(.status == "success") | .card_id'); do
+            BRANCH="card/${CARD_ID}"
+
+            if git push origin --delete "${BRANCH}" 2>/dev/null; then
+              UPDATED=$(echo "$UPDATED" | jq --arg cid "$CARD_ID" \
+                '[.[] | if .card_id == $cid then .branch_deleted = true else . end]')
+              echo "Deleted ${BRANCH}"
+            else
+              echo "::warning::Could not delete ${BRANCH}"
+            fi
+          done
+
+          echo "results=$(echo "$UPDATED" | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Move cards to done
+        if: steps.merge.outputs.merged_count != '0'
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          RESULTS='${{ steps.cleanup.outputs.results }}'
+
+          for CARD_ID in $(echo "$RESULTS" | jq -r '.[] | select(.status == "success") | .card_id'); do
+            echo "Moving ${CARD_ID} to done..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              "$SUPABASE_URL/rest/v1/rpc/update_card_with_actor" \
+              -H "apikey: $SUPABASE_SERVICE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"p_card_id\": \"${CARD_ID}\", \"p_actor\": \"github-actions\", \"p_updates\": {\"lane\": \"done\"}}")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Moved ${CARD_ID} to done"
+            else
+              echo "::warning::Failed to move ${CARD_ID} (HTTP ${HTTP_CODE})"
+            fi
+          done
+
+      - name: Post release comments
+        if: steps.merge.outputs.merged_count != '0'
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          RESULTS='${{ steps.cleanup.outputs.results }}'
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          for CARD_ID in $(echo "$RESULTS" | jq -r '.[] | select(.status == "success") | .card_id'); do
+            MERGE_SHA=$(echo "$RESULTS" | jq -r --arg cid "$CARD_ID" '.[] | select(.card_id == $cid) | .merge_sha')
+
+            # Resolve card_id to UUID
+            CARD_UUID=$(curl -sf \
+              "$SUPABASE_URL/rest/v1/nexus_cards?card_id=eq.${CARD_ID}&select=id" \
+              -H "apikey: $SUPABASE_SERVICE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+              | jq -r '.[0].id // empty')
+
+            if [ -z "$CARD_UUID" ]; then
+              echo "::warning::Could not resolve UUID for ${CARD_ID}"
+              continue
+            fi
+
+            CONTENT="Promoted to production via automated release pipeline.\n\nMerge SHA: ${MERGE_SHA}\nRun: ${RUN_URL}"
+
+            curl -sf \
+              "$SUPABASE_URL/rest/v1/nexus_comments" \
+              -H "apikey: $SUPABASE_SERVICE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=minimal" \
+              -d "{\"card_id\": \"${CARD_UUID}\", \"author\": \"github-actions\", \"content\": \"${CONTENT}\", \"comment_type\": \"note\"}" \
+              && echo "Posted comment on ${CARD_ID}" \
+              || echo "::warning::Failed to post comment on ${CARD_ID}"
+          done
+
+      - name: Git sync (cascade master to dev)
+        if: steps.merge.outputs.merged_count != '0'
+        run: |
+          git checkout dev
+          git pull origin dev
+          if git merge master --no-edit; then
+            git push origin dev
+            echo "Synced master → dev"
+          else
+            echo "::warning::Git sync master→dev had conflicts. Manual sync needed."
+            git merge --abort
+          fi
+
+      - name: Update release run with final status
+        if: always()
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          MERGED="${{ steps.merge.outputs.merged_count || '0' }}"
+          FAILED="${{ steps.merge.outputs.failed_count || '0' }}"
+          RESULTS='${{ steps.cleanup.outputs.results || steps.merge.outputs.results || '[]' }}'
+
+          if [ "$FAILED" -eq 0 ] && [ "$MERGED" -gt 0 ]; then
+            STATUS="completed"
+          elif [ "$MERGED" -gt 0 ] && [ "$FAILED" -gt 0 ]; then
+            STATUS="partial_failure"
+          else
+            STATUS="failed"
+          fi
+
+          SUMMARY="${MERGED} card(s) promoted, ${FAILED} failed"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          curl -sf -X PATCH \
+            "$SUPABASE_URL/rest/v1/release_runs?id=eq.${{ inputs.run_id }}" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"status\": \"${STATUS}\", \"results\": ${RESULTS}, \"summary\": \"${SUMMARY}\", \"completed_at\": \"${NOW}\"}" \
+            && echo "Updated release run: ${STATUS}" \
+            || echo "::error::Failed to update release run status"
