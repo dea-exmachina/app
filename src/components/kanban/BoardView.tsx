@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useMemo, type MouseEvent } from 'react'
+import { useState, useCallback, useMemo, useEffect, type MouseEvent } from 'react'
+import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import Link from 'next/link'
 import {
   DndContext,
@@ -40,12 +41,19 @@ const DB_TO_LANE: Record<string, string> = {
 
 interface BoardViewProps {
   board: KanbanBoard
+  dateFilter: { start?: Date; end?: Date }
+  onDateFilterChange: (filter: { start?: Date; end?: Date }) => void
 }
 
-export function BoardView({ board }: BoardViewProps) {
+export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewProps) {
   // Local board state for optimistic DnD
   const [lanes, setLanes] = useState<KanbanLane[]>(board.lanes)
   const [locked, setLocked] = useState(true)
+
+  // Sync local lanes when board updates (e.g. from date filter refetch)
+  useEffect(() => {
+    setLanes(board.lanes)
+  }, [board.lanes])
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null)
   const [viewMode, setViewMode] = useState<'standard' | 'bender'>('standard')
 
@@ -321,6 +329,59 @@ export function BoardView({ board }: BoardViewProps) {
           <h2 className="font-mono text-[12px] font-semibold uppercase tracking-wider text-terminal-fg-primary">
             {board.name}
           </h2>
+
+          <div className="h-4 w-[1px] bg-terminal-border mx-2" />
+
+          {/* Date Filter */}
+          <div className="flex items-center gap-1 font-mono text-[10px]">
+            <button
+              onClick={() => {
+                if (!dateFilter.start || !dateFilter.end) return
+                onDateFilterChange({
+                  start: subWeeks(dateFilter.start, 1),
+                  end: subWeeks(dateFilter.end, 1),
+                })
+              }}
+              className="px-1 text-terminal-fg-tertiary hover:text-terminal-fg-primary transition-colors hover:bg-terminal-hl/10 rounded"
+            >
+              &lt;
+            </button>
+            <span className="text-terminal-fg-secondary min-w-[120px] text-center">
+              {dateFilter.start && dateFilter.end
+                ? `${format(dateFilter.start, 'MMM d')} – ${format(dateFilter.end, 'MMM d')}`
+                : 'All Time'}
+            </span>
+            <button
+              onClick={() => {
+                if (!dateFilter.start || !dateFilter.end) return
+                onDateFilterChange({
+                  start: addWeeks(dateFilter.start, 1),
+                  end: addWeeks(dateFilter.end, 1),
+                })
+              }}
+              className="px-1 text-terminal-fg-tertiary hover:text-terminal-fg-primary transition-colors hover:bg-terminal-hl/10 rounded"
+            >
+              &gt;
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date()
+                onDateFilterChange({
+                  start: startOfWeek(now, { weekStartsOn: 1 }),
+                  end: endOfWeek(now, { weekStartsOn: 1 }),
+                })
+              }}
+              className="ml-2 px-2 py-0.5 border border-terminal-border rounded text-[10px] text-terminal-fg-tertiary hover:text-terminal-fg-primary hover:border-terminal-fg-secondary transition-colors"
+            >
+              THIS WEEK
+            </button>
+            <button
+              onClick={() => onDateFilterChange({})}
+              className="ml-1 px-2 py-0.5 border border-terminal-border rounded text-[10px] text-terminal-fg-tertiary hover:text-terminal-fg-primary hover:border-terminal-fg-secondary transition-colors"
+            >
+              ALL
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {selectedCards.size > 0 && (

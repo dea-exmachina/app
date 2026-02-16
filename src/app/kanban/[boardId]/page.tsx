@@ -1,6 +1,7 @@
 'use client'
 
-import { use } from 'react'
+import { useState, use } from 'react'
+import { startOfWeek, endOfWeek } from 'date-fns'
 import { BoardView } from '@/components/kanban/BoardView'
 import { useBoard } from '@/hooks/useBoard'
 
@@ -10,7 +11,16 @@ export default function BoardPage({
   params: Promise<{ boardId: string }>
 }) {
   const { boardId } = use(params)
-  const { data: board, loading, error } = useBoard(boardId)
+
+  const [dateFilter, setDateFilter] = useState<{ start?: Date; end?: Date }>(() => {
+    const now = new Date()
+    return {
+      start: startOfWeek(now, { weekStartsOn: 1 }),
+      end: endOfWeek(now, { weekStartsOn: 1 }),
+    }
+  })
+
+  const { data: board, loading, error } = useBoard(boardId, dateFilter)
 
   if (loading) {
     return (
@@ -34,7 +44,11 @@ export default function BoardPage({
 
   return (
     <div className="p-4">
-      <BoardView board={board} />
+      <BoardView
+        board={board}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+      />
     </div>
   )
 }
