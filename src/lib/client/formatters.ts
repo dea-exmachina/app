@@ -12,6 +12,19 @@ export function formatDate(date: string): string {
   })
 }
 
+export function formatDateTime(date: string): string {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function formatRelativeDate(date: string): string {
   const d = new Date(date)
   const now = new Date()
