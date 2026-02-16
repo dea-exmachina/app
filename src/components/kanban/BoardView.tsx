@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
+import type { KanbanBoard, KanbanCard, KanbanLane, SortConfig } from '@/types/kanban'
 import { moveCard, updateCard, postComment } from '@/lib/client/api'
 import { useUnresolvedComments } from '@/hooks/useUnresolvedComments'
 import { LaneColumn } from './LaneColumn'
@@ -54,6 +54,12 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
   useEffect(() => {
     setLanes(board.lanes)
   }, [board.lanes])
+
+  // Sort state
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: 'startedAt',
+    direction: 'asc',
+  })
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null)
   const [viewMode, setViewMode] = useState<'standard' | 'bender'>('standard')
 
@@ -85,6 +91,23 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
     }
     return map
   }, [lanes])
+
+  // Derive sorted lanes for display
+  const displayLanes = useMemo(() => {
+    return lanes.map((lane) => {
+      const sortedCards = [...lane.cards].sort((a, b) => {
+        const getDate = (card: KanbanCard, field: 'startedAt' | 'completedAt') => {
+          const val = card[field]
+          return val ? new Date(val).getTime() : 0
+        }
+        const timeA = getDate(a, sortConfig.field)
+        const timeB = getDate(b, sortConfig.field)
+        if (timeA === timeB) return a.id.localeCompare(b.id)
+        return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA
+      })
+      return { ...lane, cards: sortedCards }
+    })
+  }, [lanes, sortConfig])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -423,7 +446,7 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
       >
         <div className="overflow-x-auto pb-2">
           <div className="flex gap-3">
-            {lanes.map((lane) => (
+            {displayLanes.map((lane) => (
               <LaneColumn
                 key={lane.name}
                 lane={lane}
@@ -432,6 +455,8 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
                 onCardContextMenu={handleCardContextMenu}
                 selectedCards={selectedCards}
                 droppable={!locked}
+                sortConfig={sortConfig}
+                onSortChange={setSortConfig}
                 unresolvedMap={unresolvedMap}
               />
             ))}
