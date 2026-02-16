@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ComplianceData } from '@/app/queen/compliance/types'
-import { getMockComplianceData } from '@/app/queen/compliance/data'
+import type { ComplianceData } from '@/app/creep/compliance/types'
+import { getMockComplianceData } from '@/app/creep/compliance/data'
 
 interface UseComplianceDataResult {
   data: ComplianceData | null

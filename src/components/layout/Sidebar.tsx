@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   { href: '/benders', label: 'Benders', icon: Bot },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
-  { href: '/queen/events', label: 'QUEEN', icon: Crown },
+  { href: '/creep/events', label: 'CREEP', icon: Crown },
   { href: '/architecture', label: 'Architecture', icon: Network },
 ]
 
@@ -100,12 +100,12 @@ export function Sidebar() {
               <AgentRosterItem
                 key={agent.id}
                 agent={agent}
-                onClick={() => router.push('/queen/agents')}
+                onClick={() => router.push('/creep/agents')}
               />
             ))}
             {hasMore && (
               <Link
-                href="/queen/agents"
+                href="/creep/agents"
                 className="block px-2 py-1 font-mono text-[10px] text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
               >
                 +{agents.length - 5} more

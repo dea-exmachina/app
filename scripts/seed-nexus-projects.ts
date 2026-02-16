@@ -74,7 +74,7 @@ const projects = [
     repo_url: null,
     metadata: {
       domain: 'meta',
-      description: 'Meta-system: HIVE (factory) + QUEEN (external sync) + CREEP (context) = THE SWARM',
+      description: 'Meta-system: HIVE (factory) + CREEP (external sync) + EVOLUTION (context) = THE SWARM',
     },
   },
   {

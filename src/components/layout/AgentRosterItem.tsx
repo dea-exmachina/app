@@ -1,6 +1,6 @@
 'use client'
 
-import type { AgentHealth } from '@/types/queen'
+import type { AgentHealth } from '@/types/creep'
 
 interface AgentRosterItemProps {
   agent: AgentHealth
