@@ -14,21 +14,30 @@ import { getBoard } from '@/lib/client/api'
 
 const REALTIME_TIMEOUT_MS = 5000
 
-export function useBoard(boardId: string) {
+export function useBoard(
+  boardId: string,
+  filter?: { start?: Date; end?: Date }
+) {
   const [data, setData] = useState<KanbanBoard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLive, setIsLive] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Serialize filter to a stable string to avoid infinite re-fetches
+  const filterKey = filter
+    ? `${filter.start?.toISOString() ?? ''}_${filter.end?.toISOString() ?? ''}`
+    : ''
+
   // Full refresh from API
   const refresh = useCallback(() => {
     setLoading(true)
-    getBoard(boardId)
+    getBoard(boardId, filter)
       .then((res) => setData(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [boardId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, filterKey])
 
   // Initial fetch
   useEffect(() => {

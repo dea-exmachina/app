@@ -48,11 +48,21 @@ export async function getBoards(): Promise<{
   return fetchApi<BoardSummary[]>('/api/kanban/boards')
 }
 
-export async function getBoard(id: string): Promise<{
+export async function getBoard(
+  id: string,
+  filter?: { start?: Date; end?: Date }
+): Promise<{
   data: KanbanBoard
   cached: boolean
 }> {
-  return fetchApi<KanbanBoard>(`/api/kanban/boards/${id}`)
+  let url = `/api/kanban/boards/${id}`
+  if (filter?.start || filter?.end) {
+    const params = new URLSearchParams()
+    if (filter.start) params.set('created_after', filter.start.toISOString())
+    if (filter.end) params.set('created_before', filter.end.toISOString())
+    url += `?${params.toString()}`
+  }
+  return fetchApi<KanbanBoard>(url)
 }
 
 export async function getSkills(): Promise<{ data: Skill[]; cached: boolean }> {

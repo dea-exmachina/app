@@ -121,11 +121,23 @@ export async function GET(
       )
     }
 
-    // Fetch all cards for this project
-    const { data: cards, error: cardsError } = await tables.nexus_cards
+    // Fetch all cards for this project (with optional date filter)
+    const createdAfter = searchParams.get('created_after')
+    const createdBefore = searchParams.get('created_before')
+
+    let query = tables.nexus_cards
       .select('*')
       .eq('project_id', (project as Record<string, unknown>).id)
       .order('created_at', { ascending: true })
+
+    if (createdAfter) {
+      query = query.gte('created_at', createdAfter)
+    }
+    if (createdBefore) {
+      query = query.lte('created_at', createdBefore)
+    }
+
+    const { data: cards, error: cardsError } = await query
 
     if (cardsError) throw cardsError
 
