@@ -8,7 +8,7 @@ import { CommentThread } from './CommentThread'
 import { EventTimeline } from './EventTimeline'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
 import { SectionDivider } from '@/components/ui/section-divider'
-import { formatDate } from '@/lib/client/formatters'
+import { formatDateTime } from '@/lib/client/formatters'
 
 interface CardDetailPanelProps {
   card: KanbanCard
@@ -103,16 +103,20 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
                 <span className="text-terminal-fg-primary">{assignee}</span>
               </div>
             )}
+            <div>
+              <span className="text-terminal-fg-tertiary uppercase tracking-wider">Created </span>
+              <span className="text-terminal-fg-secondary">{formatDateTime(card.createdAt)}</span>
+            </div>
             {card.startedAt && (
               <div>
                 <span className="text-terminal-fg-tertiary uppercase tracking-wider">Started </span>
-                <span className="text-terminal-fg-secondary">{formatDate(card.startedAt)}</span>
+                <span className="text-terminal-fg-secondary">{formatDateTime(card.startedAt)}</span>
               </div>
             )}
             {card.completedAt && (
               <div>
                 <span className="text-terminal-fg-tertiary uppercase tracking-wider">Completed </span>
-                <span className="text-terminal-fg-secondary">{formatDate(card.completedAt)}</span>
+                <span className="text-terminal-fg-secondary">{formatDateTime(card.completedAt)}</span>
               </div>
             )}
           </div>
