@@ -14,6 +14,14 @@ export interface KanbanCard {
   readyForProduction?: boolean
 }
 
+export type SortField = 'startedAt' | 'completedAt'
+export type SortDirection = 'asc' | 'desc'
+
+export interface SortConfig {
+  field: SortField
+  direction: SortDirection
+}
+
 export interface KanbanLane {
   name: string
   cards: KanbanCard[]
