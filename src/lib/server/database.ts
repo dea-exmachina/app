@@ -104,6 +104,8 @@ export const tables = {
   // Unified Audit Trail (NEXUS-066)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   audit_log: (db as any).from('audit_log') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bender_performance: (db as any).from('bender_performance') as ReturnType<typeof db.from>,
 }
 
 /**

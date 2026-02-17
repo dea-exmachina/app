@@ -1,11 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
 import { TerminalTable, type TerminalColumn } from '@/components/ui/terminal-table'
+import { BenderDetailPanel } from '@/components/benders/BenderDetailPanel'
 
 interface BenderRow {
   platform: string
+  slug?: string
   status: string
   activeTasks: number
   taskId?: string
@@ -16,6 +19,7 @@ interface ActiveBendersProps {
 }
 
 export function ActiveBendersTable({ benders }: ActiveBendersProps) {
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const activeCount = benders.filter(
     (b) => b.status.toLowerCase() !== 'idle'
   ).length
@@ -25,7 +29,15 @@ export function ActiveBendersTable({ benders }: ActiveBendersProps) {
       key: 'platform',
       label: 'Name',
       render: (row) => (
-        <span className="text-terminal-fg-primary">{row.platform}</span>
+        <button
+          onClick={() => {
+            const slug = row.slug || row.platform.toLowerCase().replace(/\s+/g, '-')
+            setSelectedSlug(slug)
+          }}
+          className="text-terminal-fg-primary hover:text-user-accent transition-colors text-left"
+        >
+          {row.platform}
+        </button>
       ),
     },
     {
@@ -56,6 +68,12 @@ export function ActiveBendersTable({ benders }: ActiveBendersProps) {
         compact
         className="mt-1"
       />
+      {selectedSlug && (
+        <BenderDetailPanel
+          slug={selectedSlug}
+          onClose={() => setSelectedSlug(null)}
+        />
+      )}
     </div>
   )
 }
