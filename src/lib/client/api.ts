@@ -65,6 +65,18 @@ export async function getBoard(
   return fetchApi<KanbanBoard>(url)
 }
 
+export async function getUnifiedBoard(
+  project?: string
+): Promise<{
+  data: KanbanBoard
+  cached: boolean
+}> {
+  const url = project
+    ? `/api/kanban/unified?project=${encodeURIComponent(project)}`
+    : '/api/kanban/unified'
+  return fetchApi<KanbanBoard>(url)
+}
+
 export async function getSkills(): Promise<{ data: Skill[]; cached: boolean }> {
   return fetchApi<Skill[]>('/api/skills')
 }
