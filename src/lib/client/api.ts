@@ -604,14 +604,14 @@ export async function getSettings(): Promise<{
   data: UserSetting[]
   cached: boolean
 }> {
-  return fetchApi<UserSetting[]>('/api/settings')
+  return fetchApi<UserSetting[]>('/api/user-settings')
 }
 
 export async function updateSetting(
   key: string,
   value: unknown
 ): Promise<{ data: UserSetting; cached: boolean }> {
-  const res = await fetch('/api/settings', {
+  const res = await fetch('/api/user-settings', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key, value }),
