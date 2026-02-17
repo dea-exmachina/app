@@ -114,6 +114,13 @@ export const tables = {
   // User Settings (NEXUS-057)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user_settings: (db as any).from('user_settings') as ReturnType<typeof db.from>,
+  // Wave 5 — Alerts, Reopens, Token Usage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_alerts: (db as any).from('nexus_alerts') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_card_reopens: (db as any).from('nexus_card_reopens') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_token_usage: (db as any).from('nexus_token_usage') as ReturnType<typeof db.from>,
 }
 
 /**
