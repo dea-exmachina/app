@@ -8,6 +8,7 @@ import { ProjectNotesWidget } from '@/components/widgets/project-detail/ProjectN
 import { ProjectLinksWidget } from '@/components/widgets/project-detail/ProjectLinksWidget'
 import { ProjectTechStackWidget } from '@/components/widgets/project-detail/ProjectTechStackWidget'
 import { ProjectWorkflowsWidget } from '@/components/widgets/project-detail/ProjectWorkflowsWidget'
+import { ProjectInboxWidget } from '@/components/widgets/project-detail/ProjectInboxWidget'
 
 export function createProjectDetailConfig(slug: string): PageLayoutConfig {
   return {
@@ -67,6 +68,12 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         component: ProjectWorkflowsWidget,
         defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
       },
+      {
+        id: 'inbox',
+        title: 'Inbox',
+        component: ProjectInboxWidget,
+        defaultSize: { w: 6, h: 5, minW: 3, minH: 3 },
+      },
     ],
     defaultLayouts: {
       lg: [
@@ -79,6 +86,7 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'notes', x: 8, y: 5, w: 4, h: 5, minW: 3, minH: 3 },
         { i: 'tech-stack', x: 0, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
         { i: 'workflows', x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 8, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
       ],
       md: [
         { i: 'quick-stats', x: 0, y: 0, w: 8, h: 1, minH: 1, maxH: 2 },
@@ -90,6 +98,7 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'notes', x: 0, y: 14, w: 8, h: 5, minW: 3, minH: 3 },
         { i: 'tech-stack', x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 3 },
         { i: 'workflows', x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 0, y: 24, w: 8, h: 5, minW: 3, minH: 3 },
       ],
       sm: [
         { i: 'quick-stats', x: 0, y: 0, w: 4, h: 2, minH: 1 },
@@ -101,6 +110,7 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'notes', x: 0, y: 26, w: 4, h: 6, minW: 3, minH: 3 },
         { i: 'tech-stack', x: 0, y: 32, w: 4, h: 5, minW: 3, minH: 3 },
         { i: 'workflows', x: 0, y: 37, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 0, y: 42, w: 4, h: 5, minW: 3, minH: 3 },
       ],
     },
   }
