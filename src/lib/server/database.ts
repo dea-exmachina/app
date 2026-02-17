@@ -106,6 +106,14 @@ export const tables = {
   audit_log: (db as any).from('audit_log') as ReturnType<typeof db.from>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   bender_performance: (db as any).from('bender_performance') as ReturnType<typeof db.from>,
+  // Tech Stack & Workflows (NEXUS-058)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  project_tech_stack: (db as any).from('project_tech_stack') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  project_workflows: (db as any).from('project_workflows') as ReturnType<typeof db.from>,
+  // User Settings (NEXUS-057)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user_settings: (db as any).from('user_settings') as ReturnType<typeof db.from>,
 }
 
 /**
