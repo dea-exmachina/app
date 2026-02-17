@@ -124,6 +124,10 @@ export const tables = {
   get nexus_card_reopens() { return (db as any).from('nexus_card_reopens') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get nexus_token_usage() { return (db as any).from('nexus_token_usage') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get research_subscriptions() { return (db as any).from('research_subscriptions') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get research_reports() { return (db as any).from('research_reports') as ReturnType<typeof db.from> },
 }
 
 /**
