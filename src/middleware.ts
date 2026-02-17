@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/webhooks', '/api/debug', '/api/ping']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/webhooks']
 
 export function middleware(request: NextRequest) {
-  // Skip auth in development
-  if (process.env.NODE_ENV === 'development') {
+  // Skip auth in development and preview
+  if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') {
     return NextResponse.next()
   }
 
