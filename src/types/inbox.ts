@@ -44,10 +44,10 @@ export interface InboxCreateRequest {
 export interface InboxUploadRequest {
   title: string
   type: InboxItemType
-  file_name: string      // original filename
-  file_type: string      // MIME type
-  file_size: number      // bytes
-  file_content: string   // base64-encoded content
+  file_name: string
+  file_type: string
+  file_size: number
+  file_content: string
 }
 
 export interface InboxUpdateRequest {

@@ -3,13 +3,24 @@ import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 
-export async function GET(): Promise<
+export async function GET(
+  request: NextRequest
+): Promise<
   NextResponse<ApiResponse<InboxItem[]> | ApiError>
 > {
   try {
-    const { data, error } = await tables.inbox_items
+    const { searchParams } = new URL(request.url)
+    const projectFilter = searchParams.get('project')
+
+    let query = tables.inbox_items
       .select('*')
       .order('created', { ascending: false })
+
+    if (projectFilter) {
+      query = query.eq('project_id', projectFilter)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       throw error
@@ -18,22 +29,22 @@ export async function GET(): Promise<
     // Map database columns to InboxItem interface
     const items: InboxItem[] = (data ?? []).map((row: Record<string, unknown>) => ({
       id: row.id as string,
-      filename: row.filename,
-      title: row.title,
+      filename: row.filename as string,
+      title: row.title as string,
       type: row.type as InboxItem['type'],
       status: row.status as InboxItem['status'],
-      created: row.created,
-      source: row.source,
-      content: row.content,
+      created: row.created as string,
+      source: row.source as string,
+      content: row.content as string,
       created_at: row.created_at as string,
       updated_at: row.updated_at as string,
-      project_id: row.project_id as string | null,
-      priority: row.priority as InboxItem['priority'],
-      file_path: row.file_path as string | null,
-      file_size: row.file_size as number | null,
-      mime_type: row.mime_type as string | null,
-      linked_card_id: row.linked_card_id as string | null,
-      assigned_to: row.assigned_to as string | null,
+      project_id: (row.project_id as string) ?? null,
+      priority: (row.priority as InboxItem['priority']) ?? null,
+      file_path: (row.file_path as string) ?? null,
+      file_size: (row.file_size as number) ?? null,
+      mime_type: (row.mime_type as string) ?? null,
+      linked_card_id: (row.linked_card_id as string) ?? null,
+      assigned_to: (row.assigned_to as string) ?? null,
       tags: (row.tags as string[]) ?? [],
       sha: row.id as string,
     }))
@@ -90,6 +101,9 @@ export async function POST(
         created: now.toISOString(),
         source: 'webapp',
         content: body.content,
+        project_id: body.project_id ?? null,
+        priority: body.priority ?? 'normal',
+        tags: body.tags ?? [],
       })
       .select()
       .single()
