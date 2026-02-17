@@ -1,8 +1,10 @@
 export type InboxItemType = 'note' | 'link' | 'file' | 'instruction'
 export type InboxItemStatus = 'pending' | 'processing' | 'done'
-export type InboxPriority = 'critical' | 'high' | 'normal' | 'low'
+export type InboxItemPriority = 'critical' | 'high' | 'normal' | 'low'
 
 export interface InboxItem {
+  // Core fields
+  id: string
   filename: string
   title: string
   type: InboxItemType
@@ -10,22 +12,33 @@ export interface InboxItem {
   created: string
   source: string
   content: string
-  sha: string | null // needed for delete
-  // New fields (NEXUS-055)
-  project_id?: string | null
-  priority?: InboxPriority
-  archived_at?: string | null
-  processed_at?: string | null
-  metadata?: Record<string, unknown>
+
+  // Supabase-backed fields
+  created_at: string
+  updated_at: string
+  project_id: string | null
+  priority: InboxItemPriority | null
+  file_path: string | null
+  file_size: number | null
+  mime_type: string | null
+  linked_card_id: string | null
+  assigned_to: string | null
+  tags: string[]
+
+  // Legacy GitHub field (backward compat)
+  sha: string | null
 }
 
 export interface InboxCreateRequest {
   title: string
   content: string
   type: InboxItemType
-  project_id?: string | null
-  priority?: InboxPriority
-  metadata?: Record<string, unknown>
+  project_id?: string
+  priority?: InboxItemPriority
+  file_path?: string
+  file_size?: number
+  mime_type?: string
+  tags?: string[]
 }
 
 export interface InboxUploadRequest {
@@ -35,4 +48,26 @@ export interface InboxUploadRequest {
   file_type: string      // MIME type
   file_size: number      // bytes
   file_content: string   // base64-encoded content
+}
+
+export interface InboxUpdateRequest {
+  title?: string
+  content?: string
+  type?: InboxItemType
+  status?: InboxItemStatus
+  priority?: InboxItemPriority
+  project_id?: string
+  linked_card_id?: string
+  assigned_to?: string
+  tags?: string[]
+  file_path?: string
+  file_size?: number
+  mime_type?: string
+}
+
+export interface InboxFilter {
+  project_id?: string
+  status?: InboxItemStatus
+  type?: InboxItemType
+  priority?: InboxItemPriority
 }
