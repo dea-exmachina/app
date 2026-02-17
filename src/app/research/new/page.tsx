@@ -13,8 +13,9 @@ import type {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const FREQUENCIES: ResearchFrequency[] = ['daily', 'weekly', 'biweekly', 'monthly']
 const DATA_SOURCE_OPTIONS = [
-  { value: 'web_search', label: 'Web Search' },
+  { value: 'web', label: 'Web Search' },
   { value: 'news', label: 'News' },
+  { value: 'x_sentiment', label: 'X/Twitter Sentiment' },
 ]
 
 // Input class shared across all text inputs / selects
@@ -33,12 +34,12 @@ export default function NewResearchPage() {
   const [keywordInput, setKeywordInput] = useState('')
 
   // Data sources (both checked by default)
-  const [dataSources, setDataSources] = useState<string[]>(['web_search', 'news'])
+  const [dataSources, setDataSources] = useState<string[]>(['web', 'news'])
 
   // Schedule
   const [frequency, setFrequency] = useState<ResearchFrequency>('weekly')
-  const [scheduleDay, setScheduleDay] = useState(0) // 0 = Monday
-  const [scheduleHour, setScheduleHour] = useState(8)
+  const [scheduleDay, setScheduleDay] = useState(5) // 1=Mon..7=Sun, default Friday
+  const [scheduleHour, setScheduleHour] = useState(14)
 
   // Recipients
   const [recipients, setRecipients] = useState<ResearchRecipient[]>([{ name: '', email: '' }])
@@ -279,7 +280,7 @@ export default function NewResearchPage() {
                   className={INPUT_CLS}
                 >
                   {DAYS.map((day, i) => (
-                    <option key={day} value={i}>
+                    <option key={day} value={i + 1}>
                       {day}
                     </option>
                   ))}

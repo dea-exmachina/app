@@ -19,8 +19,9 @@ import type {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const FREQUENCIES: ResearchFrequency[] = ['daily', 'weekly', 'biweekly', 'monthly']
 const DATA_SOURCE_OPTIONS = [
-  { value: 'web_search', label: 'Web Search' },
+  { value: 'web', label: 'Web Search' },
   { value: 'news', label: 'News' },
+  { value: 'x_sentiment', label: 'X/Twitter Sentiment' },
 ]
 
 // --- Helpers ---
@@ -204,7 +205,7 @@ export default function SubscriptionDetailPage({
     }
 
     try {
-      const res = await fetch(`/api/research/subscriptions?id=${sub.id}`, {
+      const res = await fetch(`/api/research/subscriptions/${sub.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -257,7 +258,7 @@ export default function SubscriptionDetailPage({
     setDeleting(true)
 
     try {
-      const res = await fetch(`/api/research/subscriptions?id=${sub.id}`, {
+      const res = await fetch(`/api/research/subscriptions/${sub.id}`, {
         method: 'DELETE',
       })
       if (res.ok) {
@@ -462,7 +463,7 @@ export default function SubscriptionDetailPage({
                   className={INPUT_CLS}
                 >
                   {DAYS.map((day, i) => (
-                    <option key={day} value={i}>
+                    <option key={day} value={i + 1}>
                       {day}
                     </option>
                   ))}
