@@ -46,6 +46,7 @@ export interface NexusCard {
   due_date: string | null
   completed_at: string | null
   ready_for_production: boolean
+  test_notes: string | null
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string

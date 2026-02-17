@@ -13,6 +13,7 @@ export interface KanbanCard {
   completedAt?: string | null
   createdAt: string
   readyForProduction?: boolean
+  testNotes?: string | null
 }
 
 export type SortField = 'startedAt' | 'completedAt'
