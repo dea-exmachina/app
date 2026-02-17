@@ -17,6 +17,7 @@ export async function GET(): Promise<
 
     // Map database columns to InboxItem interface
     const items: InboxItem[] = (data ?? []).map((row: Record<string, unknown>) => ({
+      id: row.id as string,
       filename: row.filename,
       title: row.title,
       type: row.type as InboxItem['type'],
@@ -24,7 +25,17 @@ export async function GET(): Promise<
       created: row.created,
       source: row.source,
       content: row.content,
-      sha: row.id, // Use ID as sha replacement for delete operations
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+      project_id: row.project_id as string | null,
+      priority: row.priority as InboxItem['priority'],
+      file_path: row.file_path as string | null,
+      file_size: row.file_size as number | null,
+      mime_type: row.mime_type as string | null,
+      linked_card_id: row.linked_card_id as string | null,
+      assigned_to: row.assigned_to as string | null,
+      tags: (row.tags as string[]) ?? [],
+      sha: row.id as string,
     }))
 
     return NextResponse.json({ data: items, cached: false })
@@ -88,6 +99,7 @@ export async function POST(
     }
 
     const item: InboxItem = {
+      id: row.id,
       filename: row.filename,
       title: row.title,
       type: row.type as InboxItem['type'],
@@ -95,6 +107,16 @@ export async function POST(
       created: row.created,
       source: row.source,
       content: row.content,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      project_id: row.project_id,
+      priority: row.priority,
+      file_path: row.file_path,
+      file_size: row.file_size,
+      mime_type: row.mime_type,
+      linked_card_id: row.linked_card_id,
+      assigned_to: row.assigned_to,
+      tags: row.tags ?? [],
       sha: row.id,
     }
 

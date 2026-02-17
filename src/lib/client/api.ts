@@ -13,7 +13,12 @@ import type {
   BenderTeam,
 } from '@/types/bender'
 import type { ProjectLegacy as Project, ProjectDetail, ProjectDashboardData, ProjectNotes, ProjectLink } from '@/types/project'
-import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
+import type {
+  InboxItem,
+  InboxCreateRequest,
+  InboxUpdateRequest,
+  InboxFilter,
+} from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
 import type { NexusCard, NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
 
@@ -353,11 +358,30 @@ export async function updateProjectLinks(
 }
 
 // Inbox
-export async function getInbox(): Promise<{
+export async function getInbox(
+  filter?: InboxFilter
+): Promise<{
   data: InboxItem[]
   cached: boolean
 }> {
-  return fetchApi<InboxItem[]>('/api/inbox')
+  let url = '/api/inbox'
+  if (filter) {
+    const params = new URLSearchParams()
+    if (filter.project_id) params.append('project_id', filter.project_id)
+    if (filter.status) params.append('status', filter.status)
+    if (filter.type) params.append('type', filter.type)
+    if (filter.priority) params.append('priority', filter.priority)
+    const queryString = params.toString()
+    if (queryString) url += `?${queryString}`
+  }
+  return fetchApi<InboxItem[]>(url)
+}
+
+export async function getInboxItem(id: string): Promise<{
+  data: InboxItem
+  cached: boolean
+}> {
+  return fetchApi<InboxItem>(`/api/inbox/${id}`)
 }
 
 export async function postInbox(
@@ -373,6 +397,29 @@ export async function postInbox(
     throw new Error(error.error.message)
   }
   return res.json()
+}
+
+export async function updateInboxItem(
+  id: string,
+  updates: InboxUpdateRequest
+): Promise<{ data: InboxItem; cached: boolean }> {
+  const res = await fetch(`/api/inbox/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function linkInboxToCard(
+  inboxId: string,
+  cardId: string
+): Promise<{ data: InboxItem; cached: boolean }> {
+  return updateInboxItem(inboxId, { linked_card_id: cardId })
 }
 
 export async function deleteInboxItem(filename: string): Promise<void> {
