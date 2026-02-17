@@ -3,6 +3,7 @@
 import { useState, use } from 'react'
 import { startOfWeek, endOfWeek } from 'date-fns'
 import { BoardView } from '@/components/kanban/BoardView'
+import { TableView } from '@/components/kanban/TableView'
 import { useBoard } from '@/hooks/useBoard'
 
 export default function BoardPage({
@@ -20,6 +21,7 @@ export default function BoardPage({
     }
   })
 
+  const [layout, setLayout] = useState<'board' | 'table'>('board')
   const { data: board, loading, error } = useBoard(boardId, dateFilter)
 
   if (loading) {
@@ -44,11 +46,41 @@ export default function BoardPage({
 
   return (
     <div className="p-4">
-      <BoardView
-        board={board}
-        dateFilter={dateFilter}
-        onDateFilterChange={setDateFilter}
-      />
+      {/* Layout toggle */}
+      <div className="flex justify-end mb-2">
+        <div className="flex border border-terminal-border rounded-sm overflow-hidden">
+          <button
+            onClick={() => setLayout('board')}
+            className={`font-mono text-[10px] px-2 py-0.5 transition-colors ${
+              layout === 'board'
+                ? 'bg-user-accent/15 text-user-accent'
+                : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+            }`}
+          >
+            BOARD
+          </button>
+          <button
+            onClick={() => setLayout('table')}
+            className={`font-mono text-[10px] px-2 py-0.5 transition-colors border-l border-terminal-border ${
+              layout === 'table'
+                ? 'bg-user-accent/15 text-user-accent'
+                : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+            }`}
+          >
+            TABLE
+          </button>
+        </div>
+      </div>
+
+      {layout === 'board' ? (
+        <BoardView
+          board={board}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+        />
+      ) : (
+        <TableView board={board} />
+      )}
     </div>
   )
 }
