@@ -76,21 +76,42 @@ export async function PATCH(
     const { filename } = await params
     const body = await request.json()
 
-    // Only allow updating status
-    if (!body.status) {
+    // Build update object from allowed fields (accept both snake_case and camelCase)
+    const allowedFields: Record<string, string> = {
+      status: 'status',
+      linked_card_id: 'linked_card_id',
+      linkedCardId: 'linked_card_id',
+      project_id: 'project_id',
+      projectId: 'project_id',
+      priority: 'priority',
+      assigned_to: 'assigned_to',
+      assignedTo: 'assigned_to',
+      tags: 'tags',
+    }
+
+    const updates: Record<string, unknown> = {}
+    for (const [key, snake] of Object.entries(allowedFields)) {
+      if (body[key] !== undefined) {
+        updates[snake] = body[key]
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'status is required',
+            message: 'At least one field to update is required',
           },
         },
         { status: 400 }
       )
     }
 
+    updates.updated_at = new Date().toISOString()
+
     const { data: row, error } = await tables.inbox_items
-      .update({ status: body.status })
+      .update(updates)
       .eq('filename', filename)
       .select()
       .single()
