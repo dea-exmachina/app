@@ -46,6 +46,9 @@ export default function SettingsPage() {
   const [routingSaved, setRoutingSaved] = useState<string | null>(null)
   const [autoFlagEnabled, setAutoFlagEnabled] = useState(true)
   const [autoFlagSaved, setAutoFlagSaved] = useState<string | null>(null)
+  const [deliverablesPath, setDeliverablesPath] = useState('')
+  const [discordWebhook, setDiscordWebhook] = useState('')
+  const [settingsSaved, setSettingsSaved] = useState<Record<string, string>>({})
 
   useEffect(() => {
     setMounted(true)
@@ -62,6 +65,18 @@ export default function SettingsPage() {
       .then((data) => {
         if (data.value !== null && data.value !== undefined) {
           setAutoFlagEnabled(data.value.enabled ?? true)
+        }
+      })
+      .catch(() => {})
+
+    // Load user settings
+    fetch('/api/user-settings')
+      .then((r) => r.json())
+      .then((json) => {
+        const settings = json.data ?? []
+        for (const s of settings) {
+          if (s.key === 'deliverables_path') setDeliverablesPath(typeof s.value === 'string' ? s.value : '')
+          if (s.key === 'discord_webhook') setDiscordWebhook(typeof s.value === 'string' ? s.value : '')
         }
       })
       .catch(() => {})
@@ -120,6 +135,27 @@ export default function SettingsPage() {
       setTimeout(() => setAutoFlagSaved(null), 3000)
     }
   }, [autoFlagEnabled])
+
+  const saveUserSetting = useCallback(async (key: string, value: unknown, category = 'general') => {
+    setSettingsSaved((prev) => ({ ...prev, [key]: 'saving' }))
+    try {
+      const res = await fetch('/api/user-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value, category }),
+      })
+      if (res.ok) {
+        setSettingsSaved((prev) => ({ ...prev, [key]: 'saved' }))
+        setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 2000)
+      } else {
+        setSettingsSaved((prev) => ({ ...prev, [key]: 'error' }))
+        setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 3000)
+      }
+    } catch {
+      setSettingsSaved((prev) => ({ ...prev, [key]: 'error' }))
+      setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 3000)
+    }
+  }, [])
 
   const handleResetLayout = (pageId: string) => {
     localStorage.removeItem(`cc-layout-${pageId}`)
@@ -285,6 +321,60 @@ export default function SettingsPage() {
               />
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Paths */}
+      <div>
+        <SectionDivider label="Paths" />
+        <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
+          Default paths for bender deliverables and artifact storage.
+        </p>
+        <div className="flex items-center gap-3 border-b border-terminal-border py-2">
+          <label className="font-mono text-[11px] text-terminal-fg-primary w-32 shrink-0">
+            Deliverables path
+          </label>
+          <input
+            type="text"
+            value={deliverablesPath}
+            onChange={(e) => setDeliverablesPath(e.target.value)}
+            onBlur={() => saveUserSetting('deliverables_path', deliverablesPath, 'paths')}
+            placeholder="e.g. D:\dev\benders\deliverables"
+            className="flex-1 bg-terminal-bg-elevated border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary focus:outline-none focus:border-user-accent"
+          />
+          {settingsSaved.deliverables_path === 'saved' && (
+            <span className="font-mono text-[9px] text-status-ok shrink-0">saved</span>
+          )}
+          {settingsSaved.deliverables_path === 'error' && (
+            <span className="font-mono text-[9px] text-status-error shrink-0">error</span>
+          )}
+        </div>
+      </div>
+
+      {/* Integrations */}
+      <div>
+        <SectionDivider label="Integrations" />
+        <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
+          Webhook URLs and external service connections.
+        </p>
+        <div className="flex items-center gap-3 border-b border-terminal-border py-2">
+          <label className="font-mono text-[11px] text-terminal-fg-primary w-32 shrink-0">
+            Discord webhook
+          </label>
+          <input
+            type="text"
+            value={discordWebhook}
+            onChange={(e) => setDiscordWebhook(e.target.value)}
+            onBlur={() => saveUserSetting('discord_webhook', discordWebhook, 'integrations')}
+            placeholder="https://discord.com/api/webhooks/..."
+            className="flex-1 bg-terminal-bg-elevated border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary focus:outline-none focus:border-user-accent"
+          />
+          {settingsSaved.discord_webhook === 'saved' && (
+            <span className="font-mono text-[9px] text-status-ok shrink-0">saved</span>
+          )}
+          {settingsSaved.discord_webhook === 'error' && (
+            <span className="font-mono text-[9px] text-status-error shrink-0">error</span>
+          )}
         </div>
       </div>
 
