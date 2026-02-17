@@ -203,7 +203,7 @@ export interface NexusComment {
   created_at: string
 }
 
-export type CommentType = 'note' | 'pivot' | 'question' | 'directive' | 'delivery' | 'review' | 'rejection'
+export type CommentType = 'note' | 'pivot' | 'question' | 'directive' | 'delivery' | 'review' | 'rejection' | 'system'
 export type CommentAuthor = 'dea' | 'user' | 'bender' | `bender+${string}`
 export type PivotImpact = 'minor' | 'major'
 

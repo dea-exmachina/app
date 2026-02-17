@@ -290,6 +290,7 @@ export function CommentThread({ cardId }: CommentThreadProps) {
   } = useCommentsRealtime({ cardId })
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [filter, setFilter] = useState<'discussion' | 'all' | 'system'>('discussion')
 
   // Auto-scroll to bottom on new comments
   useEffect(() => {
@@ -298,7 +299,16 @@ export function CommentThread({ cardId }: CommentThreadProps) {
     }
   }, [comments.length])
 
-  const unresolvedCount = comments.filter((c) => !c.resolved).length
+  // Filter comments based on selected view
+  const filteredComments = comments.filter((c) => {
+    if (filter === 'all') return true
+    if (filter === 'system') return c.comment_type === 'system'
+    // 'discussion' = hide system comments
+    return c.comment_type !== 'system'
+  })
+
+  const systemCount = comments.filter((c) => c.comment_type === 'system').length
+  const unresolvedCount = filteredComments.filter((c) => !c.resolved).length
 
   return (
     <div>
@@ -318,6 +328,23 @@ export function CommentThread({ cardId }: CommentThreadProps) {
         </div>
       ) : (
         <>
+          {/* Filter toggle */}
+          <div className="flex items-center gap-1 py-1">
+            {(['discussion', 'all', 'system'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`font-mono text-[9px] px-1.5 py-0.5 rounded-sm border transition-colors ${
+                  filter === f
+                    ? 'border-user-accent text-user-accent'
+                    : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+                }`}
+              >
+                {f === 'discussion' ? 'Discussion' : f === 'all' ? 'All' : `System (${systemCount})`}
+              </button>
+            ))}
+          </div>
+
           {/* Unresolved indicator */}
           {unresolvedCount > 0 && (
             <div className="font-mono text-[10px] text-amber-400 py-1">
@@ -330,12 +357,12 @@ export function CommentThread({ cardId }: CommentThreadProps) {
             ref={scrollRef}
             className="mt-1.5 space-y-1.5 max-h-[400px] overflow-y-auto"
           >
-            {comments.length === 0 ? (
+            {filteredComments.length === 0 ? (
               <div className="font-mono text-[11px] text-terminal-fg-tertiary py-2">
-                No comments yet
+                {filter === 'system' ? 'No system messages' : 'No comments yet'}
               </div>
             ) : (
-              comments.map((comment) => (
+              filteredComments.map((comment) => (
                 <CommentItem
                   key={comment.id}
                   comment={comment}
