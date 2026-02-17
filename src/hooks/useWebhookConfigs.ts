@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { WebhookConfig, TransformConfig } from '@/types/queen'
+import type { WebhookConfig, TransformConfig } from '@/types/creep'
 
 interface UseWebhookConfigsParams {
   pollInterval?: number // ms, 0 to disable
@@ -48,7 +48,7 @@ export function useWebhookConfigs(params: UseWebhookConfigsParams = {}): UseWebh
     setError(null)
 
     try {
-      const res = await fetch('/api/queen/webhooks')
+      const res = await fetch('/api/creep/webhooks')
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Request failed' }))
         throw new Error(body.error || `HTTP ${res.status}`)
@@ -89,7 +89,7 @@ export function useWebhookConfigs(params: UseWebhookConfigsParams = {}): UseWebh
     setMutationError(null)
 
     try {
-      const res = await fetch('/api/queen/webhooks', {
+      const res = await fetch('/api/creep/webhooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -122,7 +122,7 @@ export function useWebhookConfigs(params: UseWebhookConfigsParams = {}): UseWebh
     setMutationError(null)
 
     try {
-      const res = await fetch(`/api/queen/webhooks/${id}`, {
+      const res = await fetch(`/api/creep/webhooks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { emitEvent, EVENT_TYPES, EventEmitError } from '@/lib/queen'
+import { emitEvent, EVENT_TYPES, EventEmitError } from '@/lib/creep'
 import {
   getWebhookConfig,
   extractSignature,
   verifyWebhookSignature,
   transformWebhookPayload,
-} from '@/lib/queen/webhooks'
+} from '@/lib/creep/webhooks'
 
 /**
  * POST /api/webhooks/:source — Generic webhook receiver

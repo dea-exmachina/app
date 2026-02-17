@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { AgentHealth } from '@/types/queen'
+import type { AgentHealth } from '@/types/creep'
 
 interface UseAgentHealthParams {
   pollInterval?: number // ms, 0 to disable
@@ -28,7 +28,7 @@ export function useAgentHealth(params: UseAgentHealthParams = {}): UseAgentHealt
     setError(null)
 
     try {
-      const res = await fetch('/api/queen/agents')
+      const res = await fetch('/api/creep/agents')
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Request failed' }))
         throw new Error(body.error || `HTTP ${res.status}`)
