@@ -446,8 +446,53 @@ export class NexusClient {
     return data as NexusLock[]
   }
 
-  // ── Events ──────────────────────────────────────────
+  // ── Audit Trail (replaces legacy nexus_events) ─────
 
+  /**
+   * Write an audit event to audit_log.
+   * Prefer triggers for automatic auditing — use this for API-initiated events only.
+   */
+  async emitAuditEvent(
+    category: string,
+    action: string,
+    entityType: string,
+    entityId: string | null,
+    options: {
+      oldValue?: Record<string, unknown> | null
+      newValue?: Record<string, unknown> | null
+      cardId?: string | null
+      projectId?: string | null
+      metadata?: Record<string, unknown>
+      source?: string
+    } = {}
+  ): Promise<Record<string, unknown>> {
+    const eventId = `${category}.${action}`
+    const { data, error } = await this.supabase
+      .from('audit_log')
+      .insert({
+        event_id: eventId,
+        action,
+        category,
+        actor: this.actor,
+        actor_type: this.actor.startsWith('bender') ? 'bender' : this.actor === 'system' ? 'system' : 'dea',
+        entity_type: entityType,
+        entity_id: entityId,
+        project_id: options.projectId ?? null,
+        card_id: options.cardId ?? null,
+        old_value: options.oldValue ?? null,
+        new_value: options.newValue ?? null,
+        metadata: options.metadata ?? {},
+        source: options.source ?? 'api',
+      })
+      .select()
+      .single()
+    if (error) throw new NexusError('emitAuditEvent', error.message)
+    return data as Record<string, unknown>
+  }
+
+  /**
+   * @deprecated Use emitAuditEvent instead. Kept for backward compat during migration.
+   */
   async emitEvent(
     eventType: NexusEventType | string,
     cardId: string | null,
@@ -467,6 +512,36 @@ export class NexusClient {
     return data as NexusEvent
   }
 
+  async getAuditEvents(filters: {
+    category?: string
+    action?: string
+    card_id?: string
+    entity_type?: string
+    actor?: string
+    since?: string
+    limit?: number
+  } = {}): Promise<Record<string, unknown>[]> {
+    let query = this.supabase
+      .from('audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (filters.card_id) query = query.eq('card_id', filters.card_id)
+    if (filters.category) query = query.eq('category', filters.category)
+    if (filters.action) query = query.eq('action', filters.action)
+    if (filters.entity_type) query = query.eq('entity_type', filters.entity_type)
+    if (filters.actor) query = query.eq('actor', filters.actor)
+    if (filters.since) query = query.gte('created_at', filters.since)
+    if (filters.limit) query = query.limit(filters.limit)
+
+    const { data, error } = await query
+    if (error) throw new NexusError('getAuditEvents', error.message)
+    return data as Record<string, unknown>[]
+  }
+
+  /**
+   * @deprecated Use getAuditEvents instead. Kept for backward compat during migration.
+   */
   async getEvents(filters: EventFilters = {}): Promise<NexusEvent[]> {
     let query = this.supabase
       .from('nexus_events')

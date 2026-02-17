@@ -98,6 +98,53 @@ export interface ErrorResponse {
   code?: string
 }
 
+// ===== Project Dashboard Types =====
+
+import type { NexusCard, NexusProject } from './nexus'
+
+export interface ChecklistItem {
+  id: string
+  text: string
+  checked: boolean
+  created_at: string
+}
+
+export interface ProjectNotes {
+  checklist: ChecklistItem[]
+  freeform: string
+}
+
+export interface ProjectLink {
+  id: string
+  label: string
+  url: string
+  type: 'folder' | 'file' | 'url'
+}
+
+export interface ProjectTeamMember {
+  identity_id: string
+  slug: string
+  display_name: string
+  role: string | null
+  status: string | null
+  expertise: string[]
+}
+
+export interface ProjectDashboardData {
+  project: Project
+  template: ProjectTemplate | null
+  nexusProject: NexusProject | null
+  cardsByLane: Record<string, number>
+  totalCards: number
+  completionPct: number
+  openCards: NexusCard[]
+  teamMembers: ProjectTeamMember[]
+  notes: ProjectNotes
+  links: ProjectLink[]
+  lastCardActivity: string | null
+  benderCount: number
+}
+
 // ===== Legacy v1 Types (for backward compatibility) =====
 // These types are used by the existing v1 markdown-based project system
 // TODO: Migrate v1 code to use v2 Supabase types
