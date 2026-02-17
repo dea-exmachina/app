@@ -7,6 +7,7 @@ import { InboxWidget } from '@/components/widgets/inbox/InboxWidget'
 import { BenderActivityWidget } from '@/components/widgets/dashboard/BenderActivityWidget'
 import { DelegationRatioWidget } from '@/components/widgets/dashboard/DelegationRatioWidget'
 import { ReleaseQueueWidget } from '@/components/widgets/dashboard/ReleaseQueueWidget'
+import { AlertsWidget } from '@/components/widgets/dashboard/AlertsWidget'
 
 export const dashboardConfig: PageLayoutConfig = {
   pageId: 'dashboard',
@@ -59,6 +60,12 @@ export const dashboardConfig: PageLayoutConfig = {
       component: ReleaseQueueWidget,
       defaultSize: { w: 4, h: 4, minW: 3, minH: 3 },
     },
+    {
+      id: 'alerts',
+      title: 'Alerts',
+      component: AlertsWidget,
+      defaultSize: { w: 4, h: 4, minW: 3, minH: 3 },
+    },
   ],
   defaultLayouts: {
     lg: [
@@ -70,6 +77,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'bender-activity', x: 0, y: 9, w: 4, h: 4, minH: 3 },
       { i: 'release-queue', x: 4, y: 9, w: 4, h: 4, minW: 3, minH: 3 },
       { i: 'delegation-ratio', x: 8, y: 8, w: 4, h: 3, minH: 2 },
+      { i: 'alerts', x: 0, y: 13, w: 4, h: 4, minW: 3, minH: 3 },
     ],
     md: [
       { i: 'ticker', x: 0, y: 0, w: 8, h: 1, minH: 1, maxH: 2 },
@@ -80,6 +88,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'bender-activity', x: 0, y: 15, w: 8, h: 4, minH: 3 },
       { i: 'release-queue', x: 0, y: 19, w: 8, h: 4, minW: 3, minH: 3 },
       { i: 'delegation-ratio', x: 0, y: 23, w: 8, h: 3, minH: 2 },
+      { i: 'alerts', x: 0, y: 26, w: 8, h: 4, minW: 3, minH: 3 },
     ],
     sm: [
       { i: 'ticker', x: 0, y: 0, w: 4, h: 2, minH: 1 },
@@ -90,6 +99,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'bender-activity', x: 0, y: 20, w: 4, h: 4, minH: 3 },
       { i: 'release-queue', x: 0, y: 24, w: 4, h: 4, minW: 3, minH: 3 },
       { i: 'delegation-ratio', x: 0, y: 28, w: 4, h: 4, minH: 2 },
+      { i: 'alerts', x: 0, y: 32, w: 4, h: 4, minW: 3, minH: 3 },
     ],
   },
 }

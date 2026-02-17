@@ -104,6 +104,13 @@ export const tables = {
   // Unified Audit Trail (NEXUS-066)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   audit_log: (db as any).from('audit_log') as ReturnType<typeof db.from>,
+  // Wave 5 — Alerts, Reopens, Token Usage
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_alerts: (db as any).from('nexus_alerts') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_card_reopens: (db as any).from('nexus_card_reopens') as ReturnType<typeof db.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nexus_token_usage: (db as any).from('nexus_token_usage') as ReturnType<typeof db.from>,
 }
 
 /**
