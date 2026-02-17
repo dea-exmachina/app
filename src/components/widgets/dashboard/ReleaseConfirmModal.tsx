@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Rocket, AlertTriangle } from 'lucide-react'
+import { Rocket, AlertTriangle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { triggerRelease } from '@/lib/client/api'
 import type { ReleaseQueueCard } from '@/types/nexus'
@@ -35,6 +35,9 @@ export function ReleaseConfirmModal({
 }: ReleaseConfirmModalProps) {
   const [state, setState] = useState<'idle' | 'dispatching' | 'done' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [mode, setMode] = useState<'now' | 'schedule'>('now')
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
 
   const ccCards = cards.filter((c) => c.card_id.startsWith('CC-'))
   const nonCcCards = cards.filter((c) => !c.card_id.startsWith('CC-'))
@@ -52,7 +55,11 @@ export function ReleaseConfirmModal({
     setState('dispatching')
     setErrorMessage('')
     try {
-      const result = await triggerRelease(cards.map((c) => c.card_id))
+      let scheduledAt: string | undefined
+      if (mode === 'schedule' && scheduledDate && scheduledTime) {
+        scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
+      }
+      const result = await triggerRelease(cards.map((c) => c.card_id), scheduledAt)
       setState('done')
       setTimeout(() => {
         onReleaseComplete({
@@ -65,7 +72,7 @@ export function ReleaseConfirmModal({
       setState('error')
       setErrorMessage(err instanceof Error ? err.message : 'Failed to trigger release')
     }
-  }, [cards, onReleaseComplete])
+  }, [cards, onReleaseComplete, mode, scheduledDate, scheduledTime])
 
   const modal = (
     <>
@@ -133,6 +140,52 @@ export function ReleaseConfirmModal({
             </table>
           </div>
 
+          {/* Schedule toggle */}
+          <div className="px-4 pb-2">
+            <div className="flex rounded-sm border border-terminal-border overflow-hidden">
+              <button
+                onClick={() => setMode('now')}
+                className={`flex-1 font-mono text-[10px] px-3 py-1.5 transition-colors flex items-center justify-center gap-1 ${
+                  mode === 'now'
+                    ? 'bg-user-accent/15 text-user-accent'
+                    : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+                }`}
+              >
+                <Rocket className="h-3 w-3" />
+                Release Now
+              </button>
+              <button
+                onClick={() => setMode('schedule')}
+                className={`flex-1 font-mono text-[10px] px-3 py-1.5 transition-colors border-l border-terminal-border flex items-center justify-center gap-1 ${
+                  mode === 'schedule'
+                    ? 'bg-user-accent/15 text-user-accent'
+                    : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+                }`}
+              >
+                <Clock className="h-3 w-3" />
+                Schedule
+              </button>
+            </div>
+
+            {mode === 'schedule' && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="flex-1 bg-terminal-bg border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary focus:outline-none focus:border-user-accent"
+                />
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-28 bg-terminal-bg border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary focus:outline-none focus:border-user-accent"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Error message */}
           {state === 'error' && errorMessage && (
             <div className="px-4 pb-2">
@@ -162,12 +215,12 @@ export function ReleaseConfirmModal({
                   : 'border-user-accent/30 text-user-accent hover:bg-user-accent/10'
               }`}
               onClick={handleConfirm}
-              disabled={state === 'dispatching' || state === 'done' || ccCards.length === 0}
+              disabled={state === 'dispatching' || state === 'done' || ccCards.length === 0 || (mode === 'schedule' && (!scheduledDate || !scheduledTime))}
             >
-              <Rocket className="h-3 w-3 mr-1" />
-              {state === 'idle' && 'Confirm Release'}
-              {state === 'dispatching' && 'Dispatching...'}
-              {state === 'done' && 'Dispatched!'}
+              {mode === 'schedule' ? <Clock className="h-3 w-3 mr-1" /> : <Rocket className="h-3 w-3 mr-1" />}
+              {state === 'idle' && (mode === 'now' ? 'Confirm Release' : 'Schedule Release')}
+              {state === 'dispatching' && (mode === 'now' ? 'Dispatching...' : 'Scheduling...')}
+              {state === 'done' && (mode === 'now' ? 'Dispatched!' : 'Scheduled!')}
               {state === 'error' && 'Retry'}
             </Button>
           </div>

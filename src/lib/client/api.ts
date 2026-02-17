@@ -452,12 +452,13 @@ export interface ReleaseRunStatus {
 }
 
 export async function triggerRelease(
-  cardIds: string[]
+  cardIds: string[],
+  scheduledAt?: string
 ): Promise<{ data: ReleaseRunResponse; cached: boolean }> {
   const res = await fetch('/api/nexus/release-queue/trigger', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ card_ids: cardIds }),
+    body: JSON.stringify({ card_ids: cardIds, scheduled_at: scheduledAt }),
   })
   if (!res.ok) {
     const error: ApiError = await res.json()
