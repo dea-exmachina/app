@@ -3,6 +3,26 @@ import { tables } from '@/lib/server/database'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { InboxItem } from '@/types/inbox'
 
+function mapRow(row: Record<string, unknown>): InboxItem {
+  return {
+    id: row.id as string,
+    filename: row.filename as string,
+    title: row.title as string,
+    type: row.type as InboxItem['type'],
+    status: row.status as InboxItem['status'],
+    created: row.created as string,
+    source: row.source as string,
+    content: row.content as string,
+    sha: row.id as string,
+    projectId: (row.project_id as string) ?? null,
+    priority: (row.priority as InboxItem['priority']) ?? 'normal',
+    fileSize: (row.file_size as number) ?? null,
+    mimeType: (row.mime_type as string) ?? null,
+    linkedCardId: (row.linked_card_id as string) ?? null,
+    tags: (row.tags as string[]) ?? [],
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
@@ -27,16 +47,7 @@ export async function GET(
       )
     }
 
-    const item: InboxItem = {
-      filename: row.filename,
-      title: row.title,
-      type: row.type as InboxItem['type'],
-      status: row.status as InboxItem['status'],
-      created: row.created,
-      source: row.source,
-      content: row.content,
-      sha: row.id,
-    }
+    const item: InboxItem = mapRow(row)
 
     return NextResponse.json({ data: item, cached: false })
   } catch (error) {
@@ -92,16 +103,7 @@ export async function PATCH(
       )
     }
 
-    const item: InboxItem = {
-      filename: row.filename,
-      title: row.title,
-      type: row.type as InboxItem['type'],
-      status: row.status as InboxItem['status'],
-      created: row.created,
-      source: row.source,
-      content: row.content,
-      sha: row.id,
-    }
+    const item: InboxItem = mapRow(row)
 
     return NextResponse.json({ data: item, cached: false })
   } catch (error) {
