@@ -36,7 +36,7 @@ export function SystemPulse() {
 
   return (
     <Link
-      href="/queen/agents"
+      href="/creep/agents"
       className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors hover:bg-accent/50 ${
         status === 'stuck' ? 'bg-red-500/10' : ''
       }`}
