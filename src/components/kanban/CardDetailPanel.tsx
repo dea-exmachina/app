@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Flag } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
+import { CardReassign } from './CardReassign'
 import { CommentThread } from './CommentThread'
 import { EventTimeline } from './EventTimeline'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -129,6 +130,12 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
               ))}
             </div>
           )}
+
+          {/* Project Reassignment (locked feature) */}
+          <CardReassign
+            cardId={card.id}
+            currentProjectId={null}
+          />
 
           {/* Description */}
           {card.description && (

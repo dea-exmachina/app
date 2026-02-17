@@ -46,6 +46,8 @@ export default function SettingsPage() {
   const [routingSaved, setRoutingSaved] = useState<string | null>(null)
   const [autoFlagEnabled, setAutoFlagEnabled] = useState(true)
   const [autoFlagSaved, setAutoFlagSaved] = useState<string | null>(null)
+  const [reassignEnabled, setReassignEnabled] = useState(false)
+  const [reassignSaved, setReassignSaved] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -63,6 +65,13 @@ export default function SettingsPage() {
         if (data.value !== null && data.value !== undefined) {
           setAutoFlagEnabled(data.value.enabled ?? true)
         }
+      })
+      .catch(() => {})
+
+    fetch('/api/settings?key=card_reassignment_enabled')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.value?.enabled) setReassignEnabled(true)
       })
       .catch(() => {})
   }, [])
@@ -120,6 +129,35 @@ export default function SettingsPage() {
       setTimeout(() => setAutoFlagSaved(null), 3000)
     }
   }, [autoFlagEnabled])
+
+  const handleReassignToggle = useCallback(async () => {
+    const newValue = !reassignEnabled
+    setReassignEnabled(newValue)
+    setReassignSaved(null)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'card_reassignment_enabled',
+          value: { enabled: newValue },
+          description: 'Allow card project reassignment from card detail panel',
+        }),
+      })
+      if (res.ok) {
+        setReassignSaved('saved')
+        setTimeout(() => setReassignSaved(null), 2000)
+      } else {
+        setReassignEnabled(!newValue)
+        setReassignSaved('error')
+        setTimeout(() => setReassignSaved(null), 3000)
+      }
+    } catch {
+      setReassignEnabled(!newValue)
+      setReassignSaved('error')
+      setTimeout(() => setReassignSaved(null), 3000)
+    }
+  }, [reassignEnabled])
 
   const handleResetLayout = (pageId: string) => {
     localStorage.removeItem(`cc-layout-${pageId}`)
@@ -281,6 +319,46 @@ export default function SettingsPage() {
               <span
                 className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
                   autoFlagEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Features */}
+      <div>
+        <SectionDivider label="Features" />
+        <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
+          Locked features that can be enabled when ready.
+        </p>
+        <div className="flex items-center justify-between border-b border-terminal-border py-2">
+          <div className="flex-1">
+            <span className="font-mono text-[11px] text-terminal-fg-primary">
+              Card project reassignment
+            </span>
+            <p className="font-mono text-[10px] text-terminal-fg-tertiary mt-0.5">
+              Allow moving cards between NEXUS projects from the card detail panel.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            {reassignSaved === 'saved' && (
+              <span className="font-mono text-[9px] text-status-ok">saved</span>
+            )}
+            {reassignSaved === 'error' && (
+              <span className="font-mono text-[9px] text-status-error">error</span>
+            )}
+            <button
+              onClick={handleReassignToggle}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                reassignEnabled
+                  ? 'bg-user-accent'
+                  : 'bg-terminal-border-strong'
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                  reassignEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
                 }`}
               />
             </button>
