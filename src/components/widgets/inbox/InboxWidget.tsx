@@ -12,7 +12,7 @@ interface ProjectOption {
 }
 
 export function InboxWidget() {
-  const { data: items, loading, error, mutating, create, remove } = useInbox()
+  const { data: items, loading, error, mutating, create, remove, refetch } = useInbox()
   const [projects, setProjects] = useState<ProjectOption[]>([])
   const [projectFilter, setProjectFilter] = useState<string>('')
 
@@ -79,6 +79,7 @@ export function InboxWidget() {
         <InboxList
           items={filtered}
           onDelete={remove}
+          onUpdated={refetch}
           deleting={mutating}
         />
       </div>

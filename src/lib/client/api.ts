@@ -363,12 +363,43 @@ export async function postInbox(
   return res.json()
 }
 
+export async function updateInboxItem(
+  filename: string,
+  updates: Record<string, unknown>
+): Promise<{ data: InboxItem; cached: boolean }> {
+  const res = await fetch(`/api/inbox/${filename}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
 export async function deleteInboxItem(filename: string): Promise<void> {
   const res = await fetch(`/api/inbox/${filename}`, { method: 'DELETE' })
   if (!res.ok) {
     const error: ApiError = await res.json()
     throw new Error(error.error.message)
   }
+}
+
+// Card Search
+export interface CardSearchResult {
+  cardId: string
+  title: string
+  lane: string
+  projectId: string
+}
+
+export async function searchCards(
+  query: string,
+  limit = 10
+): Promise<{ data: CardSearchResult[]; cached: boolean }> {
+  return fetchApi<CardSearchResult[]>(`/api/nexus/cards/search?q=${encodeURIComponent(query)}&limit=${limit}`)
 }
 
 // Canvas / Whiteboard

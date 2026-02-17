@@ -7,10 +7,11 @@ import type { InboxItem } from '@/types/inbox'
 interface InboxListProps {
   items: InboxItem[]
   onDelete?: (filename: string) => void
+  onUpdated?: () => void
   deleting?: boolean
 }
 
-export function InboxList({ items, onDelete, deleting }: InboxListProps) {
+export function InboxList({ items, onDelete, onUpdated, deleting }: InboxListProps) {
   const pendingItems = items.filter((i) => i.status === 'pending')
   const otherItems = items.filter((i) => i.status !== 'pending')
 
@@ -32,6 +33,7 @@ export function InboxList({ items, onDelete, deleting }: InboxListProps) {
               key={item.filename}
               item={item}
               onDelete={onDelete}
+              onUpdated={onUpdated}
               deleting={deleting}
             />
           ))}
@@ -43,6 +45,7 @@ export function InboxList({ items, onDelete, deleting }: InboxListProps) {
               key={item.filename}
               item={item}
               onDelete={onDelete}
+              onUpdated={onUpdated}
               deleting={deleting}
             />
           ))}
