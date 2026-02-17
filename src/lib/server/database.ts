@@ -101,6 +101,9 @@ export const tables = {
   supervisor_lenses: db.from('supervisor_lenses'),
   identity_project_context: db.from('identity_project_context'),
   identity_recommendations: db.from('identity_recommendations'),
+  // Unified Audit Trail (NEXUS-066)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  audit_log: (db as any).from('audit_log') as ReturnType<typeof db.from>,
 }
 
 /**
