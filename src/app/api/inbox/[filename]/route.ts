@@ -28,6 +28,7 @@ export async function GET(
     }
 
     const item: InboxItem = {
+      id: row.id,
       filename: row.filename,
       title: row.title,
       type: row.type as InboxItem['type'],
@@ -35,6 +36,16 @@ export async function GET(
       created: row.created,
       source: row.source,
       content: row.content,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      project_id: row.project_id,
+      priority: row.priority,
+      file_path: row.file_path,
+      file_size: row.file_size,
+      mime_type: row.mime_type,
+      linked_card_id: row.linked_card_id,
+      assigned_to: row.assigned_to,
+      tags: row.tags ?? [],
       sha: row.id,
     }
 
@@ -93,6 +104,7 @@ export async function PATCH(
     }
 
     const item: InboxItem = {
+      id: row.id,
       filename: row.filename,
       title: row.title,
       type: row.type as InboxItem['type'],
@@ -100,6 +112,16 @@ export async function PATCH(
       created: row.created,
       source: row.source,
       content: row.content,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      project_id: row.project_id,
+      priority: row.priority,
+      file_path: row.file_path,
+      file_size: row.file_size,
+      mime_type: row.mime_type,
+      linked_card_id: row.linked_card_id,
+      assigned_to: row.assigned_to,
+      tags: row.tags ?? [],
       sha: row.id,
     }
 
