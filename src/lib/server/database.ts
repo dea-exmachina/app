@@ -101,6 +101,8 @@ export const tables = {
   supervisor_lenses: db.from('supervisor_lenses'),
   identity_project_context: db.from('identity_project_context'),
   identity_recommendations: db.from('identity_recommendations'),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bender_performance: (db as any).from('bender_performance') as ReturnType<typeof db.from>,
 }
 
 /**
