@@ -29,10 +29,10 @@ function mapRow(row: Record<string, unknown>): InboxItem {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<ApiResponse<InboxItem> | ApiError>> {
   try {
-    const { filename } = await params
+    const { id: filename } = await params
 
     const { data: row, error } = await tables.inbox_items
       .select('*')
@@ -70,10 +70,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<ApiResponse<InboxItem> | ApiError>> {
   try {
-    const { filename } = await params
+    const { id: filename } = await params
     const body = await request.json()
 
     // Build update object from allowed fields (accept both snake_case and camelCase)
@@ -147,10 +147,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<{ success: boolean } | ApiError>> {
   try {
-    const { filename } = await params
+    const { id: filename } = await params
 
     const { error } = await tables.inbox_items
       .delete()
