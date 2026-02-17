@@ -16,6 +16,14 @@ import type { ProjectLegacy as Project, ProjectDetail, ProjectDashboardData, Pro
 import type { InboxItem, InboxCreateRequest } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
 import type { NexusCard, NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
+import type {
+  TechStackItem,
+  TechStackCreateRequest,
+  TechStackUpdateRequest,
+  ProjectWorkflow,
+  WorkflowCreateRequest,
+  WorkflowUpdateRequest,
+} from '@/types/techstack'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -470,4 +478,147 @@ export async function getReleaseRunStatus(
   runId: string
 ): Promise<{ data: ReleaseRunStatus; cached: boolean }> {
   return fetchApi<ReleaseRunStatus>(`/api/nexus/release-queue/trigger?run_id=${runId}`)
+}
+
+// ── Tech Stack ─────────────────────────────────────
+
+export async function getTechStack(
+  projectSlug: string
+): Promise<{ data: TechStackItem[]; cached: boolean }> {
+  return fetchApi<TechStackItem[]>(`/api/projects/${projectSlug}/tech-stack`)
+}
+
+export async function createTechStackItem(
+  projectSlug: string,
+  item: TechStackCreateRequest
+): Promise<{ data: TechStackItem; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateTechStackItem(
+  projectSlug: string,
+  itemId: string,
+  updates: TechStackUpdateRequest
+): Promise<{ data: TechStackItem; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack/${itemId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteTechStackItem(
+  projectSlug: string,
+  itemId: string
+): Promise<void> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack/${itemId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
+// ── Project Workflows ──────────────────────────────
+
+export async function getProjectWorkflows(
+  projectSlug: string
+): Promise<{ data: ProjectWorkflow[]; cached: boolean }> {
+  return fetchApi<ProjectWorkflow[]>(`/api/projects/${projectSlug}/project-workflows`)
+}
+
+export async function createProjectWorkflow(
+  projectSlug: string,
+  workflow: WorkflowCreateRequest
+): Promise<{ data: ProjectWorkflow; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(workflow),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateProjectWorkflow(
+  projectSlug: string,
+  workflowId: string,
+  updates: WorkflowUpdateRequest
+): Promise<{ data: ProjectWorkflow; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows/${workflowId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteProjectWorkflow(
+  projectSlug: string,
+  workflowId: string
+): Promise<void> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows/${workflowId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
+// ── User Settings ──────────────────────────────────
+
+export interface UserSetting {
+  id: string
+  key: string
+  value: unknown
+  category: string | null
+  description: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getSettings(): Promise<{
+  data: UserSetting[]
+  cached: boolean
+}> {
+  return fetchApi<UserSetting[]>('/api/settings')
+}
+
+export async function updateSetting(
+  key: string,
+  value: unknown
+): Promise<{ data: UserSetting; cached: boolean }> {
+  const res = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, value }),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
 }
