@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { UnifiedBoardView } from '@/components/kanban/UnifiedBoardView'
+import { BenderBoardView } from '@/components/kanban/BenderBoardView'
 
 export default function UnifiedBoardPage() {
   return (
@@ -14,6 +15,10 @@ export default function UnifiedBoardPage() {
       </div>
       <Suspense fallback={<div className="text-muted-foreground">Loading...</div>}>
         <UnifiedBoardView />
+      </Suspense>
+
+      <Suspense fallback={<div className="text-muted-foreground">Loading bender board...</div>}>
+        <BenderBoardView />
       </Suspense>
     </div>
   )
