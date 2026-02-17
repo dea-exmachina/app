@@ -41,15 +41,6 @@ export interface InboxCreateRequest {
   tags?: string[]
 }
 
-export interface InboxUploadRequest {
-  title: string
-  type: InboxItemType
-  file_name: string
-  file_type: string
-  file_size: number
-  file_content: string
-}
-
 export interface InboxUpdateRequest {
   title?: string
   content?: string
@@ -57,7 +48,7 @@ export interface InboxUpdateRequest {
   status?: InboxItemStatus
   priority?: InboxItemPriority
   project_id?: string
-  linked_card_id?: string
+  linked_card_id?: string | null
   assigned_to?: string
   tags?: string[]
   file_path?: string

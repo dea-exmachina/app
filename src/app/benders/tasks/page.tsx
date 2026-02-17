@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { TaskBrowser } from '@/components/benders/TaskBrowser'
+import { InlineTaskComposer } from '@/components/benders/InlineTaskComposer'
 import type { BenderTask } from '@/types/bender'
 import { getTasks } from '@/lib/client/api'
 
@@ -11,12 +12,19 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchTasks = useCallback(() => {
+    setLoading(true)
     getTasks()
       .then((res) => setTasks(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => { fetchTasks() }, [fetchTasks])
+
+  const handleTaskCreated = useCallback(() => {
+    fetchTasks()
+  }, [fetchTasks])
 
   return (
     <div className="p-4 space-y-3">
@@ -34,13 +42,10 @@ export default function TasksPage() {
             Tasks
           </span>
         </div>
-        <Link
-          href="/benders/tasks/new"
-          className="font-mono text-[10px] px-2 py-0.5 rounded-sm bg-user-accent text-user-accent-fg hover:opacity-90 transition-opacity"
-        >
-          + NEW
-        </Link>
       </div>
+
+      {/* Inline Task Composer */}
+      <InlineTaskComposer onCreated={handleTaskCreated} />
 
       {/* Content */}
       {loading ? (

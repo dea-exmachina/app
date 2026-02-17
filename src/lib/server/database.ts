@@ -3,114 +3,127 @@
  *
  * Provides typed database access for Control Center v2.
  * Uses service role key for server-side operations.
+ *
+ * Lazy initialization: client is created on first use, not at module load.
+ * This prevents module-scope crashes from killing Vercel's bundled functions.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
-if (!process.env.SUPABASE_URL) {
-  throw new Error('Missing environment variable: SUPABASE_URL')
-}
-
-if (!process.env.SUPABASE_SERVICE_KEY) {
-  throw new Error('Missing environment variable: SUPABASE_SERVICE_KEY')
-}
+let _db: SupabaseClient<Database> | null = null
 
 /**
- * Server-side Supabase client with service role privileges
- * Use this for API routes and server components
+ * Get the Supabase client (lazy-initialized on first call)
  */
-export const db = createClient<Database>(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+export function getDb(): SupabaseClient<Database> {
+  if (!_db) {
+    if (!process.env.SUPABASE_URL) {
+      throw new Error('Missing environment variable: SUPABASE_URL')
+    }
+    if (!process.env.SUPABASE_SERVICE_KEY) {
+      throw new Error('Missing environment variable: SUPABASE_SERVICE_KEY')
+    }
+    _db = createClient<Database>(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
   }
-)
+  return _db
+}
 
 /**
- * Type-safe table accessor
+ * Backward-compatible db export (proxies to lazy-initialized client)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const db: SupabaseClient<Database> = new Proxy({} as any, {
+  get(_, prop) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getDb() as any)[prop]
+  },
+})
+
+/**
+ * Type-safe table accessor (lazy via getters — each access calls db.from())
  * Usage: const { data } = await tables.projects.select('*')
  */
 export const tables = {
-  projects: db.from('projects'),
-  project_templates: db.from('project_templates'),
-  bender_identities: db.from('bender_identities'),
-  project_benders: db.from('project_benders'),
-  bender_platforms: db.from('bender_platforms'),
-  bender_teams: db.from('bender_teams'),
+  get projects() { return db.from('projects') },
+  get project_templates() { return db.from('project_templates') },
+  get bender_identities() { return db.from('bender_identities') },
+  get project_benders() { return db.from('project_benders') },
+  get bender_platforms() { return db.from('bender_platforms') },
+  get bender_teams() { return db.from('bender_teams') },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bender_team_members: (db as any).from('bender_team_members') as ReturnType<typeof db.from>,
-  bender_tasks: db.from('bender_tasks'),
-  kanban_boards: db.from('kanban_boards'),
-  kanban_cards: db.from('kanban_cards'),
-  workflows: db.from('workflows'),
-  user_learnings: db.from('user_learnings'),
-  messages: db.from('messages'),
-  // Skills — migrated from GitHub markdown (v1→v2)
+  get bender_team_members() { return (db as any).from('bender_team_members') as ReturnType<typeof db.from> },
+  get bender_tasks() { return db.from('bender_tasks') },
+  get kanban_boards() { return db.from('kanban_boards') },
+  get kanban_cards() { return db.from('kanban_cards') },
+  get workflows() { return db.from('workflows') },
+  get user_learnings() { return db.from('user_learnings') },
+  get messages() { return db.from('messages') },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  skills: (db as any).from('skills') as ReturnType<typeof db.from>,
-  // Inbox — migrated from GitHub files (v1→v2)
+  get skills() { return (db as any).from('skills') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inbox_items: (db as any).from('inbox_items') as ReturnType<typeof db.from>,
-  // QUEEN — External Orchestration (DEA-032)
-  // Note: These tables are not yet in the generated supabase.ts types.
-  // After running migration 005 and regenerating types, remove the casts.
+  get inbox_items() { return (db as any).from('inbox_items') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queen_events: (db as any).from('queen_events') as ReturnType<typeof db.from>,
+  get queen_events() { return (db as any).from('queen_events') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  agent_health: (db as any).from('agent_health') as ReturnType<typeof db.from>,
+  get agent_health() { return (db as any).from('agent_health') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  webhook_configs: (db as any).from('webhook_configs') as ReturnType<typeof db.from>,
+  get webhook_configs() { return (db as any).from('webhook_configs') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sync_state: (db as any).from('sync_state') as ReturnType<typeof db.from>,
-  // NEXUS — Next-Gen Execution & Unified System (DEA-042)
-  // Note: These tables are not yet in the generated supabase.ts types.
-  // After running migration 011 and regenerating types, remove the casts.
+  get sync_state() { return (db as any).from('sync_state') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_projects: (db as any).from('nexus_projects') as ReturnType<typeof db.from>,
+  get nexus_projects() { return (db as any).from('nexus_projects') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_cards: (db as any).from('nexus_cards') as ReturnType<typeof db.from>,
+  get nexus_cards() { return (db as any).from('nexus_cards') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_task_details: (db as any).from('nexus_task_details') as ReturnType<typeof db.from>,
+  get nexus_task_details() { return (db as any).from('nexus_task_details') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_comments: (db as any).from('nexus_comments') as ReturnType<typeof db.from>,
+  get nexus_comments() { return (db as any).from('nexus_comments') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_locks: (db as any).from('nexus_locks') as ReturnType<typeof db.from>,
+  get nexus_locks() { return (db as any).from('nexus_locks') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_events: (db as any).from('nexus_events') as ReturnType<typeof db.from>,
+  get nexus_events() { return (db as any).from('nexus_events') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_context_packages: (db as any).from('nexus_context_packages') as ReturnType<typeof db.from>,
+  get nexus_context_packages() { return (db as any).from('nexus_context_packages') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_agent_sessions: (db as any).from('nexus_agent_sessions') as ReturnType<typeof db.from>,
-  // Architecture Visualization (DEA-043)
+  get nexus_agent_sessions() { return (db as any).from('nexus_agent_sessions') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  architecture_annotations: (db as any).from('architecture_annotations') as ReturnType<typeof db.from>,
+  get architecture_annotations() { return (db as any).from('architecture_annotations') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  architecture_secrets: (db as any).from('architecture_secrets') as ReturnType<typeof db.from>,
-  // Canvas / Whiteboard (Excalidraw)
+  get architecture_secrets() { return (db as any).from('architecture_secrets') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  canvases: (db as any).from('canvases') as ReturnType<typeof db.from>,
-  // DEA-077 Model Routing & Team Architecture
-  routing_config: db.from('routing_config'),
-  model_library: db.from('model_library'),
-  task_type_routing: db.from('task_type_routing'),
-  supervisor_lenses: db.from('supervisor_lenses'),
-  identity_project_context: db.from('identity_project_context'),
-  identity_recommendations: db.from('identity_recommendations'),
-  // Unified Audit Trail (NEXUS-066)
+  get canvases() { return (db as any).from('canvases') as ReturnType<typeof db.from> },
+  get routing_config() { return db.from('routing_config') },
+  get model_library() { return db.from('model_library') },
+  get task_type_routing() { return db.from('task_type_routing') },
+  get supervisor_lenses() { return db.from('supervisor_lenses') },
+  get identity_project_context() { return db.from('identity_project_context') },
+  get identity_recommendations() { return db.from('identity_recommendations') },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  audit_log: (db as any).from('audit_log') as ReturnType<typeof db.from>,
-  // Wave 5 — Alerts, Reopens, Token Usage
+  get audit_log() { return (db as any).from('audit_log') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_alerts: (db as any).from('nexus_alerts') as ReturnType<typeof db.from>,
+  get bender_performance() { return (db as any).from('bender_performance') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_card_reopens: (db as any).from('nexus_card_reopens') as ReturnType<typeof db.from>,
+  get project_tech_stack() { return (db as any).from('project_tech_stack') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  nexus_token_usage: (db as any).from('nexus_token_usage') as ReturnType<typeof db.from>,
+  get project_workflows() { return (db as any).from('project_workflows') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get user_settings() { return (db as any).from('user_settings') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get nexus_alerts() { return (db as any).from('nexus_alerts') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get nexus_card_reopens() { return (db as any).from('nexus_card_reopens') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get nexus_token_usage() { return (db as any).from('nexus_token_usage') as ReturnType<typeof db.from> },
 }
 
 /**

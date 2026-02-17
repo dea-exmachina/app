@@ -147,6 +147,16 @@ export function CardDetailPanel({ card, lane, onClose }: CardDetailPanelProps) {
             </div>
           )}
 
+          {/* Verification Notes */}
+          {card.testNotes && (
+            <div>
+              <SectionDivider label="Verification" />
+              <p className="mt-1.5 font-mono text-[12px] text-terminal-fg-primary leading-relaxed whitespace-pre-wrap">
+                {card.testNotes}
+              </p>
+            </div>
+          )}
+
           {/* Source */}
           {source && (
             <div>

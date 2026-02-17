@@ -46,8 +46,9 @@ export default function SettingsPage() {
   const [routingSaved, setRoutingSaved] = useState<string | null>(null)
   const [autoFlagEnabled, setAutoFlagEnabled] = useState(true)
   const [autoFlagSaved, setAutoFlagSaved] = useState<string | null>(null)
-  const [reassignEnabled, setReassignEnabled] = useState(false)
-  const [reassignSaved, setReassignSaved] = useState<string | null>(null)
+  const [deliverablesPath, setDeliverablesPath] = useState('')
+  const [discordWebhook, setDiscordWebhook] = useState('')
+  const [settingsSaved, setSettingsSaved] = useState<Record<string, string>>({})
 
   useEffect(() => {
     setMounted(true)
@@ -68,10 +69,15 @@ export default function SettingsPage() {
       })
       .catch(() => {})
 
-    fetch('/api/settings?key=card_reassignment_enabled')
+    // Load user settings
+    fetch('/api/user-settings')
       .then((r) => r.json())
-      .then((data) => {
-        if (data.value?.enabled) setReassignEnabled(true)
+      .then((json) => {
+        const settings = json.data ?? []
+        for (const s of settings) {
+          if (s.key === 'deliverables_path') setDeliverablesPath(typeof s.value === 'string' ? s.value : '')
+          if (s.key === 'discord_webhook') setDiscordWebhook(typeof s.value === 'string' ? s.value : '')
+        }
       })
       .catch(() => {})
   }, [])
@@ -130,34 +136,26 @@ export default function SettingsPage() {
     }
   }, [autoFlagEnabled])
 
-  const handleReassignToggle = useCallback(async () => {
-    const newValue = !reassignEnabled
-    setReassignEnabled(newValue)
-    setReassignSaved(null)
+  const saveUserSetting = useCallback(async (key: string, value: unknown, category = 'general') => {
+    setSettingsSaved((prev) => ({ ...prev, [key]: 'saving' }))
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
+      const res = await fetch('/api/user-settings', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key: 'card_reassignment_enabled',
-          value: { enabled: newValue },
-          description: 'Allow card project reassignment from card detail panel',
-        }),
+        body: JSON.stringify({ key, value, category }),
       })
       if (res.ok) {
-        setReassignSaved('saved')
-        setTimeout(() => setReassignSaved(null), 2000)
+        setSettingsSaved((prev) => ({ ...prev, [key]: 'saved' }))
+        setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 2000)
       } else {
-        setReassignEnabled(!newValue)
-        setReassignSaved('error')
-        setTimeout(() => setReassignSaved(null), 3000)
+        setSettingsSaved((prev) => ({ ...prev, [key]: 'error' }))
+        setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 3000)
       }
     } catch {
-      setReassignEnabled(!newValue)
-      setReassignSaved('error')
-      setTimeout(() => setReassignSaved(null), 3000)
+      setSettingsSaved((prev) => ({ ...prev, [key]: 'error' }))
+      setTimeout(() => setSettingsSaved((prev) => ({ ...prev, [key]: '' })), 3000)
     }
-  }, [reassignEnabled])
+  }, [])
 
   const handleResetLayout = (pageId: string) => {
     localStorage.removeItem(`cc-layout-${pageId}`)
@@ -326,43 +324,57 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Features */}
+      {/* Paths */}
       <div>
-        <SectionDivider label="Features" />
+        <SectionDivider label="Paths" />
         <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
-          Locked features that can be enabled when ready.
+          Default paths for bender deliverables and artifact storage.
         </p>
-        <div className="flex items-center justify-between border-b border-terminal-border py-2">
-          <div className="flex-1">
-            <span className="font-mono text-[11px] text-terminal-fg-primary">
-              Card project reassignment
-            </span>
-            <p className="font-mono text-[10px] text-terminal-fg-tertiary mt-0.5">
-              Allow moving cards between NEXUS projects from the card detail panel.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-4">
-            {reassignSaved === 'saved' && (
-              <span className="font-mono text-[9px] text-status-ok">saved</span>
-            )}
-            {reassignSaved === 'error' && (
-              <span className="font-mono text-[9px] text-status-error">error</span>
-            )}
-            <button
-              onClick={handleReassignToggle}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                reassignEnabled
-                  ? 'bg-user-accent'
-                  : 'bg-terminal-border-strong'
-              }`}
-            >
-              <span
-                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                  reassignEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
+        <div className="flex items-center gap-3 border-b border-terminal-border py-2">
+          <label className="font-mono text-[11px] text-terminal-fg-primary w-32 shrink-0">
+            Deliverables path
+          </label>
+          <input
+            type="text"
+            value={deliverablesPath}
+            onChange={(e) => setDeliverablesPath(e.target.value)}
+            onBlur={() => saveUserSetting('deliverables_path', deliverablesPath, 'paths')}
+            placeholder="e.g. D:\dev\benders\deliverables"
+            className="flex-1 bg-terminal-bg-elevated border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary focus:outline-none focus:border-user-accent"
+          />
+          {settingsSaved.deliverables_path === 'saved' && (
+            <span className="font-mono text-[9px] text-status-ok shrink-0">saved</span>
+          )}
+          {settingsSaved.deliverables_path === 'error' && (
+            <span className="font-mono text-[9px] text-status-error shrink-0">error</span>
+          )}
+        </div>
+      </div>
+
+      {/* Integrations */}
+      <div>
+        <SectionDivider label="Integrations" />
+        <p className="mt-2 mb-3 font-mono text-[11px] text-terminal-fg-secondary">
+          Webhook URLs and external service connections.
+        </p>
+        <div className="flex items-center gap-3 border-b border-terminal-border py-2">
+          <label className="font-mono text-[11px] text-terminal-fg-primary w-32 shrink-0">
+            Discord webhook
+          </label>
+          <input
+            type="text"
+            value={discordWebhook}
+            onChange={(e) => setDiscordWebhook(e.target.value)}
+            onBlur={() => saveUserSetting('discord_webhook', discordWebhook, 'integrations')}
+            placeholder="https://discord.com/api/webhooks/..."
+            className="flex-1 bg-terminal-bg-elevated border border-terminal-border rounded-sm px-2 py-1 font-mono text-[11px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary focus:outline-none focus:border-user-accent"
+          />
+          {settingsSaved.discord_webhook === 'saved' && (
+            <span className="font-mono text-[9px] text-status-ok shrink-0">saved</span>
+          )}
+          {settingsSaved.discord_webhook === 'error' && (
+            <span className="font-mono text-[9px] text-status-error shrink-0">error</span>
+          )}
         </div>
       </div>
 

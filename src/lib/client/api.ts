@@ -21,6 +21,14 @@ import type {
 } from '@/types/inbox'
 import type { Canvas, CanvasSummary, CreateCanvasInput, UpdateCanvasInput } from '@/types/canvas'
 import type { NexusCard, NexusComment, NexusEvent, CardCommentSummary, ReleaseQueueResponse } from '@/types/nexus'
+import type {
+  TechStackItem,
+  TechStackCreateRequest,
+  TechStackUpdateRequest,
+  ProjectWorkflow,
+  WorkflowCreateRequest,
+  WorkflowUpdateRequest,
+} from '@/types/techstack'
 
 async function fetchApi<T>(path: string): Promise<{ data: T; cached: boolean }> {
   const res = await fetch(path)
@@ -400,10 +408,10 @@ export async function postInbox(
 }
 
 export async function updateInboxItem(
-  id: string,
+  filename: string,
   updates: InboxUpdateRequest
 ): Promise<{ data: InboxItem; cached: boolean }> {
-  const res = await fetch(`/api/inbox/${id}`, {
+  const res = await fetch(`/api/inbox/${filename}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -416,11 +424,12 @@ export async function updateInboxItem(
 }
 
 export async function linkInboxToCard(
-  inboxId: string,
+  filename: string,
   cardId: string
 ): Promise<{ data: InboxItem; cached: boolean }> {
-  return updateInboxItem(inboxId, { linked_card_id: cardId })
+  return updateInboxItem(filename, { linked_card_id: cardId })
 }
+
 
 export async function deleteInboxItem(filename: string): Promise<void> {
   const res = await fetch(`/api/inbox/${filename}`, { method: 'DELETE' })
@@ -428,6 +437,21 @@ export async function deleteInboxItem(filename: string): Promise<void> {
     const error: ApiError = await res.json()
     throw new Error(error.error.message)
   }
+}
+
+// Card Search
+export interface CardSearchResult {
+  cardId: string
+  title: string
+  lane: string
+  projectId: string
+}
+
+export async function searchCards(
+  query: string,
+  limit = 10
+): Promise<{ data: CardSearchResult[]; cached: boolean }> {
+  return fetchApi<CardSearchResult[]>(`/api/nexus/cards/search?q=${encodeURIComponent(query)}&limit=${limit}`)
 }
 
 // Canvas / Whiteboard
@@ -511,12 +535,13 @@ export interface ReleaseRunStatus {
 }
 
 export async function triggerRelease(
-  cardIds: string[]
+  cardIds: string[],
+  scheduledAt?: string
 ): Promise<{ data: ReleaseRunResponse; cached: boolean }> {
   const res = await fetch('/api/nexus/release-queue/trigger', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ card_ids: cardIds }),
+    body: JSON.stringify({ card_ids: cardIds, scheduled_at: scheduledAt }),
   })
   if (!res.ok) {
     const error: ApiError = await res.json()
@@ -529,4 +554,147 @@ export async function getReleaseRunStatus(
   runId: string
 ): Promise<{ data: ReleaseRunStatus; cached: boolean }> {
   return fetchApi<ReleaseRunStatus>(`/api/nexus/release-queue/trigger?run_id=${runId}`)
+}
+
+// ── Tech Stack ─────────────────────────────────────
+
+export async function getTechStack(
+  projectSlug: string
+): Promise<{ data: TechStackItem[]; cached: boolean }> {
+  return fetchApi<TechStackItem[]>(`/api/projects/${projectSlug}/tech-stack`)
+}
+
+export async function createTechStackItem(
+  projectSlug: string,
+  item: TechStackCreateRequest
+): Promise<{ data: TechStackItem; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateTechStackItem(
+  projectSlug: string,
+  itemId: string,
+  updates: TechStackUpdateRequest
+): Promise<{ data: TechStackItem; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack/${itemId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteTechStackItem(
+  projectSlug: string,
+  itemId: string
+): Promise<void> {
+  const res = await fetch(`/api/projects/${projectSlug}/tech-stack/${itemId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
+// ── Project Workflows ──────────────────────────────
+
+export async function getProjectWorkflows(
+  projectSlug: string
+): Promise<{ data: ProjectWorkflow[]; cached: boolean }> {
+  return fetchApi<ProjectWorkflow[]>(`/api/projects/${projectSlug}/project-workflows`)
+}
+
+export async function createProjectWorkflow(
+  projectSlug: string,
+  workflow: WorkflowCreateRequest
+): Promise<{ data: ProjectWorkflow; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(workflow),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function updateProjectWorkflow(
+  projectSlug: string,
+  workflowId: string,
+  updates: WorkflowUpdateRequest
+): Promise<{ data: ProjectWorkflow; cached: boolean }> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows/${workflowId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
+}
+
+export async function deleteProjectWorkflow(
+  projectSlug: string,
+  workflowId: string
+): Promise<void> {
+  const res = await fetch(`/api/projects/${projectSlug}/project-workflows/${workflowId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
+// ── User Settings ──────────────────────────────────
+
+export interface UserSetting {
+  id: string
+  key: string
+  value: unknown
+  category: string | null
+  description: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getSettings(): Promise<{
+  data: UserSetting[]
+  cached: boolean
+}> {
+  return fetchApi<UserSetting[]>('/api/user-settings')
+}
+
+export async function updateSetting(
+  key: string,
+  value: unknown
+): Promise<{ data: UserSetting; cached: boolean }> {
+  const res = await fetch('/api/user-settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, value }),
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+  return res.json()
 }

@@ -6,6 +6,9 @@ import { ProjectTeamWidget } from '@/components/widgets/project-detail/ProjectTe
 import { ProjectTaskListWidget } from '@/components/widgets/project-detail/ProjectTaskListWidget'
 import { ProjectNotesWidget } from '@/components/widgets/project-detail/ProjectNotesWidget'
 import { ProjectLinksWidget } from '@/components/widgets/project-detail/ProjectLinksWidget'
+import { ProjectTechStackWidget } from '@/components/widgets/project-detail/ProjectTechStackWidget'
+import { ProjectWorkflowsWidget } from '@/components/widgets/project-detail/ProjectWorkflowsWidget'
+import { ProjectInboxWidget } from '@/components/widgets/project-detail/ProjectInboxWidget'
 import { FeatureRequestWidget } from '@/components/widgets/project-detail/FeatureRequestWidget'
 
 export function createProjectDetailConfig(slug: string): PageLayoutConfig {
@@ -55,6 +58,24 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
       },
       {
+        id: 'tech-stack',
+        title: 'Tech Stack',
+        component: ProjectTechStackWidget,
+        defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
+      },
+      {
+        id: 'workflows',
+        title: 'Workflows',
+        component: ProjectWorkflowsWidget,
+        defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
+      },
+      {
+        id: 'inbox',
+        title: 'Inbox',
+        component: ProjectInboxWidget,
+        defaultSize: { w: 6, h: 5, minW: 3, minH: 3 },
+      },
+      {
         id: 'feature-request',
         title: 'Feature Request',
         component: FeatureRequestWidget,
@@ -70,7 +91,10 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'team', x: 10, y: 1, w: 2, h: 4, minW: 2, minH: 2 },
         { i: 'task-list', x: 0, y: 5, w: 8, h: 5, minW: 4, minH: 3 },
         { i: 'notes', x: 8, y: 5, w: 4, h: 5, minW: 3, minH: 3 },
-        { i: 'feature-request', x: 0, y: 10, w: 6, h: 4, minW: 3, minH: 3 },
+        { i: 'tech-stack', x: 0, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'workflows', x: 4, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 8, y: 10, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'feature-request', x: 0, y: 15, w: 6, h: 4, minW: 3, minH: 3 },
       ],
       md: [
         { i: 'quick-stats', x: 0, y: 0, w: 8, h: 1, minH: 1, maxH: 2 },
@@ -80,7 +104,10 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'team', x: 4, y: 5, w: 4, h: 4, minW: 2, minH: 2 },
         { i: 'task-list', x: 0, y: 9, w: 8, h: 5, minW: 4, minH: 3 },
         { i: 'notes', x: 0, y: 14, w: 8, h: 5, minW: 3, minH: 3 },
-        { i: 'feature-request', x: 0, y: 19, w: 8, h: 4, minW: 3, minH: 3 },
+        { i: 'tech-stack', x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'workflows', x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 0, y: 24, w: 8, h: 5, minW: 3, minH: 3 },
+        { i: 'feature-request', x: 0, y: 29, w: 8, h: 4, minW: 3, minH: 3 },
       ],
       sm: [
         { i: 'quick-stats', x: 0, y: 0, w: 4, h: 2, minH: 1 },
@@ -90,7 +117,10 @@ export function createProjectDetailConfig(slug: string): PageLayoutConfig {
         { i: 'team', x: 0, y: 16, w: 4, h: 4, minW: 2, minH: 2 },
         { i: 'task-list', x: 0, y: 20, w: 4, h: 6, minW: 4, minH: 3 },
         { i: 'notes', x: 0, y: 26, w: 4, h: 6, minW: 3, minH: 3 },
-        { i: 'feature-request', x: 0, y: 32, w: 4, h: 4, minW: 3, minH: 3 },
+        { i: 'tech-stack', x: 0, y: 32, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'workflows', x: 0, y: 37, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'inbox', x: 0, y: 42, w: 4, h: 5, minW: 3, minH: 3 },
+        { i: 'feature-request', x: 0, y: 47, w: 4, h: 4, minW: 3, minH: 3 },
       ],
     },
   }

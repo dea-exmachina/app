@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const cardIds: unknown = body.card_ids
+    const scheduledAt: string | undefined = body.scheduled_at // ISO timestamp for scheduled releases
 
     // Validate input
     if (!Array.isArray(cardIds) || cardIds.length === 0 || !cardIds.every((id) => typeof id === 'string')) {
@@ -97,14 +98,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate scheduled_at if provided
+    if (scheduledAt) {
+      const scheduledDate = new Date(scheduledAt)
+      if (isNaN(scheduledDate.getTime())) {
+        return NextResponse.json(
+          { error: { code: 'VALIDATION_ERROR', message: 'scheduled_at must be a valid ISO timestamp' } },
+          { status: 400 }
+        )
+      }
+      if (scheduledDate.getTime() <= Date.now()) {
+        return NextResponse.json(
+          { error: { code: 'VALIDATION_ERROR', message: 'scheduled_at must be in the future' } },
+          { status: 400 }
+        )
+      }
+    }
+
     // Create release_runs record
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: releaseRun, error: insertError } = await (db as any)
       .from('release_runs')
       .insert({
         card_ids: validCardIds,
-        status: 'pending',
+        status: scheduledAt ? 'scheduled' : 'pending',
         triggered_by: 'webapp',
+        scheduled_at: scheduledAt || null,
       })
       .select('id')
       .single()
@@ -114,6 +133,21 @@ export async function POST(request: NextRequest) {
         { error: { code: 'INSERT_ERROR', message: insertError?.message || 'Failed to create release run' } },
         { status: 500 }
       )
+    }
+
+    // If scheduled, return immediately without dispatching
+    if (scheduledAt) {
+      return NextResponse.json({
+        data: {
+          run_id: releaseRun.id,
+          dispatched_cards: [],
+          scheduled_cards: validCardIds,
+          skipped_cards: skippedCards,
+          invalid_cards: invalidCards,
+          scheduled_at: scheduledAt,
+        },
+        cached: false,
+      })
     }
 
     // Dispatch GitHub Actions workflow

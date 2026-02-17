@@ -2,10 +2,12 @@
 
 import { formatRelativeDate } from '@/lib/client/formatters'
 import type { InboxItem as InboxItemType } from '@/types/inbox'
+import { InboxItemActions } from './InboxItemActions'
 
 interface InboxItemProps {
   item: InboxItemType
   onDelete?: (filename: string) => void
+  onUpdated?: () => void
   deleting?: boolean
 }
 
@@ -29,11 +31,11 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: 'text-terminal-fg-tertiary',
 }
 
-export function InboxItemCard({ item, onDelete, deleting }: InboxItemProps) {
-  const hasFile = item.fileSize && item.fileSize > 0
+export function InboxItemCard({ item, onDelete, onUpdated, deleting }: InboxItemProps) {
+  const hasFile = item.file_size && item.file_size > 0
 
   return (
-    <div className="group flex items-center gap-2 py-1 px-1 font-mono text-[11px] hover:bg-terminal-bg-elevated/50 rounded-sm transition-colors">
+    <div className="group relative flex items-center gap-2 py-1 px-1 font-mono text-[11px] hover:bg-terminal-bg-elevated/50 rounded-sm transition-colors">
       {/* Priority indicator */}
       {item.priority && item.priority !== 'normal' && (
         <span className={`shrink-0 text-[9px] font-bold uppercase ${PRIORITY_COLORS[item.priority]}`}>
@@ -50,6 +52,13 @@ export function InboxItemCard({ item, onDelete, deleting }: InboxItemProps) {
       <span className="text-terminal-fg-primary truncate flex-1">
         {item.title}
       </span>
+
+      {/* Linked card indicator */}
+      {item.linked_card_id && (
+        <span className="text-[9px] px-1 py-0 bg-user-accent/20 text-user-accent border border-user-accent/30 rounded" title={`Linked to ${item.linked_card_id}`}>
+          {item.linked_card_id}
+        </span>
+      )}
 
       {/* Tags */}
       {item.tags && item.tags.length > 0 && (
@@ -75,12 +84,17 @@ export function InboxItemCard({ item, onDelete, deleting }: InboxItemProps) {
         </span>
       )}
 
+      {/* Actions (link, dismiss) */}
+      {onUpdated && (
+        <InboxItemActions item={item} onUpdated={onUpdated} />
+      )}
+
       {/* Download button */}
       {hasFile && (
         <a
           href={`/api/inbox/${item.id}/download`}
           className="shrink-0 text-terminal-fg-tertiary hover:text-user-accent transition-colors opacity-0 group-hover:opacity-100"
-          title={`Download (${formatFileSize(item.fileSize!)})`}
+          title={`Download (${formatFileSize(item.file_size!)})`}
         >
           dl
         </a>
