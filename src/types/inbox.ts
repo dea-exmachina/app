@@ -48,7 +48,7 @@ export interface InboxUpdateRequest {
   status?: InboxItemStatus
   priority?: InboxItemPriority
   project_id?: string
-  linked_card_id?: string
+  linked_card_id?: string | null
   assigned_to?: string
   tags?: string[]
   file_path?: string

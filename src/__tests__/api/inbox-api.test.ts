@@ -28,7 +28,7 @@ describe('GET /api/inbox', () => {
       order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
     } as never)
 
-    const response = await GET()
+    const response = await GET(new NextRequest('http://localhost/api/inbox'))
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -45,7 +45,7 @@ describe('GET /api/inbox', () => {
       order: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB down' } }),
     } as never)
 
-    const response = await GET()
+    const response = await GET(new NextRequest('http://localhost/api/inbox'))
     const body = await response.json()
 
     expect(response.status).toBe(500)
@@ -59,7 +59,7 @@ describe('GET /api/inbox', () => {
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as never)
 
-    const response = await GET()
+    const response = await GET(new NextRequest('http://localhost/api/inbox'))
     const body = await response.json()
 
     expect(response.status).toBe(200)

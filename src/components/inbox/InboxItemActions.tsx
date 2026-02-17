@@ -40,7 +40,7 @@ export function InboxItemActions({ item, onUpdated }: InboxItemActionsProps) {
 
   const handleLink = async (cardId: string) => {
     try {
-      await updateInboxItem(item.filename, { linkedCardId: cardId })
+      await updateInboxItem(item.filename, { linked_card_id: cardId })
       setShowSearch(false)
       setShowActions(false)
       onUpdated()
@@ -61,7 +61,7 @@ export function InboxItemActions({ item, onUpdated }: InboxItemActionsProps) {
 
   const handleUnlink = async () => {
     try {
-      await updateInboxItem(item.filename, { linkedCardId: null })
+      await updateInboxItem(item.filename, { linked_card_id: null })
       setShowActions(false)
       onUpdated()
     } catch {
@@ -84,7 +84,7 @@ export function InboxItemActions({ item, onUpdated }: InboxItemActionsProps) {
   return (
     <div className="flex items-center gap-1 shrink-0">
       {/* Link to card */}
-      {!item.linkedCardId && (
+      {!item.linked_card_id && (
         <button
           onClick={() => { setShowSearch(!showSearch); setTimeout(() => searchRef.current?.focus(), 50) }}
           className="text-[9px] font-mono px-1 py-0 border border-terminal-border rounded text-terminal-fg-secondary hover:border-user-accent transition-colors"
@@ -95,7 +95,7 @@ export function InboxItemActions({ item, onUpdated }: InboxItemActionsProps) {
       )}
 
       {/* Unlink */}
-      {item.linkedCardId && (
+      {item.linked_card_id && (
         <button
           onClick={handleUnlink}
           className="text-[9px] font-mono px-1 py-0 border border-terminal-border rounded text-terminal-fg-secondary hover:border-amber-400 transition-colors"
