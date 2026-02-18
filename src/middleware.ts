@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { verifySessionToken } from '@/lib/server/auth'
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/webhooks', '/research/reports']
 
@@ -25,11 +26,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check auth cookie
-  const authToken = request.cookies.get('dea-auth')?.value
-  const expectedToken = process.env.AUTH_SECRET
+  // Verify HMAC session token — stateless, works across serverless instances
+  const sessionToken = request.cookies.get('dea-auth')?.value
+  const authSecret = process.env.AUTH_SECRET
 
-  if (!expectedToken || authToken !== expectedToken) {
+  if (!authSecret || !sessionToken || !verifySessionToken(sessionToken, authSecret)) {
     const loginUrl = new URL('/login', request.url)
     return NextResponse.redirect(loginUrl)
   }
