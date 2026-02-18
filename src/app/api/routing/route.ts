@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/server/database'
 import type { Database } from '@/types/supabase'
 
-export type TaskTypeRoutingRow =
+type TaskTypeRoutingRow =
   Database['public']['Tables']['task_type_routing']['Row']
 
 export async function GET() {

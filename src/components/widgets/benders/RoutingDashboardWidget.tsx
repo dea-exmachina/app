@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import type { TaskTypeRoutingRow } from '@/app/api/routing/route'
+import { useState, useEffect, Fragment } from 'react'
+import type { Database } from '@/types/supabase'
+
+type TaskTypeRoutingRow = Database['public']['Tables']['task_type_routing']['Row']
 
 const STAKES_ORDER = ['low', 'medium', 'high', 'critical'] as const
 type StakesLevel = (typeof STAKES_ORDER)[number]
@@ -180,7 +182,7 @@ export function RoutingDashboardWidget() {
         </thead>
         <tbody>
           {groups.map(({ stakes, rows: groupRows }) => (
-            <>
+            <Fragment key={stakes}>
               {groupRows.map((row, idx) => (
                 <tr
                   key={row.task_type}
@@ -230,7 +232,7 @@ export function RoutingDashboardWidget() {
                   </td>
                 </tr>
               ))}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
