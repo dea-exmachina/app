@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { tables } from '@/lib/server/database'
+import { fetchVaultFile } from '@/lib/server/github'
+import { parseHandoffSection } from '@/lib/server/handoff-parser'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { DashboardSummary } from '@/types/dashboard'
 import type { BoardSummary } from '@/types/kanban'
@@ -21,17 +23,18 @@ export async function GET(): Promise<
   NextResponse<ApiResponse<DashboardSummary> | ApiError>
 > {
   try {
-    // Board stats from NEXUS projects + cards
-    const { data: projects, error: projError } = await tables.nexus_projects
-      .select('id, slug, name')
-      .order('name')
+    // Fetch handoff + board stats in parallel
+    const [handoffMd, { data: projects, error: projError }, { data: cards, error: cardsError }] =
+      await Promise.all([
+        fetchVaultFile('inbox/last-session.md').catch(() => null),
+        tables.nexus_projects.select('id, slug, name').order('name'),
+        tables.nexus_cards.select('project_id, lane, completed_at'),
+      ])
 
     if (projError) throw projError
-
-    const { data: cards, error: cardsError } = await tables.nexus_cards
-      .select('project_id, lane, completed_at')
-
     if (cardsError) throw cardsError
+
+    const handoff = handoffMd ? parseHandoffSection(handoffMd) : null
 
     const allCards = (cards ?? []) as Array<{ project_id: string; lane: string; completed_at: string | null }>
 
@@ -88,7 +91,7 @@ export async function GET(): Promise<
       }))
 
     const summary: DashboardSummary = {
-      handoff: null,
+      handoff,
       boardStats,
       activeBenders,
       skillCount: skillCount ?? 0,

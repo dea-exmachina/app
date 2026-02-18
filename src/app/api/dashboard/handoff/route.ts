@@ -1,25 +1,44 @@
 import { NextResponse } from 'next/server'
+import { fetchVaultFile } from '@/lib/server/github'
+import { parseHandoffSection } from '@/lib/server/handoff-parser'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { HandoffSection } from '@/types/kanban'
 
 /**
- * GET /api/dashboard/handoff — Handoff section
+ * GET /api/dashboard/handoff — Session handoff data
  *
- * Previously from kanban_boards management board JSONB.
- * Now returns 404 — handoff data lives in vault markdown (kanban/management.md),
- * not in NEXUS Supabase. Will be replaced by NEXUS session handoff when available.
+ * Fetches inbox/last-session.md from the vault repo via GitHub API
+ * and parses the ## Handoff section into structured data.
  */
 
 export async function GET(): Promise<
   NextResponse<ApiResponse<HandoffSection> | ApiError>
 > {
-  return NextResponse.json(
-    {
-      error: {
-        code: 'NOT_FOUND',
-        message: 'Handoff section not available — migrated to NEXUS',
-      },
-    },
-    { status: 404 }
-  )
+  try {
+    const markdown = await fetchVaultFile('inbox/last-session.md')
+
+    if (!markdown) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Could not fetch last-session.md from vault' } },
+        { status: 404 }
+      )
+    }
+
+    const handoff = parseHandoffSection(markdown)
+
+    if (!handoff) {
+      return NextResponse.json(
+        { error: { code: 'PARSE_ERROR', message: 'No Handoff section found in last-session.md' } },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ data: handoff, cached: false })
+  } catch (error) {
+    console.error('Error fetching handoff:', error)
+    return NextResponse.json(
+      { error: { code: 'FETCH_ERROR', message: 'Failed to fetch handoff data' } },
+      { status: 500 }
+    )
+  }
 }
