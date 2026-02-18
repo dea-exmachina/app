@@ -2,6 +2,8 @@ import type { PageLayoutConfig } from '@/types/widget'
 import { PlatformOverviewWidget } from '@/components/widgets/benders/PlatformOverviewWidget'
 import { TaskBrowserWidget } from '@/components/widgets/benders/TaskBrowserWidget'
 import { TeamViewWidget } from '@/components/widgets/benders/TeamViewWidget'
+import { RoutingDashboardWidget } from '@/components/widgets/benders/RoutingDashboardWidget'
+import { ModelComparisonWidget } from '@/components/widgets/benders/ModelComparisonWidget'
 
 export const bendersConfig: PageLayoutConfig = {
   pageId: 'benders',
@@ -24,22 +26,40 @@ export const bendersConfig: PageLayoutConfig = {
       component: TeamViewWidget,
       defaultSize: { w: 4, h: 5, minW: 3, minH: 3 },
     },
+    {
+      id: 'routing-dashboard',
+      title: 'Routing Dashboard',
+      component: RoutingDashboardWidget,
+      defaultSize: { w: 12, h: 5, minH: 3 },
+    },
+    {
+      id: 'model-comparison',
+      title: 'Model Comparison',
+      component: ModelComparisonWidget,
+      defaultSize: { w: 12, h: 6, minH: 4 },
+    },
   ],
   defaultLayouts: {
     lg: [
       { i: 'platform-overview', x: 0, y: 0, w: 12, h: 4, minH: 3 },
       { i: 'task-browser', x: 0, y: 4, w: 8, h: 5, minW: 4, minH: 3 },
       { i: 'team-view', x: 8, y: 4, w: 4, h: 5, minW: 3, minH: 3 },
+      { i: 'routing-dashboard', x: 0, y: 9, w: 12, h: 5, minH: 3 },
+      { i: 'model-comparison', x: 0, y: 14, w: 12, h: 6, minH: 4 },
     ],
     md: [
       { i: 'platform-overview', x: 0, y: 0, w: 8, h: 4, minH: 3 },
       { i: 'task-browser', x: 0, y: 4, w: 8, h: 5, minW: 4, minH: 3 },
       { i: 'team-view', x: 0, y: 9, w: 8, h: 5, minW: 3, minH: 3 },
+      { i: 'routing-dashboard', x: 0, y: 14, w: 8, h: 5, minH: 3 },
+      { i: 'model-comparison', x: 0, y: 19, w: 8, h: 6, minH: 4 },
     ],
     sm: [
       { i: 'platform-overview', x: 0, y: 0, w: 4, h: 5, minH: 3 },
       { i: 'task-browser', x: 0, y: 5, w: 4, h: 6, minW: 4, minH: 3 },
       { i: 'team-view', x: 0, y: 11, w: 4, h: 6, minW: 3, minH: 3 },
+      { i: 'routing-dashboard', x: 0, y: 17, w: 4, h: 5, minH: 3 },
+      { i: 'model-comparison', x: 0, y: 22, w: 4, h: 7, minH: 4 },
     ],
   },
 }
