@@ -14,6 +14,7 @@ import {
   Bot,
   Inbox,
   MessageCircle,
+  Search,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: '/benders', label: 'Benders', icon: Bot },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
+  { href: '/research', label: 'Research', icon: Search },
 ]
 
 export function MobileSidebar() {
