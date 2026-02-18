@@ -18,8 +18,10 @@ export async function GET(): Promise<
     // Map database columns to Workflow interface
     // Handle both old schema (slug, markdown_path) and new schema (name, file_path)
     const workflows: Workflow[] = (data ?? [])
-      .filter((row) => row.status === 'active' || row.status === null)
-      .map((row) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((row: any) => row.status === 'active' || row.status === null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((row: any) => {
         const record = row as Record<string, unknown>
         return {
           name: (record.name as string) ?? row.slug,

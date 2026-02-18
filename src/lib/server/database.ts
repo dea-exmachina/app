@@ -63,11 +63,10 @@ export const tables = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get bender_team_members() { return (db as any).from('bender_team_members') as ReturnType<typeof db.from> },
   get bender_tasks() { return db.from('bender_tasks') },
-  get kanban_boards() { return db.from('kanban_boards') },
-  get kanban_cards() { return db.from('kanban_cards') },
-  get workflows() { return db.from('workflows') },
-  get user_learnings() { return db.from('user_learnings') },
-  get messages() { return db.from('messages') },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get workflows() { return (db as any).from('workflows') as ReturnType<typeof db.from> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get messages() { return (db as any).from('messages') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get skills() { return (db as any).from('skills') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
