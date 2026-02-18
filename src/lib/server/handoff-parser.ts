@@ -21,13 +21,18 @@
 import type { HandoffSection } from '@/types/kanban'
 
 export function parseHandoffSection(markdown: string): HandoffSection | null {
-  // Extract ## Handoff section (everything between ## Handoff and next ## or end)
-  const handoffMatch = markdown.match(
-    /^## Handoff\s*\n([\s\S]*?)(?=\n## [^#]|\n---\s*$|$)/m
-  )
-  if (!handoffMatch) return null
+  // Extract ## Handoff section using indexOf (more reliable than regex with multiline)
+  const handoffIdx = markdown.indexOf('\n## Handoff')
+  if (handoffIdx === -1 && !markdown.startsWith('## Handoff')) return null
 
-  const section = handoffMatch[1]
+  const start = handoffIdx === -1 ? 0 : handoffIdx + 1
+  const afterHeader = markdown.substring(start + '## Handoff'.length).trimStart()
+
+  // Find end: next ## heading or --- separator
+  const endMatch = afterHeader.match(/\n## [^#]|\n---\s*(?:\n|$)/)
+  const section = endMatch
+    ? afterHeader.substring(0, endMatch.index!)
+    : afterHeader
 
   // Parse **Updated**: value
   const updated =
@@ -71,11 +76,13 @@ export function parseHandoffSection(markdown: string): HandoffSection | null {
 }
 
 function extractSubsection(section: string, heading: string): string | null {
-  const re = new RegExp(
-    `### ${heading}\\s*\\n([\\s\\S]*?)(?=\\n### |$)`,
-    'm'
-  )
-  return re.exec(section)?.[1] ?? null
+  const marker = `### ${heading}`
+  const idx = section.indexOf(marker)
+  if (idx === -1) return null
+
+  const afterHeader = section.substring(idx + marker.length).replace(/^\s*\n/, '')
+  const nextHeading = afterHeader.indexOf('\n### ')
+  return nextHeading === -1 ? afterHeader : afterHeader.substring(0, nextHeading)
 }
 
 function parseListAfterHeading(section: string, heading: string): string[] {
