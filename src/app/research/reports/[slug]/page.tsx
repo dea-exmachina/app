@@ -8,17 +8,10 @@
 
 import type React from 'react'
 import { tables } from '@/lib/server/database'
-import type { ResearchReport, ReportSection, ReportSource, ReportSentiment } from '@/types/research'
+import type { ResearchReport, ReportSection, ReportSource, ReportSentiment, RichFinding, KeyFinding, FindingSignificance } from '@/types/research'
+import { ReportChart } from '@/components/research/ReportChart'
 
-// ─── Rich finding type from Claude synthesis ─────────────────────────────────
-
-interface RichFinding {
-  finding: string
-  significance: 'high' | 'medium' | 'low'
-  sources?: string[]
-}
-
-type KeyFinding = string | RichFinding
+// ─── Rich finding type helper ─────────────────────────────────────────────────
 
 function isRichFinding(f: KeyFinding): f is RichFinding {
   return typeof f === 'object' && f !== null && 'finding' in f
@@ -86,22 +79,49 @@ function MetaTag({ label, value }: { label: string; value: React.ReactNode }): R
   )
 }
 
-function SignificanceBadge({
-  significance,
-}: {
-  significance: 'high' | 'medium' | 'low'
-}): React.ReactElement {
-  const styles: Record<'high' | 'medium' | 'low', string> = {
+function SignificanceBadge({ significance }: { significance: string }): React.ReactElement {
+  const norm = significance?.toUpperCase() as FindingSignificance
+  const styles: Record<string, string> = {
+    CRITICAL: 'text-status-error border-status-error bg-status-error/10',
+    HIGH: 'text-status-error border-status-error/30',
+    MEDIUM: 'text-status-warn border-status-warn/30',
+    LOW: 'text-status-ok border-status-ok/30',
+    // backward compat
     high: 'text-status-error border-status-error/30',
     medium: 'text-status-warn border-status-warn/30',
     low: 'text-status-ok border-status-ok/30',
   }
   return (
-    <span
-      className={`shrink-0 rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${styles[significance]}`}
-    >
-      {significance}
+    <span className={`shrink-0 rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${styles[significance] ?? styles[norm] ?? ''}`}>
+      {norm}
     </span>
+  )
+}
+
+function NewBadge(): React.ReactElement {
+  return <span className="shrink-0 rounded-sm border border-user-accent/40 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-user-accent">NEW</span>
+}
+
+function ImplicationBlock({ implication }: { implication: string }): React.ReactElement {
+  return (
+    <div className="mt-2 border-l-2 border-status-warn/40 pl-3">
+      <p className="font-mono text-[10px] text-terminal-fg-tertiary uppercase tracking-wider mb-0.5">Action</p>
+      <p className="font-mono text-[11px] text-terminal-fg-secondary leading-relaxed">{implication}</p>
+    </div>
+  )
+}
+
+function DeltaBanner({ deltaSummary, newCount }: { deltaSummary: string; newCount?: number | null }): React.ReactElement {
+  return (
+    <div className="mb-6 border border-status-warn/30 bg-status-warn/5 px-4 py-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-status-warn">Delta</span>
+        {newCount != null && newCount > 0 && (
+          <span className="font-mono text-[10px] text-terminal-fg-tertiary">· {newCount} new finding{newCount !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+      <p className="font-mono text-[11px] text-terminal-fg-secondary leading-relaxed">{deltaSummary}</p>
+    </div>
   )
 }
 
@@ -183,12 +203,11 @@ function ReportSectionBlock({
         ))}
       </div>
 
-      {/* Phase 2 chart placeholder */}
       {section.charts && section.charts.length > 0 && (
-        <div className="mt-6 border border-dashed border-terminal-border rounded-sm px-4 py-3">
-          <p className="font-mono text-[11px] text-terminal-fg-tertiary text-center uppercase tracking-wider">
-            Charts — coming in Phase 2
-          </p>
+        <div className="mt-6 space-y-4">
+          {section.charts.map((chart, ci) => (
+            <ReportChart key={ci} chart={chart} />
+          ))}
         </div>
       )}
 
@@ -350,6 +369,11 @@ export default async function ReportPage({
           </div>
         </header>
 
+        {/* ── Delta Banner ─────────────────────────────────────────────── */}
+        {typed.delta_summary && (
+          <DeltaBanner deltaSummary={typed.delta_summary} newCount={typed.new_findings_count} />
+        )}
+
         {/* ── Executive Summary ────────────────────────────────────────── */}
         {typed.executive_summary && (
           <>
@@ -394,10 +418,14 @@ export default async function ReportPage({
                               <p className="font-mono text-[12px] leading-relaxed text-terminal-fg-secondary">
                                 {text}
                               </p>
-                              {significance && (
-                                <SignificanceBadge significance={significance} />
-                              )}
+                              <div className="flex items-center gap-1 shrink-0">
+                                {rich && finding.is_new && <NewBadge />}
+                                {significance && <SignificanceBadge significance={significance} />}
+                              </div>
                             </div>
+                            {rich && finding.implication && (significance === 'CRITICAL' || significance === 'HIGH' || significance?.toUpperCase() === 'CRITICAL' || significance?.toUpperCase() === 'HIGH') && (
+                              <ImplicationBlock implication={finding.implication} />
+                            )}
                             {findingSources.length > 0 && (
                               <ul className="space-y-0.5 pl-1">
                                 {findingSources.map((src, j) => (

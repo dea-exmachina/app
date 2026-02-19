@@ -80,6 +80,18 @@ export interface ResearchSubscriptionUpdate {
 export type ReportStatus = 'generating' | 'ready' | 'failed' | 'archived'
 export type EmailStatus = 'pending' | 'sent' | 'failed' | 'skipped'
 
+export type FindingSignificance = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+
+export interface RichFinding {
+  finding: string
+  significance: FindingSignificance
+  sources?: string[]
+  is_new?: boolean
+  implication?: string  // Required for CRITICAL/HIGH
+}
+
+export type KeyFinding = string | RichFinding
+
 export interface ReportSource {
   title: string
   url: string
@@ -89,6 +101,7 @@ export interface ReportChart {
   type: 'line' | 'bar' | 'area' | 'radar'
   title: string
   data: Record<string, unknown>[]
+  description?: string
 }
 
 export interface ReportSection {
@@ -131,6 +144,9 @@ export interface ResearchReport {
   email_status: EmailStatus
   created_at: string
   updated_at: string
+  previous_report_id?: string | null
+  delta_summary?: string | null
+  new_findings_count?: number | null
 }
 
 // --- API Request/Response ---
