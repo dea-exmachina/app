@@ -97,6 +97,9 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url)
     const projectFilter = searchParams.get('project')
+    // Date filter applies only to the Done lane (filter by completed_at)
+    const doneAfter = searchParams.get('done_after')
+    const doneBefore = searchParams.get('done_before')
 
     // Fetch all projects for slug lookup
     const { data: projects, error: projError } = await tables.nexus_projects
@@ -110,25 +113,39 @@ export async function GET(
         .map(p => [p.id, p.slug])
     )
 
-    // Build card query
-    let query = tables.nexus_cards
+    // Build base card query (active lanes — no date filter)
+    let activeQuery = tables.nexus_cards
       .select('*')
+      .in('lane', ['backlog', 'ready', 'in_progress', 'review'])
       .order('created_at', { ascending: true })
+
+    // Build done lane query with optional date filter on completed_at
+    let doneQuery = tables.nexus_cards
+      .select('*')
+      .eq('lane', 'done')
+      .order('completed_at', { ascending: true })
+
+    if (doneAfter) doneQuery = doneQuery.gte('completed_at', doneAfter)
+    if (doneBefore) doneQuery = doneQuery.lte('completed_at', doneBefore)
 
     // Filter by project slug if provided
     if (projectFilter) {
       const matchedProject = ((projects ?? []) as Array<{ id: string; slug: string }>)
         .find(p => p.slug === projectFilter)
       if (matchedProject) {
-        query = query.eq('project_id', matchedProject.id)
+        activeQuery = activeQuery.eq('project_id', matchedProject.id)
+        doneQuery = doneQuery.eq('project_id', matchedProject.id)
       }
     }
 
-    const { data: cards, error: cardsError } = await query
+    const [activeResult, doneResult] = await Promise.all([activeQuery, doneQuery])
 
-    if (cardsError) throw cardsError
+    if (activeResult.error) throw activeResult.error
+    if (doneResult.error) throw doneResult.error
 
-    const allCards = (cards ?? []) as NexusCardRow[]
+    const activeCards = (activeResult.data ?? []) as NexusCardRow[]
+    const doneCards = (doneResult.data ?? []) as NexusCardRow[]
+    const allCards = [...activeCards, ...doneCards]
 
     // Group cards into lanes
     const lanes: KanbanLane[] = STANDARD_LANES.map(lane => ({

@@ -41,9 +41,12 @@ export function UnifiedBoardView() {
     setLoading(true)
     setError(null)
     try {
-      const url = projectFilter
-        ? `/api/kanban/unified?project=${encodeURIComponent(projectFilter)}`
-        : '/api/kanban/unified'
+      const params = new URLSearchParams()
+      if (projectFilter) params.set('project', projectFilter)
+      if (dateFilter.start) params.set('done_after', dateFilter.start.toISOString())
+      if (dateFilter.end) params.set('done_before', dateFilter.end.toISOString())
+      const query = params.toString()
+      const url = query ? `/api/kanban/unified?${query}` : '/api/kanban/unified'
       const res = await fetch(url)
       const json = await res.json()
       if (json.error) throw new Error(json.error.message)
@@ -53,7 +56,7 @@ export function UnifiedBoardView() {
     } finally {
       setLoading(false)
     }
-  }, [projectFilter])
+  }, [projectFilter, dateFilter])
 
   useEffect(() => {
     fetchBoard()
