@@ -41,6 +41,7 @@ interface NexusCardRow {
   created_at: string
   updated_at: string
   parent_id: string | null
+  parent: { card_id: string } | { card_id: string }[] | null
   ready_for_production: boolean
   project_id: string
 }
@@ -74,6 +75,11 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
     description = `${prefix}Subtasks (${done}/${row.subtasks.length}):\n${subtaskLines}`
   }
 
+  // Extract parent card_id from the join
+  const parentCardId = Array.isArray(row.parent)
+    ? row.parent[0]?.card_id ?? null
+    : row.parent?.card_id ?? null
+
   return {
     id: row.card_id,
     title: row.title,
@@ -88,6 +94,7 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
     readyForProduction: row.ready_for_production ?? false,
+    parentCardId,
   }
 }
 
@@ -110,9 +117,9 @@ export async function GET(
         .map(p => [p.id, p.slug])
     )
 
-    // Build card query
+    // Build card query with parent card_id join
     let query = tables.nexus_cards
-      .select('*')
+      .select('*, parent:parent_id(card_id)')
       .order('created_at', { ascending: true })
 
     // Filter by project slug if provided

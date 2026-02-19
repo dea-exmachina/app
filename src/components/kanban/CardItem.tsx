@@ -128,6 +128,13 @@ export function CardItem({
         <StatusDot status={statusToType(status)} size={5} />
       </div>
 
+      {/* Epic tag (if parent exists) */}
+      {card.parentCardId && (
+        <div className="font-mono text-[9px] text-terminal-fg-tertiary mb-0.5">
+          ↑ {card.parentCardId}
+        </div>
+      )}
+
       {/* Line 2: Title */}
       <div
         className={`font-mono text-[11px] leading-tight truncate ${
