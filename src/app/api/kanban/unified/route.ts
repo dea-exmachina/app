@@ -56,6 +56,7 @@ interface NexusCardRow {
   created_at: string
   updated_at: string
   parent_id: string | null
+  parent: { card_id: string } | { card_id: string }[] | null
   ready_for_production: boolean
   project_id: string
 }
@@ -89,6 +90,11 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
     description = `${prefix}Subtasks (${done}/${row.subtasks.length}):\n${subtaskLines}`
   }
 
+  // Extract parent card_id from the join
+  const parentCardId = Array.isArray(row.parent)
+    ? row.parent[0]?.card_id ?? null
+    : row.parent?.card_id ?? null
+
   return {
     id: row.card_id,
     title: row.title,
@@ -103,6 +109,7 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
     readyForProduction: row.ready_for_production ?? false,
+    parentCardId,
   }
 }
 
@@ -133,16 +140,16 @@ export async function GET(
 
     const projectMap = new Map(includedProjects.map(p => [p.id, p.slug]))
 
-    // Build base card query (active lanes — no date filter)
+    // Build base card query (active lanes — no date filter) with parent join
     let activeQuery = tables.nexus_cards
-      .select('*')
+      .select('*, parent:parent_id(card_id)')
       .in('lane', ['backlog', 'ready', 'in_progress', 'review'])
       .in('project_id', includedProjectIds)
       .order('created_at', { ascending: true })
 
-    // Build done lane query with optional date filter on completed_at
+    // Build done lane query with optional date filter on completed_at + parent join
     let doneQuery = tables.nexus_cards
-      .select('*')
+      .select('*, parent:parent_id(card_id)')
       .eq('lane', 'done')
       .in('project_id', includedProjectIds)
       .order('completed_at', { ascending: true })
