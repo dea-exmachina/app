@@ -7,7 +7,7 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Columns3,
+  Layers,
   FolderOpen,
   Zap,
   Workflow,
@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/kanban', label: 'Kanban', icon: Columns3 },
+  { href: '/kanban/unified', label: 'Kanban', icon: Layers },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/skills', label: 'Skills', icon: Zap },
   { href: '/workflows', label: 'Workflows', icon: Workflow },

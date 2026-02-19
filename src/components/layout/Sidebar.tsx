@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
-  Columns3,
   Layers,
   FolderOpen,
   PenTool,
@@ -25,7 +24,6 @@ import { ThemeToggle } from './ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/kanban', label: 'Kanban', icon: Columns3 },
   { href: '/kanban/unified', label: 'Unified Board', icon: Layers },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/canvas', label: 'Canvas', icon: PenTool },
