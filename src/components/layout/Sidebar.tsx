@@ -24,7 +24,7 @@ import { ThemeToggle } from './ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/kanban/unified', label: 'Unified Board', icon: Layers },
+  { href: '/kanban/unified', label: 'Kanban', icon: Layers },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/canvas', label: 'Canvas', icon: PenTool },
   { href: '/skills', label: 'Skills', icon: Zap },
