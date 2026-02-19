@@ -30,6 +30,7 @@
     "react-dom": "19.2.3",
     "react-grid-layout": "^2.2.2",
     "reactflow": "^11.11.4",
+    "recharts": "^2.15.4",
     "remark": "^15.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-html": "^16.0.1",
