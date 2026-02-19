@@ -1,0 +1,46 @@
+#!/bin/sh
+# pre-commit: Enforce George's identity for Vercel compatibility
+#
+# Vercel hobby tier only deploys commits from registered team members.
+# ALL commits to control-center must be authored by george.a.ata@gmail.com.
+# Bender identity belongs in Co-Authored-By trailers only.
+#
+# To activate: git config core.hooksPath .githooks
+
+REQUIRED_EMAIL="george.a.ata@gmail.com"
+
+# Check committer identity (git config user.email)
+COMMITTER_EMAIL=$(git config user.email)
+if [ "$COMMITTER_EMAIL" != "$REQUIRED_EMAIL" ]; then
+  echo ""
+  echo "❌ COMMIT BLOCKED: Vercel identity enforcement"
+  echo ""
+  echo "   Committer email: $COMMITTER_EMAIL"
+  echo "   Required:        $REQUIRED_EMAIL"
+  echo ""
+  echo "   Fix:"
+  echo "   git config user.name \"George\""
+  echo "   git config user.email \"george.a.ata@gmail.com\""
+  echo ""
+  echo "   Then re-commit with:"
+  echo "   git commit --author=\"George <george.a.ata@gmail.com>\" -m \"...\""
+  echo ""
+  exit 1
+fi
+
+# Check author (GIT_AUTHOR_EMAIL env or fallback to committer)
+AUTHOR_EMAIL="${GIT_AUTHOR_EMAIL:-$COMMITTER_EMAIL}"
+if [ "$AUTHOR_EMAIL" != "$REQUIRED_EMAIL" ]; then
+  echo ""
+  echo "❌ COMMIT BLOCKED: Author identity mismatch"
+  echo ""
+  echo "   Author email: $AUTHOR_EMAIL"
+  echo "   Required:     $REQUIRED_EMAIL"
+  echo ""
+  echo "   Add --author flag to your commit:"
+  echo "   git commit --author=\"George <george.a.ata@gmail.com>\" -m \"...\""
+  echo ""
+  exit 1
+fi
+
+exit 0
