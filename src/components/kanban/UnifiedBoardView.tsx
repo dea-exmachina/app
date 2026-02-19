@@ -10,6 +10,17 @@ interface ProjectOption {
   name: string
 }
 
+/**
+ * Content pipeline projects excluded from the kanban board.
+ * The board is scoped to dev/engineering work only.
+ * Must stay in sync with EXCLUDED_PROJECT_SLUGS in /api/kanban/unified/route.ts.
+ */
+const EXCLUDED_PROJECT_SLUGS = new Set([
+  'kerkoporta',
+  'kerkoporta-writing',
+  'job-search',
+])
+
 export function UnifiedBoardView() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -21,16 +32,17 @@ export function UnifiedBoardView() {
   const [error, setError] = useState<string | null>(null)
   const [dateFilter, setDateFilter] = useState<{ start?: Date; end?: Date }>({})
 
-  // Fetch project list for dropdown
+  // Fetch project list for dropdown (exclude content pipeline projects)
   useEffect(() => {
     fetch('/api/kanban/boards')
       .then(res => res.json())
       .then(json => {
         if (json.data) {
-          setProjects(json.data.map((b: { id: string; name: string }) => ({
-            id: b.id,
-            name: b.name,
-          })))
+          setProjects(
+            (json.data as Array<{ id: string; name: string }>)
+              .filter((b) => !EXCLUDED_PROJECT_SLUGS.has(b.id))
+              .map((b) => ({ id: b.id, name: b.name }))
+          )
         }
       })
       .catch(() => {})
@@ -41,9 +53,12 @@ export function UnifiedBoardView() {
     setLoading(true)
     setError(null)
     try {
-      const url = projectFilter
-        ? `/api/kanban/unified?project=${encodeURIComponent(projectFilter)}`
-        : '/api/kanban/unified'
+      const params = new URLSearchParams()
+      if (projectFilter) params.set('project', projectFilter)
+      if (dateFilter.start) params.set('done_after', dateFilter.start.toISOString())
+      if (dateFilter.end) params.set('done_before', dateFilter.end.toISOString())
+      const query = params.toString()
+      const url = query ? `/api/kanban/unified?${query}` : '/api/kanban/unified'
       const res = await fetch(url)
       const json = await res.json()
       if (json.error) throw new Error(json.error.message)
@@ -53,7 +68,7 @@ export function UnifiedBoardView() {
     } finally {
       setLoading(false)
     }
-  }, [projectFilter])
+  }, [projectFilter, dateFilter])
 
   useEffect(() => {
     fetchBoard()
