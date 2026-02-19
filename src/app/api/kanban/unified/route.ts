@@ -4,12 +4,27 @@ import type { ApiResponse, ApiError } from '@/types/api'
 import type { KanbanBoard, KanbanCard, KanbanLane } from '@/types/kanban'
 
 /**
- * GET /api/kanban/unified — Unified board showing cards across ALL projects
+ * GET /api/kanban/unified — Unified board scoped to dev/engineering projects
  *
  * Query params:
  *   ?project=<slug>  — filter to a single project (omit for all)
- *   ?view=bender     — show bender lanes instead of standard lanes
+ *   ?done_after=<iso> — filter Done lane by completed_at >= date
+ *   ?done_before=<iso> — filter Done lane by completed_at <= date
+ *
+ * Content pipeline projects are excluded by default (see EXCLUDED_PROJECT_SLUGS).
+ * To add/remove exclusions, update the constant below.
  */
+
+/**
+ * Projects excluded from the unified kanban board.
+ * These are content pipeline projects — not dev/engineering work.
+ * Add slugs here to exclude additional projects from the board view.
+ */
+const EXCLUDED_PROJECT_SLUGS: readonly string[] = [
+  'kerkoporta',
+  'kerkoporta-writing',
+  'job-search',
+]
 
 const STANDARD_LANES = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const
 const LANE_LABELS: Record<string, string> = {
@@ -108,30 +123,36 @@ export async function GET(
 
     if (projError) throw projError
 
-    const projectMap = new Map(
-      ((projects ?? []) as Array<{ id: string; slug: string; name: string }>)
-        .map(p => [p.id, p.slug])
+    const allProjects = (projects ?? []) as Array<{ id: string; slug: string; name: string }>
+
+    // Exclude content pipeline projects from the board
+    const includedProjects = allProjects.filter(
+      p => !EXCLUDED_PROJECT_SLUGS.includes(p.slug)
     )
+    const includedProjectIds = includedProjects.map(p => p.id)
+
+    const projectMap = new Map(includedProjects.map(p => [p.id, p.slug]))
 
     // Build base card query (active lanes — no date filter)
     let activeQuery = tables.nexus_cards
       .select('*')
       .in('lane', ['backlog', 'ready', 'in_progress', 'review'])
+      .in('project_id', includedProjectIds)
       .order('created_at', { ascending: true })
 
     // Build done lane query with optional date filter on completed_at
     let doneQuery = tables.nexus_cards
       .select('*')
       .eq('lane', 'done')
+      .in('project_id', includedProjectIds)
       .order('completed_at', { ascending: true })
 
     if (doneAfter) doneQuery = doneQuery.gte('completed_at', doneAfter)
     if (doneBefore) doneQuery = doneQuery.lte('completed_at', doneBefore)
 
-    // Filter by project slug if provided
+    // Filter by project slug if provided (must be an included project)
     if (projectFilter) {
-      const matchedProject = ((projects ?? []) as Array<{ id: string; slug: string }>)
-        .find(p => p.slug === projectFilter)
+      const matchedProject = includedProjects.find(p => p.slug === projectFilter)
       if (matchedProject) {
         activeQuery = activeQuery.eq('project_id', matchedProject.id)
         doneQuery = doneQuery.eq('project_id', matchedProject.id)
