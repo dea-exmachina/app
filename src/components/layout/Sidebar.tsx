@@ -16,7 +16,6 @@ import {
   Network,
   Search,
   Settings,
-  Clock,
   Calendar,
 } from 'lucide-react'
 import { useAgentHealth } from '@/hooks/useAgentHealth'
@@ -27,7 +26,6 @@ import { ThemeToggle } from './ThemeToggle'
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kanban/unified', label: 'Kanban', icon: Layers },
-  { href: '/kanban/history', label: 'History', icon: Clock },
   { href: '/kanban/sprints', label: 'Sprints', icon: Calendar },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/canvas', label: 'Canvas', icon: PenTool },
