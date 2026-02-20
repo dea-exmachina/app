@@ -1,7 +1,7 @@
 import { useCallback, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag } from 'lucide-react'
+import { Flag, Crown } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -54,6 +54,7 @@ export function CardItem({
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
+  const isNexusFirst = /^(DEA|NEXUS)-/.test(card.id)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
@@ -103,11 +104,14 @@ export function CardItem({
           : 'border-terminal-border bg-terminal-bg-surface hover:border-terminal-border-strong'
       } ${card.completed ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
-      {/* Line 1: ID + unresolved badge + tags + status dot */}
+      {/* Line 1: ID + crown + unresolved badge + tags + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="font-mono text-[10px] font-semibold text-user-accent shrink-0">
           {card.id}
         </span>
+        {isNexusFirst && (
+          <Crown className="h-3 w-3 text-user-accent/60 shrink-0" />
+        )}
         {unresolvedCount != null && unresolvedCount > 0 && (
           <span className={`font-mono text-[9px] px-1 rounded-sm shrink-0 ${
             hasQuestions
