@@ -21,6 +21,7 @@ import { BoardStats } from './BoardStats'
 import { CardDetailPanel } from './CardDetailPanel'
 import { CardItem } from './CardItem'
 import { CardContextMenu, type ContextMenuAction } from './CardContextMenu'
+import { BacklogPanel } from './BacklogPanel'
 
 /** Map display lane names back to DB lane values for NEXUS persistence */
 const LANE_TO_DB: Record<string, string> = {
@@ -92,22 +93,59 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
     return map
   }, [lanes])
 
-  // Derive sorted lanes for display
+  // Derive sorted lanes for display (filter out Backlog)
   const displayLanes = useMemo(() => {
-    return lanes.map((lane) => {
-      const sortedCards = [...lane.cards].sort((a, b) => {
-        const getDate = (card: KanbanCard, field: 'startedAt' | 'completedAt') => {
-          const val = card[field]
-          return val ? new Date(val).getTime() : 0
-        }
-        const timeA = getDate(a, sortConfig.field)
-        const timeB = getDate(b, sortConfig.field)
-        if (timeA === timeB) return a.id.localeCompare(b.id)
-        return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA
+    return lanes
+      .filter(lane => lane.name !== 'Backlog')
+      .map((lane) => {
+        const sortedCards = [...lane.cards].sort((a, b) => {
+          const getDate = (card: KanbanCard, field: 'startedAt' | 'completedAt') => {
+            const val = card[field]
+            return val ? new Date(val).getTime() : 0
+          }
+          const timeA = getDate(a, sortConfig.field)
+          const timeB = getDate(b, sortConfig.field)
+          if (timeA === timeB) return a.id.localeCompare(b.id)
+          return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA
+        })
+        return { ...lane, cards: sortedCards }
       })
-      return { ...lane, cards: sortedCards }
-    })
   }, [lanes, sortConfig])
+
+  // Extract backlog cards
+  const backlogCards = useMemo(() => {
+    const bl = lanes.find(l => l.name === 'Backlog')
+    return bl?.cards ?? []
+  }, [lanes])
+
+  const handlePromoteCard = useCallback((cardId: string) => {
+    setLanes(prev => prev.map(lane => {
+      if (lane.name === 'Backlog') {
+        return { ...lane, cards: lane.cards.filter(c => c.id !== cardId) }
+      }
+      if (lane.name === 'Ready') {
+        const card = prev.find(l => l.name === 'Backlog')?.cards.find(c => c.id === cardId)
+        return card ? { ...lane, cards: [...lane.cards, card] } : lane
+      }
+      return lane
+    }))
+  }, [])
+
+  const handleBulkPromote = useCallback((cardIds: string[]) => {
+    const idSet = new Set(cardIds)
+    setLanes(prev => {
+      const toPromote = prev.find(l => l.name === 'Backlog')?.cards.filter(c => idSet.has(c.id)) ?? []
+      return prev.map(lane => {
+        if (lane.name === 'Backlog') {
+          return { ...lane, cards: lane.cards.filter(c => !idSet.has(c.id)) }
+        }
+        if (lane.name === 'Ready') {
+          return { ...lane, cards: [...lane.cards, ...toPromote] }
+        }
+        return lane
+      })
+    })
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -471,6 +509,13 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Backlog Triage Panel */}
+      <BacklogPanel
+        cards={backlogCards}
+        onPromote={handlePromoteCard}
+        onBulkPromote={handleBulkPromote}
+      />
 
       {/* Card Detail Panel */}
       {selectedCard && (
