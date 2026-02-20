@@ -9,6 +9,7 @@ import { DelegationRatioWidget } from '@/components/widgets/dashboard/Delegation
 import { ReleaseQueueWidget } from '@/components/widgets/dashboard/ReleaseQueueWidget'
 import { AlertsWidget } from '@/components/widgets/dashboard/AlertsWidget'
 import { XPostWidget } from '@/components/widgets/dashboard/XPostWidget'
+import { SprintProgressWidget } from '@/components/widgets/dashboard/SprintProgressWidget'
 
 export const dashboardConfig: PageLayoutConfig = {
   pageId: 'dashboard',
@@ -73,6 +74,12 @@ export const dashboardConfig: PageLayoutConfig = {
       component: XPostWidget,
       defaultSize: { w: 4, h: 5, minW: 3, minH: 4 },
     },
+    {
+      id: 'sprint-progress',
+      title: 'Sprint Progress',
+      component: SprintProgressWidget,
+      defaultSize: { w: 4, h: 3, minW: 3, minH: 2 },
+    },
   ],
   defaultLayouts: {
     lg: [
@@ -86,6 +93,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'delegation-ratio', x: 8, y: 8, w: 4, h: 3, minH: 2 },
       { i: 'alerts', x: 0, y: 13, w: 4, h: 4, minW: 3, minH: 3 },
       { i: 'x-post', x: 4, y: 13, w: 4, h: 5, minW: 3, minH: 4 },
+      { i: 'sprint-progress', x: 8, y: 13, w: 4, h: 3, minW: 3, minH: 2 },
     ],
     md: [
       { i: 'ticker', x: 0, y: 0, w: 8, h: 1, minH: 1, maxH: 2 },
@@ -98,6 +106,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'delegation-ratio', x: 0, y: 23, w: 8, h: 3, minH: 2 },
       { i: 'alerts', x: 0, y: 26, w: 8, h: 4, minW: 3, minH: 3 },
       { i: 'x-post', x: 0, y: 30, w: 8, h: 5, minW: 3, minH: 4 },
+      { i: 'sprint-progress', x: 0, y: 35, w: 8, h: 3, minW: 3, minH: 2 },
     ],
     sm: [
       { i: 'ticker', x: 0, y: 0, w: 4, h: 2, minH: 1 },
@@ -110,6 +119,7 @@ export const dashboardConfig: PageLayoutConfig = {
       { i: 'delegation-ratio', x: 0, y: 28, w: 4, h: 4, minH: 2 },
       { i: 'alerts', x: 0, y: 32, w: 4, h: 4, minW: 3, minH: 3 },
       { i: 'x-post', x: 0, y: 36, w: 4, h: 5, minW: 3, minH: 4 },
+      { i: 'sprint-progress', x: 0, y: 41, w: 4, h: 3, minW: 3, minH: 2 },
     ],
   },
 }
