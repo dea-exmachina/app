@@ -105,6 +105,7 @@ export async function PATCH(
     if (body.frequency !== undefined) updateData.frequency = body.frequency
     if (body.schedule_day !== undefined) updateData.schedule_day = body.schedule_day
     if (body.schedule_hour !== undefined) updateData.schedule_hour = body.schedule_hour
+    if (body.reference_date !== undefined) updateData.reference_date = body.reference_date
     if (body.next_run_at !== undefined) updateData.next_run_at = body.next_run_at
     if (body.recipients !== undefined) updateData.recipients = body.recipients
     if (body.branding !== undefined) updateData.branding = body.branding

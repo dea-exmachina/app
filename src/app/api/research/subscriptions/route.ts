@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
         recipients: body.recipients ?? [],
         branding: body.branding ?? {},
         status: body.status ?? 'active',
+        ...(body.reference_date !== undefined ? { reference_date: body.reference_date } : {}),
       })
       .select('*')
       .single()
