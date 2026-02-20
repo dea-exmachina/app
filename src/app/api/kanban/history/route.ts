@@ -5,12 +5,25 @@ import type { KanbanCard } from '@/types/kanban'
 
 const EXCLUDED = ['kerkoporta', 'kerkoporta-writing', 'job-search']
 
+/**
+ * GET /api/kanban/history
+ *
+ * Query params:
+ *   ?q=keyword       — full-text search across card_id and title (DB-level ilike)
+ *   ?project=slug    — filter by project slug
+ *   ?lane=done       — filter by lane (defaults to 'done')
+ *   ?type=task       — filter by card_type
+ *   ?limit=50        — max results (capped at 200)
+ *
+ * Returns: { data: KanbanCard[] }
+ */
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<KanbanCard[]> | ApiError>> {
   try {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')?.trim() ?? ''
     const projectFilter = searchParams.get('project') ?? ''
-    const laneFilter = searchParams.get('lane') ?? ''
+    // Default to 'done' lane — this endpoint is for card history
+    const laneFilter = searchParams.get('lane') ?? 'done'
     const typeFilter = searchParams.get('type') ?? ''
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 200)
 
@@ -25,32 +38,25 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     let query = tables.nexus_cards
       .select('id, card_id, lane, title, summary, card_type, priority, tags, completed_at, created_at, updated_at, project_id, assigned_to, ready_for_production')
       .in('project_id', included.map(p => p.id))
-      .order('updated_at', { ascending: false })
+      .eq('lane', laneFilter)
+      .order('completed_at', { ascending: false })
       .limit(limit)
 
     if (projectFilter) {
       const matched = included.find(p => p.slug === projectFilter)
       if (matched) query = query.eq('project_id', matched.id)
     }
-    if (laneFilter) query = query.eq('lane', laneFilter)
     if (typeFilter) query = query.eq('card_type', typeFilter)
+
+    // DB-level full-text search across card_id and title using ilike
+    if (q) {
+      query = query.or(`card_id.ilike.%${q}%,title.ilike.%${q}%`)
+    }
 
     const { data, error } = await query
     if (error) throw error
 
-    let cards = (data ?? []) as Array<Record<string, unknown>>
-
-    if (q) {
-      const lower = q.toLowerCase()
-      cards = cards.filter(c =>
-        String(c.card_id ?? '').toLowerCase().includes(lower) ||
-        String(c.title ?? '').toLowerCase().includes(lower) ||
-        String(c.summary ?? '').toLowerCase().includes(lower) ||
-        (Array.isArray(c.tags) && c.tags.some((t: string) => t.toLowerCase().includes(lower)))
-      )
-    }
-
-    const result: KanbanCard[] = cards.map(c => ({
+    const result: KanbanCard[] = (data ?? []).map((c: Record<string, unknown>) => ({
       id: String(c.card_id),
       title: String(c.title),
       completed: c.lane === 'done',
