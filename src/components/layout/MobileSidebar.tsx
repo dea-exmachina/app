@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { APP_VERSION } from '@/lib/version'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
@@ -88,7 +89,7 @@ export function MobileSidebar() {
 
           <div className="border-t border-border p-3">
             <div className="rounded-md bg-muted/50 px-3 py-2">
-              <p className="font-mono text-xs text-muted-foreground">v0.1.1</p>
+              <p className="font-mono text-xs text-muted-foreground">v{APP_VERSION}</p>
               <p className="font-mono text-xs text-muted-foreground">
                 data: github
               </p>
