@@ -4,10 +4,21 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { KanbanBoard } from '@/types/kanban'
 import { BoardView } from './BoardView'
+import { SprintRolloverModal } from './SprintRolloverModal'
+import { RefreshCw } from 'lucide-react'
 
 interface ProjectOption {
   id: string
   name: string
+}
+
+interface Sprint {
+  id: string
+  name: string
+  status: string
+  goal?: string
+  start_date?: string
+  end_date?: string
 }
 
 /**
@@ -24,13 +35,18 @@ const EXCLUDED_PROJECT_SLUGS = new Set([
 export function UnifiedBoardView() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const projectFilter = searchParams.get('project') ?? ''
+
+  // Multi-select: ?projects=council,nexus
+  const projectsParam = searchParams.get('projects') ?? ''
+  const selectedSlugs = projectsParam ? projectsParam.split(',').filter(Boolean) : []
 
   const [board, setBoard] = useState<KanbanBoard | null>(null)
   const [projects, setProjects] = useState<ProjectOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dateFilter, setDateFilter] = useState<{ start?: Date; end?: Date }>({})
+  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null)
+  const [rolloverOpen, setRolloverOpen] = useState(false)
 
   // Fetch project list for dropdown (exclude content pipeline projects)
   useEffect(() => {
@@ -48,13 +64,26 @@ export function UnifiedBoardView() {
       .catch(() => {})
   }, [])
 
+  // Fetch active sprint for rollover button
+  useEffect(() => {
+    fetch('/api/kanban/sprints')
+      .then(res => res.json())
+      .then(json => {
+        if (json.data) {
+          const active = (json.data as Sprint[]).find(s => s.status === 'active')
+          setActiveSprint(active ?? null)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Fetch unified board data
   const fetchBoard = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams()
-      if (projectFilter) params.set('project', projectFilter)
+      if (selectedSlugs.length > 0) params.set('projects', selectedSlugs.join(','))
       if (dateFilter.start) params.set('done_after', dateFilter.start.toISOString())
       if (dateFilter.end) params.set('done_before', dateFilter.end.toISOString())
       const query = params.toString()
@@ -68,52 +97,95 @@ export function UnifiedBoardView() {
     } finally {
       setLoading(false)
     }
-  }, [projectFilter, dateFilter])
+  }, [selectedSlugs.join(','), dateFilter])
 
   useEffect(() => {
     fetchBoard()
   }, [fetchBoard])
 
-  const handleProjectChange = (slug: string) => {
+  const handleProjectToggle = (slug: string) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (slug) {
-      params.set('project', slug)
+    const current = new Set(selectedSlugs)
+    if (current.has(slug)) {
+      current.delete(slug)
     } else {
-      params.delete('project')
+      current.add(slug)
+    }
+    if (current.size === 0) {
+      params.delete('projects')
+    } else {
+      params.set('projects', Array.from(current).join(','))
     }
     router.push(`/kanban/unified?${params.toString()}`)
   }
 
+  const handleClearAll = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('projects')
+    router.push(`/kanban/unified?${params.toString()}`)
+  }
+
+  const handleRolloverComplete = () => {
+    setRolloverOpen(false)
+    setActiveSprint(null)
+    // Refresh sprints after rollover
+    fetch('/api/kanban/sprints')
+      .then(res => res.json())
+      .then(json => {
+        if (json.data) {
+          const active = (json.data as Sprint[]).find(s => s.status === 'active')
+          setActiveSprint(active ?? null)
+        }
+      })
+      .catch(() => {})
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Project filter bar */}
-      <div className="flex items-center gap-3 px-1">
-        <label className="text-sm font-medium text-muted-foreground">
-          Project
-        </label>
-        <select
-          value={projectFilter}
-          onChange={(e) => handleProjectChange(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+      {/* Project filter chips */}
+      <div className="flex items-center gap-2 flex-wrap px-1">
+        <span className="font-mono text-[10px] text-terminal-fg-tertiary shrink-0">PROJECTS</span>
+
+        {/* All pill */}
+        <button
+          onClick={handleClearAll}
+          className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+            selectedSlugs.length === 0
+              ? 'border-user-accent text-user-accent bg-user-accent/10'
+              : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+          }`}
         >
-          <option value="">All Projects</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        {projectFilter && (
+          ALL
+        </button>
+
+        {projects.map((p) => (
           <button
-            onClick={() => handleProjectChange('')}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            key={p.id}
+            onClick={() => handleProjectToggle(p.id)}
+            className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+              selectedSlugs.includes(p.id)
+                ? 'border-user-accent text-user-accent bg-user-accent/10'
+                : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary hover:border-terminal-fg-tertiary'
+            }`}
           >
-            Clear filter
+            {p.name.toUpperCase()}
           </button>
-        )}
-        <span className="ml-auto text-xs text-muted-foreground">
+        ))}
+
+        <span className="ml-auto font-mono text-[10px] text-terminal-fg-tertiary">
           {board ? board.lanes.reduce((sum, l) => sum + l.cards.length, 0) : 0} cards
         </span>
+
+        {/* Rollover Sprint button — only shown when there's an active sprint */}
+        {activeSprint && (
+          <button
+            onClick={() => setRolloverOpen(true)}
+            className="flex items-center gap-1.5 font-mono text-[10px] px-2 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary hover:border-terminal-fg-secondary transition-colors"
+          >
+            <RefreshCw className="h-3 w-3" />
+            ROLLOVER
+          </button>
+        )}
       </div>
 
       {/* Board content */}
@@ -132,6 +204,15 @@ export function UnifiedBoardView() {
           board={board}
           dateFilter={dateFilter}
           onDateFilterChange={setDateFilter}
+        />
+      )}
+
+      {/* Sprint Rollover Modal */}
+      {rolloverOpen && activeSprint && (
+        <SprintRolloverModal
+          sprint={activeSprint}
+          onClose={() => setRolloverOpen(false)}
+          onComplete={handleRolloverComplete}
         />
       )}
     </div>
