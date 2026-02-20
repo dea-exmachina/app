@@ -17,6 +17,7 @@ import {
   Search,
   Settings,
   Calendar,
+  CalendarDays,
 } from 'lucide-react'
 import { useAgentHealth } from '@/hooks/useAgentHealth'
 import { AgentRosterItem } from './AgentRosterItem'
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { href: '/creep/events', label: 'CREEP', icon: Crown },
   { href: '/architecture', label: 'Architecture', icon: Network },
   { href: '/research', label: 'Research', icon: Search },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
 ]
 
 export function Sidebar() {
