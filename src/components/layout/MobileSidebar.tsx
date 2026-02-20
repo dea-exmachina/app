@@ -88,7 +88,7 @@ export function MobileSidebar() {
 
           <div className="border-t border-border p-3">
             <div className="rounded-md bg-muted/50 px-3 py-2">
-              <p className="font-mono text-xs text-muted-foreground">v0.1.0</p>
+              <p className="font-mono text-xs text-muted-foreground">v0.1.1</p>
               <p className="font-mono text-xs text-muted-foreground">
                 data: github
               </p>

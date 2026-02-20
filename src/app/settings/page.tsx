@@ -444,7 +444,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-terminal-fg-secondary">Version</span>
-            <span className="text-terminal-fg-tertiary">v0.1.0</span>
+            <span className="text-terminal-fg-tertiary">v0.1.1</span>
           </div>
         </div>
       </div>
