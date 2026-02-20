@@ -46,36 +46,40 @@ export function HistorySearch({ projects }: Props) {
     setFeedback(null)
     try {
       if (action === 'reopen') {
-        const res = await fetch('/api/kanban/cards/move', {
-          method: 'POST',
+        // Use the NEXUS PATCH endpoint — the canonical lane-change path with actor tracking
+        const res = await fetch(`/api/nexus/cards/${cardId}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cardId, toLane: 'backlog' }),
+          body: JSON.stringify({ lane: 'backlog' }),
         })
-        if (!res.ok) throw new Error('Re-open failed')
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}))
+          throw new Error((json as { error?: { message?: string } }).error?.message ?? 'Re-open failed')
+        }
+        setResults(prev => prev.filter(c => c.id !== cardId))
         setFeedback({ id: cardId, type: 'success', message: 'Re-opened → Backlog' })
-        fetchResults()
       } else if (action === 'bug') {
         const card = results.find(c => c.id === cardId)
-        const res = await fetch('/api/kanban/cards', {
+        const res = await fetch('/api/nexus/cards', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: `Bug: ${card?.title ?? 'Issue'}`,
-            type: 'bug',
-            parentId: cardId,
+            card_type: 'bug',
+            lane: 'backlog',
           }),
         })
         if (!res.ok) throw new Error('Bug creation failed')
         setFeedback({ id: cardId, type: 'success', message: 'Bug card created' })
       } else if (action === 'branch') {
         const card = results.find(c => c.id === cardId)
-        const res = await fetch('/api/kanban/cards', {
+        const res = await fetch('/api/nexus/cards', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: `Feature: ${card?.title ?? 'New'}`,
-            type: 'task',
-            parentId: cardId,
+            card_type: 'task',
+            lane: 'backlog',
           }),
         })
         if (!res.ok) throw new Error('Branch task creation failed')
