@@ -215,6 +215,16 @@ export async function updateCard(
   }
 }
 
+export async function markCardReviewed(cardId: string): Promise<void> {
+  const res = await fetch(`/api/kanban/cards/${cardId}/review`, {
+    method: 'PATCH',
+  })
+  if (!res.ok) {
+    const error: ApiError = await res.json()
+    throw new Error(error.error.message)
+  }
+}
+
 // NEXUS Comment Operations
 export async function getComments(cardId: string): Promise<{
   data: NexusComment[]

@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import type { KanbanBoard, KanbanCard, KanbanLane, SortConfig } from '@/types/kanban'
-import { moveCard, updateCard, postComment } from '@/lib/client/api'
+import { moveCard, updateCard, postComment, markCardReviewed } from '@/lib/client/api'
 import { useUnresolvedComments } from '@/hooks/useUnresolvedComments'
 import { LaneColumn } from './LaneColumn'
 import { BoardStats } from './BoardStats'
@@ -292,12 +292,13 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
           switch (action.type) {
             case 'flag':
               await updateCard(card.id, { ready_for_production: true })
+              await markCardReviewed(card.id)
               // Optimistic: update local card state
               setLanes((prev) =>
                 prev.map((l) => ({
                   ...l,
                   cards: l.cards.map((c) =>
-                    c.id === card.id ? { ...c, readyForProduction: true } : c
+                    c.id === card.id ? { ...c, readyForProduction: true, reviewed: true } : c
                   ),
                 }))
               )
