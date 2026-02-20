@@ -1,7 +1,7 @@
 import { useCallback, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag, Crown } from 'lucide-react'
+import { Flag } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -41,6 +41,15 @@ function cardStatus(card: KanbanCard): string {
   return 'pending'
 }
 
+/** Derive project prefix from card ID (e.g. CC-085 → CC, NEXUS-101 → NEX, DEA-237 → DEA) */
+function projectPrefix(cardId: string): string | null {
+  const match = cardId.match(/^([A-Z][A-Z0-9-]*?)-\d+$/)
+  if (!match) return null
+  const raw = match[1]
+  // Shorten long prefixes for compact display
+  return raw.length > 4 ? raw.slice(0, 3) : raw
+}
+
 export function CardItem({
   card,
   onClick,
@@ -54,7 +63,7 @@ export function CardItem({
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
-  const isNexusFirst = /^(DEA|NEXUS)-/.test(card.id)
+  const prefix = projectPrefix(card.id)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
@@ -107,14 +116,11 @@ export function CardItem({
           : 'border-terminal-border bg-terminal-bg-surface hover:border-terminal-border-strong'
       } ${card.completed ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
-      {/* Line 1: ID + crown + unresolved badge + tags + status dot */}
+      {/* Line 1: ID + unresolved badge + tags + project prefix + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="font-mono text-[10px] font-semibold text-user-accent shrink-0">
           {card.id}
         </span>
-        {isNexusFirst && (
-          <Crown className="h-3 w-3 text-user-accent/60 shrink-0" />
-        )}
         {unresolvedCount != null && unresolvedCount > 0 && (
           <span className={`font-mono text-[9px] px-1 rounded-sm shrink-0 ${
             hasQuestions
@@ -131,6 +137,14 @@ export function CardItem({
         </div>
         {card.readyForProduction && (
           <Flag className="h-3 w-3 text-status-ok shrink-0" />
+        )}
+        {prefix && card.projectColor && (
+          <span
+            className="font-mono text-[8px] px-1 py-px rounded-sm shrink-0 font-semibold"
+            style={{ color: card.projectColor, backgroundColor: `${card.projectColor}20` }}
+          >
+            {prefix}
+          </span>
         )}
         <StatusDot status={statusToType(status)} size={5} />
       </div>
