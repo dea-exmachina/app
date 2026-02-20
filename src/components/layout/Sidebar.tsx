@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { APP_VERSION } from '@/lib/version'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -146,7 +147,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-terminal-border px-3 py-2">
-        <p className="font-mono text-[9px] text-terminal-fg-tertiary">v0.1.1 · supabase</p>
+        <p className="font-mono text-[9px] text-terminal-fg-tertiary">v{APP_VERSION} · supabase</p>
       </div>
     </aside>
   )

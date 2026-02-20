@@ -1,6 +1,7 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { APP_VERSION } from '@/lib/version'
 import { useCallback, useEffect, useState } from 'react'
 import { SectionDivider } from '@/components/ui/section-divider'
 import { useAccentColor, ACCENT_PRESETS } from '@/hooks/useAccentColor'
@@ -444,7 +445,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-terminal-fg-secondary">Version</span>
-            <span className="text-terminal-fg-tertiary">v0.1.1</span>
+            <span className="text-terminal-fg-tertiary">v{APP_VERSION}</span>
           </div>
         </div>
       </div>
