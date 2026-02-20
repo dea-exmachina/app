@@ -17,6 +17,7 @@ export interface KanbanCard {
   parentCardId?: string | null
   projectColor?: string | null
   reviewed?: boolean
+  projectId?: string | null
 }
 
 export type SortField = 'startedAt' | 'completedAt'

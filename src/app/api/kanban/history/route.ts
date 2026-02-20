@@ -74,6 +74,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       completedAt: c.completed_at ? String(c.completed_at) : null,
       createdAt: String(c.created_at),
       readyForProduction: Boolean(c.ready_for_production),
+      projectId: c.project_id ? String(c.project_id) : null,
     }))
 
     return NextResponse.json({ data: result, cached: false })
