@@ -118,7 +118,15 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<KanbanBoard> | ApiError>> {
   try {
     const { searchParams } = new URL(request.url)
-    const projectFilter = searchParams.get('project')
+
+    // Multi-select projects: ?projects=council,nexus (comma-separated)
+    const projectsParam = searchParams.get('projects')
+    const projectSlugs = projectsParam ? projectsParam.split(',').filter(Boolean) : []
+
+    // Backward compat: single project filter ?project=slug
+    const legacyProject = searchParams.get('project')
+    if (legacyProject && projectSlugs.length === 0) projectSlugs.push(legacyProject)
+
     // Date filter applies only to the Done lane (filter by completed_at)
     const doneAfter = searchParams.get('done_after')
     const doneBefore = searchParams.get('done_before')
@@ -157,12 +165,14 @@ export async function GET(
     if (doneAfter) doneQuery = doneQuery.gte('completed_at', doneAfter)
     if (doneBefore) doneQuery = doneQuery.lte('completed_at', doneBefore)
 
-    // Filter by project slug if provided (must be an included project)
-    if (projectFilter) {
-      const matchedProject = includedProjects.find(p => p.slug === projectFilter)
-      if (matchedProject) {
-        activeQuery = activeQuery.eq('project_id', matchedProject.id)
-        doneQuery = doneQuery.eq('project_id', matchedProject.id)
+    // Filter by project slugs if provided (multi-select)
+    if (projectSlugs.length > 0) {
+      const matchedIds = includedProjects
+        .filter(p => projectSlugs.includes(p.slug))
+        .map(p => p.id)
+      if (matchedIds.length > 0) {
+        activeQuery = activeQuery.in('project_id', matchedIds)
+        doneQuery = doneQuery.in('project_id', matchedIds)
       }
     }
 
@@ -185,9 +195,11 @@ export async function GET(
 
     const board: KanbanBoard = {
       id: 'unified',
-      name: projectFilter
-        ? `${projectFilter} Board`
-        : 'All Projects',
+      name: projectSlugs.length === 1
+        ? `${projectSlugs[0]} Board`
+        : projectSlugs.length > 1
+          ? `${projectSlugs.join(', ')} Board`
+          : 'All Projects',
       filePath: '',
       handoff: null,
       lanes,
