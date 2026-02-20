@@ -94,7 +94,10 @@ export function CardItem({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        ...(card.projectColor ? { borderLeftColor: card.projectColor, borderLeftWidth: '3px' } : {}),
+      }}
       {...(draggable ? { ...listeners, ...attributes } : {})}
       onClick={handleClick}
       onContextMenu={handleContextMenu}

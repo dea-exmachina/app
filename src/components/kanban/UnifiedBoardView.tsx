@@ -24,7 +24,10 @@ const EXCLUDED_PROJECT_SLUGS = new Set([
 export function UnifiedBoardView() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const projectFilter = searchParams.get('project') ?? ''
+
+  // Multi-select: ?projects=council,nexus
+  const projectsParam = searchParams.get('projects') ?? ''
+  const selectedSlugs = projectsParam ? projectsParam.split(',').filter(Boolean) : []
 
   const [board, setBoard] = useState<KanbanBoard | null>(null)
   const [projects, setProjects] = useState<ProjectOption[]>([])
@@ -54,7 +57,7 @@ export function UnifiedBoardView() {
     setError(null)
     try {
       const params = new URLSearchParams()
-      if (projectFilter) params.set('project', projectFilter)
+      if (selectedSlugs.length > 0) params.set('projects', selectedSlugs.join(','))
       if (dateFilter.start) params.set('done_after', dateFilter.start.toISOString())
       if (dateFilter.end) params.set('done_before', dateFilter.end.toISOString())
       const query = params.toString()
@@ -68,50 +71,67 @@ export function UnifiedBoardView() {
     } finally {
       setLoading(false)
     }
-  }, [projectFilter, dateFilter])
+  }, [selectedSlugs.join(','), dateFilter])
 
   useEffect(() => {
     fetchBoard()
   }, [fetchBoard])
 
-  const handleProjectChange = (slug: string) => {
+  const handleProjectToggle = (slug: string) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (slug) {
-      params.set('project', slug)
+    const current = new Set(selectedSlugs)
+    if (current.has(slug)) {
+      current.delete(slug)
     } else {
-      params.delete('project')
+      current.add(slug)
     }
+    if (current.size === 0) {
+      params.delete('projects')
+    } else {
+      params.set('projects', Array.from(current).join(','))
+    }
+    router.push(`/kanban/unified?${params.toString()}`)
+  }
+
+  const handleClearAll = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('projects')
     router.push(`/kanban/unified?${params.toString()}`)
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Project filter bar */}
-      <div className="flex items-center gap-3 px-1">
-        <label className="text-sm font-medium text-muted-foreground">
-          Project
-        </label>
-        <select
-          value={projectFilter}
-          onChange={(e) => handleProjectChange(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+      {/* Project filter chips */}
+      <div className="flex items-center gap-2 flex-wrap px-1">
+        <span className="font-mono text-[10px] text-terminal-fg-tertiary shrink-0">PROJECTS</span>
+
+        {/* All pill */}
+        <button
+          onClick={handleClearAll}
+          className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+            selectedSlugs.length === 0
+              ? 'border-user-accent text-user-accent bg-user-accent/10'
+              : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+          }`}
         >
-          <option value="">All Projects</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        {projectFilter && (
+          ALL
+        </button>
+
+        {projects.map((p) => (
           <button
-            onClick={() => handleProjectChange('')}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            key={p.id}
+            onClick={() => handleProjectToggle(p.id)}
+            className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+              selectedSlugs.includes(p.id)
+                ? 'border-user-accent text-user-accent bg-user-accent/10'
+                : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary hover:border-terminal-fg-tertiary'
+            }`}
           >
-            Clear filter
+            {p.name.toUpperCase()}
           </button>
-        )}
-        <span className="ml-auto text-xs text-muted-foreground">
+        ))}
+
+        <span className="ml-auto font-mono text-[10px] text-terminal-fg-tertiary">
           {board ? board.lanes.reduce((sum, l) => sum + l.cards.length, 0) : 0} cards
         </span>
       </div>
