@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, Pause, Play } from 'lucide-react'
 import { SectionDivider } from '@/components/ui/section-divider'
 import type {
   ResearchSubscription,
@@ -48,7 +48,39 @@ function formatDate(iso: string | null): string {
 
 // --- Sub-components ---
 
-function SubscriptionCard({ sub }: { sub: ResearchSubscription }) {
+function SubscriptionCard({
+  sub,
+  onStatusChange,
+}: {
+  sub: ResearchSubscription
+  onStatusChange?: () => void
+}) {
+  const [currentStatus, setCurrentStatus] = useState<SubscriptionStatus>(sub.status)
+  const [toggling, setToggling] = useState(false)
+
+  async function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (toggling || currentStatus === 'archived') return
+    const next = currentStatus === 'active' ? 'paused' : 'active'
+    const prev = currentStatus
+    setCurrentStatus(next) // optimistic
+    setToggling(true)
+    try {
+      const res = await fetch(`/api/research/subscriptions/${sub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!res.ok) setCurrentStatus(prev) // revert
+      else onStatusChange?.()
+    } catch {
+      setCurrentStatus(prev) // revert
+    } finally {
+      setToggling(false)
+    }
+  }
+
   return (
     <Link
       href={`/research/${sub.slug}`}
@@ -58,11 +90,23 @@ function SubscriptionCard({ sub }: { sub: ResearchSubscription }) {
         <span className="font-mono text-[11px] font-semibold text-terminal-fg-primary truncate">
           {sub.name}
         </span>
-        <span
-          className={`shrink-0 rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${statusBadge(sub.status)}`}
-        >
-          {sub.status}
-        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          {currentStatus !== 'archived' && (
+            <button
+              onClick={handleToggle}
+              disabled={toggling}
+              className="rounded-sm border border-terminal-border p-0.5 text-terminal-fg-tertiary hover:border-terminal-border-strong hover:text-terminal-fg-primary transition-colors disabled:opacity-40"
+              aria-label={currentStatus === 'active' ? 'Pause subscription' : 'Resume subscription'}
+            >
+              {currentStatus === 'active' ? <Pause size={10} /> : <Play size={10} />}
+            </button>
+          )}
+          <span
+            className={`rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider ${statusBadge(currentStatus)}`}
+          >
+            {currentStatus}
+          </span>
+        </div>
       </div>
 
       {sub.description && (
@@ -117,7 +161,7 @@ export default function ResearchPage() {
   const [loadingSubs, setLoadingSubs] = useState(true)
   const [loadingReports, setLoadingReports] = useState(true)
 
-  useEffect(() => {
+  const fetchSubscriptions = useCallback(() => {
     fetch('/api/research/subscriptions')
       .then((r) => r.json())
       .then((data) => {
@@ -126,6 +170,10 @@ export default function ResearchPage() {
       })
       .catch(() => {})
       .finally(() => setLoadingSubs(false))
+  }, [])
+
+  useEffect(() => {
+    fetchSubscriptions()
 
     fetch('/api/research/reports?status=ready&limit=10')
       .then((r) => r.json())
@@ -135,7 +183,7 @@ export default function ResearchPage() {
       })
       .catch(() => {})
       .finally(() => setLoadingReports(false))
-  }, [])
+  }, [fetchSubscriptions])
 
   // Map subscription_id → subscription name for the reports table
   const subMap = new Map(subscriptions.map((s) => [s.id, s.name]))
@@ -174,7 +222,7 @@ export default function ResearchPage() {
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
             {subscriptions.map((sub) => (
-              <SubscriptionCard key={sub.id} sub={sub} />
+              <SubscriptionCard key={sub.id} sub={sub} onStatusChange={fetchSubscriptions} />
             ))}
           </div>
         )}
