@@ -518,6 +518,15 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
                 onCardClick={handleCardClick(lane.name)}
                 onCardSelect={handleCardSelect}
                 onCardContextMenu={handleCardContextMenu}
+                onCardReview={(cardId) => {
+                  // Optimistically update: mark card reviewed so checkmark appears
+                  setLanes(prev => prev.map(l => ({
+                    ...l,
+                    cards: l.cards.map(c =>
+                      c.id === cardId ? { ...c, reviewed: true } : c
+                    ),
+                  })))
+                }}
                 selectedCards={selectedCards}
                 droppable={!locked}
                 sortConfig={sortConfig}

@@ -9,6 +9,7 @@ interface LaneColumnProps {
   onCardClick?: (card: KanbanCard) => void
   onCardSelect?: (cardId: string, additive: boolean) => void
   onCardContextMenu?: (e: MouseEvent, card: KanbanCard) => void
+  onCardReview?: (cardId: string) => void
   selectedCards?: Set<string>
   droppable?: boolean
   unresolvedMap?: Map<string, CardCommentSummary>
@@ -21,12 +22,14 @@ export function LaneColumn({
   onCardClick,
   onCardSelect,
   onCardContextMenu,
+  onCardReview,
   selectedCards,
   droppable = false,
   unresolvedMap,
   sortConfig,
   onSortChange,
 }: LaneColumnProps) {
+  const isReviewLane = lane.name === 'Review'
   const openCount = lane.cards.filter((c) => !c.completed).length
 
   const { isOver, setNodeRef } = useDroppable({
@@ -123,6 +126,8 @@ export function LaneColumn({
                 draggable={droppable}
                 unresolvedCount={summary?.unresolved_count}
                 hasQuestions={summary?.has_questions}
+                isReviewLane={isReviewLane}
+                onReview={onCardReview}
               />
             )
           })

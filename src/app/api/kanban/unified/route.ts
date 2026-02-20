@@ -68,6 +68,7 @@ interface NexusCardRow {
   parent_id: string | null
   parent: { card_id: string } | { card_id: string }[] | null
   ready_for_production: boolean
+  reviewed: boolean
   project_id: string
 }
 
@@ -119,6 +120,7 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string, projectColor?:
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
     readyForProduction: row.ready_for_production ?? false,
+    reviewed: row.reviewed ?? false,
     parentCardId,
     projectColor: projectColor ?? null,
   }

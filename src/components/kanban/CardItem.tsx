@@ -1,7 +1,7 @@
-import { useCallback, type MouseEvent } from 'react'
+import { useCallback, useState, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag } from 'lucide-react'
+import { Flag, CheckCircle2 } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -15,6 +15,8 @@ interface CardItemProps {
   selected?: boolean
   unresolvedCount?: number
   hasQuestions?: boolean
+  isReviewLane?: boolean
+  onReview?: (cardId: string) => void
 }
 
 /** Compute relative age from a date string */
@@ -59,11 +61,15 @@ export function CardItem({
   selected = false,
   unresolvedCount,
   hasQuestions,
+  isReviewLane = false,
+  onReview,
 }: CardItemProps) {
   const assignee = card.metadata?.Assignee || card.metadata?.assignee || null
   const age = relativeAge(card.startedAt || card.completedAt)
   const status = cardStatus(card)
   const prefix = projectPrefix(card.id)
+  const [reviewed, setReviewed] = useState(card.reviewed ?? false)
+  const [reviewing, setReviewing] = useState(false)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
@@ -98,6 +104,25 @@ export function CardItem({
       }
     },
     [onContextMenu, card]
+  )
+
+  const handleReview = useCallback(
+    async (e: MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (reviewed || reviewing) return
+      setReviewing(true)
+      try {
+        const res = await fetch(`/api/kanban/cards/${card.id}/review`, { method: 'PATCH' })
+        if (res.ok) {
+          setReviewed(true)
+          onReview?.(card.id)
+        }
+      } finally {
+        setReviewing(false)
+      }
+    },
+    [card.id, reviewed, reviewing, onReview]
   )
 
   return (
@@ -137,6 +162,20 @@ export function CardItem({
         </div>
         {card.readyForProduction && (
           <Flag className="h-3 w-3 text-status-ok shrink-0" />
+        )}
+        {isReviewLane && (
+          reviewed ? (
+            <CheckCircle2 className="h-3 w-3 text-status-ok shrink-0" aria-label="Reviewed — ready for production" />
+          ) : (
+            <button
+              onClick={handleReview}
+              disabled={reviewing}
+              title="Mark as reviewed (enables production promotion)"
+              className="font-mono text-[8px] px-1 py-px rounded-sm shrink-0 border border-terminal-border text-terminal-fg-tertiary hover:border-user-accent hover:text-user-accent transition-colors disabled:opacity-50"
+            >
+              {reviewing ? '…' : '✓'}
+            </button>
+          )
         )}
         {prefix && card.projectColor && (
           <span
