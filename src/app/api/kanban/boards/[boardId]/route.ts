@@ -124,27 +124,35 @@ export async function GET(
       )
     }
 
-    // Fetch all cards for this project (with optional date filter)
-    const createdAfter = searchParams.get('created_after')
-    const createdBefore = searchParams.get('created_before')
+    // Fetch cards for this project.
+    // Active lanes (backlog/ready/in_progress/review) are never date-filtered — show all open work.
+    // Done lane is filtered by completed_at so the date picker controls what shows in Done.
+    const doneAfter = searchParams.get('done_after')
+    const doneBefore = searchParams.get('done_before')
+    const projectId = (project as Record<string, unknown>).id
 
-    let query = tables.nexus_cards
+    const activeQuery = tables.nexus_cards
       .select('*')
-      .eq('project_id', (project as Record<string, unknown>).id)
+      .eq('project_id', projectId)
+      .in('lane', ['backlog', 'ready', 'in_progress', 'review'])
       .order('created_at', { ascending: true })
 
-    if (createdAfter) {
-      query = query.gte('created_at', createdAfter)
-    }
-    if (createdBefore) {
-      query = query.lte('created_at', createdBefore)
-    }
+    let doneQuery = tables.nexus_cards
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('lane', 'done')
+      .order('completed_at', { ascending: false })
 
-    const { data: cards, error: cardsError } = await query
+    if (doneAfter) doneQuery = doneQuery.gte('completed_at', doneAfter)
+    if (doneBefore) doneQuery = doneQuery.lte('completed_at', doneBefore)
 
-    if (cardsError) throw cardsError
+    const [{ data: activeCards, error: activeError }, { data: doneCards, error: doneError }] =
+      await Promise.all([activeQuery, doneQuery])
 
-    const allCards = (cards ?? []) as NexusCardRow[]
+    if (activeError) throw activeError
+    if (doneError) throw doneError
+
+    const allCards = [...(activeCards ?? []), ...(doneCards ?? [])] as NexusCardRow[]
 
     // Group cards by lane (standard or bender view)
     let lanes: KanbanLane[]
