@@ -71,8 +71,8 @@ export async function getBoard(
   let url = `/api/kanban/boards/${id}`
   if (filter?.start || filter?.end) {
     const params = new URLSearchParams()
-    if (filter.start) params.set('created_after', filter.start.toISOString())
-    if (filter.end) params.set('created_before', filter.end.toISOString())
+    if (filter.start) params.set('done_after', filter.start.toISOString())
+    if (filter.end) params.set('done_before', filter.end.toISOString())
     url += `?${params.toString()}`
   }
   return fetchApi<KanbanBoard>(url)
