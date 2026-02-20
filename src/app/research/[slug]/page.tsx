@@ -76,6 +76,7 @@ export default function SubscriptionDetailPage({
   const [frequency, setFrequency] = useState<ResearchFrequency>('weekly')
   const [scheduleDay, setScheduleDay] = useState(0)
   const [scheduleHour, setScheduleHour] = useState(8)
+  const [referenceDate, setReferenceDate] = useState<string>('')
   const [recipients, setRecipients] = useState<ResearchRecipient[]>([])
 
   // Save / action state
@@ -95,6 +96,7 @@ export default function SubscriptionDetailPage({
     setFrequency(s.frequency)
     setScheduleDay(s.schedule_day ?? 0)
     setScheduleHour(s.schedule_hour ?? 8)
+    setReferenceDate(s.reference_date ?? '')
     setRecipients(s.recipients?.length ? s.recipients : [{ name: '', email: '' }])
   }
 
@@ -201,6 +203,7 @@ export default function SubscriptionDetailPage({
       frequency,
       schedule_day: scheduleDay,
       schedule_hour: scheduleHour,
+      reference_date: referenceDate || null,
       recipients: recipients.filter((r) => r.email.trim()),
     }
 
@@ -483,6 +486,21 @@ export default function SubscriptionDetailPage({
                 onChange={(e) => setScheduleHour(Number(e.target.value))}
                 className={INPUT_CLS}
               />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] uppercase tracking-wider text-terminal-fg-tertiary">
+                Search From (optional)
+              </label>
+              <input
+                type="date"
+                value={referenceDate}
+                onChange={(e) => setReferenceDate(e.target.value)}
+                className={INPUT_CLS}
+              />
+              <p className="font-mono text-[9px] text-terminal-fg-tertiary mt-0.5">
+                Limit results to this date and later
+              </p>
             </div>
           </div>
         </div>

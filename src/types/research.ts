@@ -34,6 +34,7 @@ export interface ResearchSubscription {
   frequency: ResearchFrequency
   schedule_day: number
   schedule_hour: number
+  reference_date?: string | null
   next_run_at: string | null
   last_run_at: string | null
   recipients: ResearchRecipient[]
@@ -54,6 +55,7 @@ export interface ResearchSubscriptionCreate {
   frequency?: ResearchFrequency
   schedule_day?: number
   schedule_hour?: number
+  reference_date?: string | null
   recipients?: ResearchRecipient[]
   branding?: ResearchBranding
   status?: SubscriptionStatus
@@ -69,6 +71,7 @@ export interface ResearchSubscriptionUpdate {
   frequency?: ResearchFrequency
   schedule_day?: number
   schedule_hour?: number
+  reference_date?: string | null
   next_run_at?: string | null
   recipients?: ResearchRecipient[]
   branding?: ResearchBranding

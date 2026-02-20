@@ -40,6 +40,7 @@ export default function NewResearchPage() {
   const [frequency, setFrequency] = useState<ResearchFrequency>('weekly')
   const [scheduleDay, setScheduleDay] = useState(5) // 1=Mon..7=Sun, default Friday
   const [scheduleHour, setScheduleHour] = useState(14)
+  const [referenceDate, setReferenceDate] = useState<string>('')
 
   // Recipients
   const [recipients, setRecipients] = useState<ResearchRecipient[]>([{ name: '', email: '' }])
@@ -111,6 +112,7 @@ export default function NewResearchPage() {
       schedule_day: scheduleDay,
       schedule_hour: scheduleHour,
       recipients: recipients.filter((r) => r.email.trim()),
+      ...(referenceDate ? { reference_date: referenceDate } : {}),
     }
 
     try {
@@ -300,6 +302,21 @@ export default function NewResearchPage() {
                 onChange={(e) => setScheduleHour(Number(e.target.value))}
                 className={INPUT_CLS}
               />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] uppercase tracking-wider text-terminal-fg-tertiary">
+                Search From (optional)
+              </label>
+              <input
+                type="date"
+                value={referenceDate}
+                onChange={(e) => setReferenceDate(e.target.value)}
+                className={INPUT_CLS}
+              />
+              <p className="font-mono text-[9px] text-terminal-fg-tertiary mt-0.5">
+                Limit results to this date and later
+              </p>
             </div>
           </div>
         </div>
