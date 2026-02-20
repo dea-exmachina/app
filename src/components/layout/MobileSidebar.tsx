@@ -15,7 +15,6 @@ import {
   Inbox,
   MessageCircle,
   Search,
-  Clock,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -23,7 +22,6 @@ import { Button } from '@/components/ui/button'
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/kanban/unified', label: 'Kanban', icon: Layers },
-  { href: '/kanban/history', label: 'History', icon: Clock },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/skills', label: 'Skills', icon: Zap },
   { href: '/workflows', label: 'Workflows', icon: Workflow },
