@@ -73,7 +73,10 @@ export function HistorySearch({ projects }: Props) {
           }),
         })
         if (!res.ok) throw new Error('Bug creation failed')
-        setFeedback({ id: cardId, type: 'success', message: 'Bug card created' })
+        const bugJson = await res.json().catch(() => ({}))
+        const bugCardId = (bugJson as { data?: { card_id?: string } }).data?.card_id
+        const proj = card?.metadata.Project ?? 'project'
+        setFeedback({ id: cardId, type: 'success', message: bugCardId ? `Bug ${bugCardId} → ${proj} backlog` : `Bug created → ${proj} backlog` })
       } else if (action === 'branch') {
         const card = results.find(c => c.id === cardId)
         const res = await fetch('/api/nexus/cards', {
@@ -87,7 +90,10 @@ export function HistorySearch({ projects }: Props) {
           }),
         })
         if (!res.ok) throw new Error('Branch task creation failed')
-        setFeedback({ id: cardId, type: 'success', message: 'Task branched' })
+        const branchJson = await res.json().catch(() => ({}))
+        const branchCardId = (branchJson as { data?: { card_id?: string } }).data?.card_id
+        const branchProj = card?.metadata.Project ?? 'project'
+        setFeedback({ id: cardId, type: 'success', message: branchCardId ? `Task ${branchCardId} → ${branchProj} backlog` : `Task created → ${branchProj} backlog` })
       }
     } catch (err) {
       setFeedback({ id: cardId, type: 'error', message: err instanceof Error ? err.message : 'Action failed' })
