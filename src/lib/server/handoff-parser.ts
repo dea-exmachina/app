@@ -45,17 +45,12 @@ export function parseHandoffSection(markdown: string): HandoffSection | null {
   // Parse ### Next — numbered list items
   const nextItems = parseListAfterHeading(section, 'Next')
 
-  // Parse ### Where We Left Off
+  // Parse ### Where We Left Off — positional: first KV = project, second = state, third = location
   const whereSection = extractSubsection(section, 'Where We Left Off')
-  const project =
-    whereSection?.match(/\*\*Project\*\*:\s*(.+)/)?.[1]?.trim() ?? ''
-  const state =
-    whereSection?.match(/\*\*State\*\*:\s*(.+)/)?.[1]?.trim() ?? ''
-  const location =
-    whereSection
-      ?.match(/\*\*Location\*\*:\s*(.+)/)?.[1]
-      ?.trim()
-      ?.replace(/`/g, '') ?? ''
+  const whereKV = parseBoldKeyValues(whereSection ?? '')
+  const project  = whereKV[0]?.value ?? ''
+  const state    = whereKV[1]?.value ?? ''
+  const location = (whereKV[2]?.value ?? '').replace(/`/g, '')
 
   // Parse ### Blockers
   const blockers = parseListAfterHeading(section, 'Blockers')
@@ -93,6 +88,18 @@ function parseListAfterHeading(section: string, heading: string): string[] {
     .split('\n')
     .map((line) => line.replace(/^\s*(?:\d+\.\s*|-\s*)/, '').trim())
     .filter(Boolean)
+}
+
+function parseBoldKeyValues(
+  section: string
+): Array<{ key: string; value: string }> {
+  const results: Array<{ key: string; value: string }> = []
+  for (const line of section.split('\n')) {
+    // Match: - **Key**: value  (leading bullet optional)
+    const m = line.match(/^\s*(?:-\s*)?\*\*([^*]+)\*\*:\s*(.+)/)
+    if (m) results.push({ key: m[1].trim(), value: m[2].trim() })
+  }
+  return results
 }
 
 function parseBenderStatus(
