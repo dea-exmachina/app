@@ -127,6 +127,7 @@ export const tables = {
   get research_subscriptions() { return (db as any).from('research_subscriptions') as ReturnType<typeof db.from> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get research_reports() { return (db as any).from('research_reports') as ReturnType<typeof db.from> },
+  get nexus_sprints() { return db.from('nexus_sprints') },
 }
 
 /**
