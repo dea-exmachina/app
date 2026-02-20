@@ -4,6 +4,10 @@
  * Provides typed database access for Control Center v2.
  * Uses service role key for server-side operations.
  *
+ * Service role is intentional — single-user internal tool, RLS not needed.
+ * No migration to @supabase/ssr planned. See NEXUS-086 for assessment.
+ * Trigger to revisit: multi-user feature or public-facing CC capability.
+ *
  * Lazy initialization: client is created on first use, not at module load.
  * This prevents module-scope crashes from killing Vercel's bundled functions.
  */
