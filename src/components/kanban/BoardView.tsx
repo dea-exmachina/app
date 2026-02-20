@@ -50,6 +50,11 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
   // Local board state for optimistic DnD
   const [lanes, setLanes] = useState<KanbanLane[]>(board.lanes)
   const [locked, setLocked] = useState(true)
+  const [nexusFirst, setNexusFirst] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    const stored = localStorage.getItem('kanban-nexus-first')
+    return stored === null ? true : stored === 'true'
+  })
 
   // Sync local lanes when board updates (e.g. from date filter refetch)
   useEffect(() => {
@@ -99,6 +104,14 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
       .filter(lane => lane.name !== 'Backlog')
       .map((lane) => {
         const sortedCards = [...lane.cards].sort((a, b) => {
+          // Tier-0 boost: DEA-* and NEXUS-* float to top when nexusFirst enabled
+          if (nexusFirst) {
+            const aIsNexus = /^(DEA|NEXUS)-/.test(a.id)
+            const bIsNexus = /^(DEA|NEXUS)-/.test(b.id)
+            if (aIsNexus && !bIsNexus) return -1
+            if (!aIsNexus && bIsNexus) return 1
+          }
+          // Normal sort within tier
           const getDate = (card: KanbanCard, field: 'startedAt' | 'completedAt') => {
             const val = card[field]
             return val ? new Date(val).getTime() : 0
@@ -110,7 +123,7 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
         })
         return { ...lane, cards: sortedCards }
       })
-  }, [lanes, sortConfig])
+  }, [lanes, sortConfig, nexusFirst])
 
   // Extract backlog cards
   const backlogCards = useMemo(() => {
@@ -460,6 +473,20 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
             className="font-mono text-[10px] px-2 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
           >
             {viewMode === 'standard' ? 'STANDARD' : 'BENDER'}
+          </button>
+          <button
+            onClick={() => {
+              const next = !nexusFirst
+              setNexusFirst(next)
+              localStorage.setItem('kanban-nexus-first', String(next))
+            }}
+            className={`font-mono text-[10px] px-2 py-0.5 rounded-sm border transition-colors ${
+              nexusFirst
+                ? 'border-user-accent/40 text-user-accent bg-user-accent/5'
+                : 'border-terminal-border text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
+            }`}
+          >
+            NEXUS↑
           </button>
           <button
             onClick={() => setLocked((v) => !v)}
