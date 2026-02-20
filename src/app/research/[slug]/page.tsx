@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, Trash2, Plus, X } from 'lucide-react'
+import { Play, Pause, Trash2, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { SectionDivider } from '@/components/ui/section-divider'
 import type {
@@ -83,6 +83,7 @@ export default function SubscriptionDetailPage({
   const [saveMessage, setSaveMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
   const [running, setRunning] = useState(false)
   const [runMessage, setRunMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+  const [toggling, setToggling] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -251,6 +252,33 @@ export default function SubscriptionDetailPage({
     }
   }
 
+  // --- Toggle pause/resume ---
+
+  async function handleToggle() {
+    if (!sub || toggling) return
+    const next = sub.status === 'active' ? 'paused' : 'active'
+    setToggling(true)
+    try {
+      const res = await fetch(`/api/research/subscriptions/${sub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (res.ok) {
+        setSub((prev) => (prev ? { ...prev, status: next } : prev))
+        setSaveMessage({ type: 'ok', text: next === 'paused' ? 'Subscription paused.' : 'Subscription resumed.' })
+        setTimeout(() => setSaveMessage(null), 2500)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setSaveMessage({ type: 'error', text: err.error ?? `Toggle failed (${res.status})` })
+      }
+    } catch {
+      setSaveMessage({ type: 'error', text: 'Network error.' })
+    } finally {
+      setToggling(false)
+    }
+  }
+
   // --- Delete ---
 
   async function handleDelete() {
@@ -322,6 +350,17 @@ export default function SubscriptionDetailPage({
             >
               {runMessage.text}
             </span>
+          )}
+          {sub.status !== 'archived' && (
+            <button
+              type="button"
+              onClick={handleToggle}
+              disabled={toggling}
+              className="flex items-center gap-1.5 rounded-sm border border-terminal-border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-terminal-fg-secondary hover:border-terminal-border-strong hover:text-terminal-fg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sub.status === 'active' ? <Pause size={11} /> : <Play size={11} />}
+              {toggling ? '...' : sub.status === 'active' ? 'Pause' : 'Resume'}
+            </button>
           )}
           <button
             type="button"
