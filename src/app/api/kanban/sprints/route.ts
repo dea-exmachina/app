@@ -29,13 +29,13 @@ export async function POST(request: NextRequest) {
     const { name, goal, start_date, end_date, status = 'planning' } = body as {
       name: string
       goal?: string
-      start_date?: string
-      end_date?: string
+      start_date: string
+      end_date: string
       status?: string
     }
 
-    if (!name) {
-      return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'name is required' } }, { status: 400 })
+    if (!name || !start_date || !end_date) {
+      return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'name, start_date, and end_date are required' } }, { status: 400 })
     }
 
     const { data, error } = await db
