@@ -15,6 +15,7 @@ export interface KanbanCard {
   readyForProduction?: boolean
   testNotes?: string | null
   parentCardId?: string | null
+  projectColor?: string | null
 }
 
 export type SortField = 'startedAt' | 'completedAt'
