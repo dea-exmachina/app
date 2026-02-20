@@ -21,7 +21,11 @@ interface BacklogPanelProps {
 }
 
 export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelProps) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    const stored = localStorage.getItem('kanban-backlog-open')
+    return stored === null ? true : stored === 'true'
+  })
   const [sortField, setSortField] = useState<SortField>('priority')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -71,7 +75,11 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-terminal-bg-elevated transition-colors"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen(v => {
+          const next = !v
+          localStorage.setItem('kanban-backlog-open', String(next))
+          return next
+        })}
       >
         <div className="flex items-center gap-2">
           {open ? (
