@@ -26,6 +26,16 @@ const EXCLUDED_PROJECT_SLUGS: readonly string[] = [
   'job-search',
 ]
 
+const PROJECT_COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c', '#f472b6', '#facc15']
+
+function deterministicColor(slug: string): string {
+  let hash = 0
+  for (let i = 0; i < slug.length; i++) {
+    hash = ((hash << 5) - hash + slug.charCodeAt(i)) | 0
+  }
+  return PROJECT_COLORS[Math.abs(hash) % PROJECT_COLORS.length]
+}
+
 const STANDARD_LANES = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const
 const LANE_LABELS: Record<string, string> = {
   backlog: 'Backlog',
@@ -61,7 +71,7 @@ interface NexusCardRow {
   project_id: string
 }
 
-function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
+function mapToKanbanCard(row: NexusCardRow, projectSlug?: string, projectColor?: string | null): KanbanCard {
   const metadata: Record<string, string> = {}
   if (projectSlug) metadata['Project'] = projectSlug
   if (row.assigned_to) metadata['Assignee'] = row.assigned_to
@@ -110,6 +120,7 @@ function mapToKanbanCard(row: NexusCardRow, projectSlug?: string): KanbanCard {
     createdAt: row.created_at,
     readyForProduction: row.ready_for_production ?? false,
     parentCardId,
+    projectColor: projectColor ?? null,
   }
 }
 
@@ -118,19 +129,27 @@ export async function GET(
 ): Promise<NextResponse<ApiResponse<KanbanBoard> | ApiError>> {
   try {
     const { searchParams } = new URL(request.url)
-    const projectFilter = searchParams.get('project')
+
+    // Multi-select projects: ?projects=council,nexus (comma-separated)
+    const projectsParam = searchParams.get('projects')
+    const projectSlugs = projectsParam ? projectsParam.split(',').filter(Boolean) : []
+
+    // Backward compat: single project filter ?project=slug
+    const legacyProject = searchParams.get('project')
+    if (legacyProject && projectSlugs.length === 0) projectSlugs.push(legacyProject)
+
     // Date filter applies only to the Done lane (filter by completed_at)
     const doneAfter = searchParams.get('done_after')
     const doneBefore = searchParams.get('done_before')
 
-    // Fetch all projects for slug lookup
+    // Fetch all projects for slug lookup (include color column)
     const { data: projects, error: projError } = await tables.nexus_projects
-      .select('id, slug, name')
+      .select('id, slug, name, color')
       .order('name')
 
     if (projError) throw projError
 
-    const allProjects = (projects ?? []) as Array<{ id: string; slug: string; name: string }>
+    const allProjects = (projects ?? []) as Array<{ id: string; slug: string; name: string; color: string | null }>
 
     // Exclude content pipeline projects from the board
     const includedProjects = allProjects.filter(
@@ -139,6 +158,7 @@ export async function GET(
     const includedProjectIds = includedProjects.map(p => p.id)
 
     const projectMap = new Map(includedProjects.map(p => [p.id, p.slug]))
+    const projectColorMap = new Map(includedProjects.map(p => [p.id, p.color]))
 
     // Build base card query (active lanes — no date filter) with parent join
     let activeQuery = tables.nexus_cards
@@ -157,12 +177,14 @@ export async function GET(
     if (doneAfter) doneQuery = doneQuery.gte('completed_at', doneAfter)
     if (doneBefore) doneQuery = doneQuery.lte('completed_at', doneBefore)
 
-    // Filter by project slug if provided (must be an included project)
-    if (projectFilter) {
-      const matchedProject = includedProjects.find(p => p.slug === projectFilter)
-      if (matchedProject) {
-        activeQuery = activeQuery.eq('project_id', matchedProject.id)
-        doneQuery = doneQuery.eq('project_id', matchedProject.id)
+    // Filter by project slugs if provided (multi-select)
+    if (projectSlugs.length > 0) {
+      const matchedIds = includedProjects
+        .filter(p => projectSlugs.includes(p.slug))
+        .map(p => p.id)
+      if (matchedIds.length > 0) {
+        activeQuery = activeQuery.in('project_id', matchedIds)
+        doneQuery = doneQuery.in('project_id', matchedIds)
       }
     }
 
@@ -180,14 +202,20 @@ export async function GET(
       name: LANE_LABELS[lane],
       cards: allCards
         .filter(c => c.lane === lane)
-        .map(c => mapToKanbanCard(c, projectMap.get(c.project_id))),
+        .map(c => mapToKanbanCard(
+          c,
+          projectMap.get(c.project_id),
+          projectColorMap.get(c.project_id) ?? deterministicColor(projectMap.get(c.project_id) ?? '')
+        )),
     }))
 
     const board: KanbanBoard = {
       id: 'unified',
-      name: projectFilter
-        ? `${projectFilter} Board`
-        : 'All Projects',
+      name: projectSlugs.length === 1
+        ? `${projectSlugs[0]} Board`
+        : projectSlugs.length > 1
+          ? `${projectSlugs.join(', ')} Board`
+          : 'All Projects',
       filePath: '',
       handoff: null,
       lanes,
