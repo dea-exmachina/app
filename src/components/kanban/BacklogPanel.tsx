@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, ArrowUp } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowUp, X } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { moveCard } from '@/lib/client/api'
 
@@ -28,6 +28,7 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
   })
   const [sortField, setSortField] = useState<SortField>('priority')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [promoteError, setPromoteError] = useState<string | null>(null)
 
   const sortedCards = [...cards].sort((a, b) => {
     if (sortField === 'priority') {
@@ -59,15 +60,25 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
   }, [])
 
   const handlePromote = useCallback(async (cardId: string) => {
-    await moveCard(cardId, 'ready')
-    onPromote(cardId)
+    setPromoteError(null)
+    try {
+      await moveCard(cardId, 'ready')
+      onPromote(cardId)
+    } catch (err) {
+      setPromoteError(err instanceof Error ? err.message : 'Failed to promote card')
+    }
   }, [onPromote])
 
   const handleBulkPromote = useCallback(async () => {
+    setPromoteError(null)
     const ids = Array.from(selectedIds)
-    await Promise.all(ids.map(id => moveCard(id, 'ready')))
-    onBulkPromote(ids)
-    setSelectedIds(new Set())
+    try {
+      await Promise.all(ids.map(id => moveCard(id, 'ready')))
+      onBulkPromote(ids)
+      setSelectedIds(new Set())
+    } catch (err) {
+      setPromoteError(err instanceof Error ? err.message : 'Failed to promote cards')
+    }
   }, [selectedIds, onBulkPromote])
 
   return (
@@ -119,6 +130,21 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
           )}
         </div>
       </div>
+
+      {/* Promote error */}
+      {promoteError && (
+        <div className="flex items-start gap-2 px-3 py-2 border-t border-status-error/20 bg-status-error/5">
+          <span className="font-mono text-[10px] text-status-error flex-1">
+            {promoteError}
+            {promoteError.includes('SURFACE') && (
+              <span className="text-terminal-fg-tertiary ml-1">— open the card, post a SURFACE: comment, then retry.</span>
+            )}
+          </span>
+          <button onClick={() => setPromoteError(null)} className="shrink-0 text-status-error/60 hover:text-status-error">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {/* Cards list */}
       {open && (
