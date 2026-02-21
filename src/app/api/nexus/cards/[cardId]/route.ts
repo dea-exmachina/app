@@ -8,6 +8,9 @@
  * increments reopen_count, writes a nexus_comment, and flags bender regression
  * if reopen_type='bug_fix'.
  *
+ * Investigation mandate (CC-123): on bug_fix re-open, auto-creates a bender_task
+ * assigned to the original bender with a structured investigation mandate.
+ *
  * DEA-042 | Phase 1
  */
 
@@ -166,9 +169,56 @@ export async function PATCH(
               .insert({
                 card_id: cardUuid,
                 author: 'webapp',
-                content: `Regression flagged → ${benderSlug}. Investigation task will be auto-created.`,
+                content: `Regression flagged → ${benderSlug}. Auto-creating investigation task.`,
               } as Record<string, unknown>)
           }
+
+          // CC-123: Auto-create investigation bender_task assigned to the original bender
+          const cardTitle = (data as any)?.title as string | undefined
+          // Use the card's own project_id so this works across any project, not just CC
+          const cardProjectId = (data as any)?.project_id as string | undefined
+          const taskTimestamp = new Date()
+            .toISOString()
+            .replace(/[-:T]/g, '')
+            .slice(0, 12) // YYYYMMDDHHMM
+          const investigationTaskId = `TASK-${taskTimestamp}`
+
+          await tables.bender_tasks
+            .insert({
+              task_id: investigationTaskId,
+              project_id: cardProjectId ?? 'c7f3ebad-9953-4352-bfd6-c7b062b66e50',
+              title: `Regression investigation: ${cardTitle ?? cardId}`,
+              member: benderSlug,
+              status: 'proposed',
+              priority: 'high',
+              card_id: cardId,
+              overview: [
+                `A bug_fix re-open was triggered on card ${cardId}.`,
+                `Reason: ${reopenNote ?? 'original implementation did not work as intended'}`,
+                '',
+                'Investigation mandate:',
+                '1. REPRODUCE — replicate the exact failure condition reported.',
+                '2. ROOT CAUSE — identify the specific code path or logic error that caused the regression.',
+                '3. EDGE CASES — enumerate all related edge cases that the original implementation missed.',
+                '4. FIX PLAN — design a complete fix that addresses root cause and all identified edge cases.',
+                '5. TEST CASES — document test cases covering the failure scenario and edge cases.',
+                '',
+                'Deliver a structured report (root cause + fix plan + test cases) before writing any code.',
+              ].join('\n'),
+              requirements: [
+                'Reproduce the failure in isolation',
+                'Document root cause with specific file/line references',
+                'List all edge cases related to the regression',
+                'Propose a complete fix addressing root cause and edge cases',
+                'Provide test case specifications for the fix',
+              ],
+              acceptance_criteria: [
+                'Root cause documented with evidence',
+                'Fix covers original failure + enumerated edge cases',
+                'Test cases specified and verifiable',
+                'No new regressions introduced',
+              ],
+            } as Record<string, unknown>)
         }
       }
 
