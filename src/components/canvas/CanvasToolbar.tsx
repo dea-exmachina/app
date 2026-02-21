@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { ArrowLeft, Save, Download, Loader2, Check, AlertCircle } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { ArrowLeft, Save, Download, Loader2, Check, AlertCircle, Library } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -15,6 +15,7 @@ export interface CanvasToolbarProps {
   onExportPNG?: () => void;
   onExportSVG?: () => void;
   onExportJSON?: () => void;
+  onImportLibrary?: (file: File) => void;
 }
 
 export function CanvasToolbar({
@@ -25,7 +26,9 @@ export function CanvasToolbar({
   onExportPNG,
   onExportSVG,
   onExportJSON,
+  onImportLibrary,
 }: CanvasToolbarProps) {
+  const libraryInputRef = useRef<HTMLInputElement>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
 
@@ -106,6 +109,33 @@ export function CanvasToolbar({
         </Button>
 
         <div className="flex items-center gap-1">
+          {onImportLibrary && (
+            <>
+              <input
+                ref={libraryInputRef}
+                type="file"
+                accept=".excalidrawlib"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    onImportLibrary(file);
+                    // Reset so the same file can be re-imported if needed
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => libraryInputRef.current?.click()}
+                title="Import .excalidrawlib file"
+              >
+                <Library className="h-4 w-4 mr-1" />
+                Library
+              </Button>
+            </>
+          )}
           {onExportPNG && (
             <Button variant="ghost" size="sm" onClick={onExportPNG}>
               <Download className="h-4 w-4 mr-1" />
