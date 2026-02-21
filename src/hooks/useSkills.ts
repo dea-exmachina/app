@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Skill } from '@/types/skill'
 import { getSkills } from '@/lib/client/api'
 
@@ -9,12 +9,17 @@ export function useSkills() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
+    setLoading(true)
     getSkills()
       .then((res) => setData(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
-  return { data, loading, error }
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  return { data, loading, error, refresh }
 }
