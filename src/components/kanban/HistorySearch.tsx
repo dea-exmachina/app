@@ -5,6 +5,8 @@ import { Search, RotateCcw, Bug, GitBranch, Eye } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardDetailPanel } from './CardDetailPanel'
 
+type ReopenType = 'bug_fix' | 'scope_change'
+
 interface Props {
   projects: Array<{ id: string; name: string }>
 }
@@ -18,6 +20,9 @@ export function HistorySearch({ projects }: Props) {
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState<{ id: string; type: 'success' | 'error'; message: string } | null>(null)
   const [detailCard, setDetailCard] = useState<KanbanCard | null>(null)
+  const [reopenModalCardId, setReopenModalCardId] = useState<string | null>(null)
+  const [reopenType, setReopenType] = useState<ReopenType>('bug_fix')
+  const [reopenNote, setReopenNote] = useState('')
 
   const fetchResults = useCallback(async () => {
     setLoading(true)
@@ -44,23 +49,45 @@ export function HistorySearch({ projects }: Props) {
     return () => clearTimeout(timeout)
   }, [fetchResults])
 
-  const handleAction = async (cardId: string, action: 'reopen' | 'bug' | 'branch') => {
+  const handleReopenConfirm = async () => {
+    if (!reopenModalCardId) return
+    const cardId = reopenModalCardId
+    setFeedback(null)
+    setReopenModalCardId(null)
+    try {
+      // done → in_progress with reason capture
+      const res = await fetch(`/api/nexus/cards/${cardId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lane: 'in_progress',
+          reopen_type: reopenType,
+          reopen_note: reopenNote || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: { message?: string } }).error?.message ?? 'Re-open failed')
+      }
+      const json = await res.json().catch(() => ({}))
+      const typed = json as { data?: { reopen_count?: number }; bender_slug?: string }
+      const message = typed.bender_slug
+        ? `Reassigned to ${typed.bender_slug} for regression investigation`
+        : 'Card re-opened → In Progress'
+      setResults(prev => prev.filter(c => c.id !== cardId))
+      setFeedback({ id: cardId, type: 'success', message })
+    } catch (err) {
+      setFeedback({ id: cardId, type: 'error', message: err instanceof Error ? err.message : 'Re-open failed' })
+    }
+    setReopenType('bug_fix')
+    setReopenNote('')
+    setTimeout(() => setFeedback(null), 3000)
+  }
+
+  const handleAction = async (cardId: string, action: 'bug' | 'branch') => {
     setFeedback(null)
     try {
-      if (action === 'reopen') {
-        // done → in_progress is the only valid backward transition from done
-        const res = await fetch(`/api/nexus/cards/${cardId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lane: 'in_progress' }),
-        })
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}))
-          throw new Error((json as { error?: { message?: string } }).error?.message ?? 'Re-open failed')
-        }
-        setResults(prev => prev.filter(c => c.id !== cardId))
-        setFeedback({ id: cardId, type: 'success', message: 'Re-opened → In Progress' })
-      } else if (action === 'bug') {
+      if (action === 'bug') {
         const card = results.find(c => c.id === cardId)
         const res = await fetch('/api/nexus/cards', {
           method: 'POST',
@@ -175,6 +202,7 @@ export function HistorySearch({ projects }: Props) {
           )}
           {!loading && results.map(card => {
             const cardFeedback = feedback?.id === card.id ? feedback : null
+            const isModalOpen = reopenModalCardId === card.id
             return (
               <div
                 key={card.id}
@@ -210,7 +238,11 @@ export function HistorySearch({ projects }: Props) {
 
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleAction(card.id, 'reopen')}
+                      onClick={() => {
+                        setReopenType('bug_fix')
+                        setReopenNote('')
+                        setReopenModalCardId(card.id)
+                      }}
                       className="p-1.5 hover:bg-terminal-bg-elevated rounded-sm transition-colors group"
                       title="Re-open to In Progress"
                     >
@@ -239,6 +271,73 @@ export function HistorySearch({ projects }: Props) {
                     </button>
                   </div>
                 </div>
+
+                {/* Inline re-open reason modal */}
+                {isModalOpen && (
+                  <div className="mt-1 p-3 bg-terminal-bg-elevated border border-terminal-border rounded-sm flex flex-col gap-3">
+                    <p className="font-mono text-[10px] text-terminal-fg-secondary font-semibold">
+                      Why are you re-opening this card?
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`reopen-type-${card.id}`}
+                          value="bug_fix"
+                          checked={reopenType === 'bug_fix'}
+                          onChange={() => setReopenType('bug_fix')}
+                          className="mt-0.5 accent-user-accent"
+                        />
+                        <span className="flex flex-col gap-0.5">
+                          <span className="font-mono text-[10px] text-terminal-fg-primary">bug_fix</span>
+                          <span className="font-mono text-[9px] text-terminal-fg-tertiary">Original implementation didn&apos;t work as intended</span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`reopen-type-${card.id}`}
+                          value="scope_change"
+                          checked={reopenType === 'scope_change'}
+                          onChange={() => setReopenType('scope_change')}
+                          className="mt-0.5 accent-user-accent"
+                        />
+                        <span className="flex flex-col gap-0.5">
+                          <span className="font-mono text-[10px] text-terminal-fg-primary">scope_change</span>
+                          <span className="font-mono text-[9px] text-terminal-fg-tertiary">Requirements changed or expanded</span>
+                        </span>
+                      </label>
+                    </div>
+
+                    <textarea
+                      value={reopenNote}
+                      onChange={e => setReopenNote(e.target.value)}
+                      placeholder="Note (optional)"
+                      rows={2}
+                      className="w-full px-2 py-1.5 bg-terminal-bg-surface border border-terminal-border rounded-sm font-mono text-[10px] text-terminal-fg-primary placeholder:text-terminal-fg-tertiary focus:outline-none focus:border-user-accent resize-none"
+                    />
+
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => {
+                          setReopenModalCardId(null)
+                          setReopenType('bug_fix')
+                          setReopenNote('')
+                        }}
+                        className="px-3 py-1 border border-terminal-border rounded-sm font-mono text-[10px] text-terminal-fg-secondary hover:text-terminal-fg-primary hover:border-terminal-fg-secondary transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleReopenConfirm}
+                        className="px-3 py-1 bg-user-accent/10 border border-user-accent/40 rounded-sm font-mono text-[10px] text-user-accent hover:bg-user-accent/20 transition-colors"
+                      >
+                        Re-open
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {cardFeedback && (
                   <div
