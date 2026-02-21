@@ -183,7 +183,8 @@ export async function PATCH(
             .slice(0, 12) // YYYYMMDDHHMM
           const investigationTaskId = `TASK-${taskTimestamp}`
 
-          await tables.bender_tasks
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (tables.bender_tasks as any)
             .insert({
               task_id: investigationTaskId,
               project_id: cardProjectId ?? 'c7f3ebad-9953-4352-bfd6-c7b062b66e50',
