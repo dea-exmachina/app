@@ -13,6 +13,7 @@ import type { KanbanBoard } from '@/types/kanban'
 import { getBoard } from '@/lib/client/api'
 
 const REALTIME_TIMEOUT_MS = 5000
+const POLLING_INTERVAL_MS = 10_000
 
 export function useBoard(
   boardId: string,
@@ -23,6 +24,7 @@ export function useBoard(
   const [error, setError] = useState<string | null>(null)
   const [isLive, setIsLive] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Serialize filter to a stable string to avoid infinite re-fetches
   const filterKey = filter
@@ -53,10 +55,23 @@ export function useBoard(
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Timeout fallback
+    function startPolling() {
+      if (pollingRef.current) return
+      pollingRef.current = setInterval(refresh, POLLING_INTERVAL_MS)
+    }
+
+    function stopPolling() {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+
+    // Timeout fallback: if Realtime doesn't connect, start polling
     timeoutRef.current = setTimeout(() => {
       if (!isLive) {
-        console.warn(`[useBoard] Realtime connection timed out for board ${boardId}`)
+        console.warn(`[useBoard] Realtime connection timed out for board ${boardId} — starting polling fallback`)
+        startPolling()
       }
     }, REALTIME_TIMEOUT_MS)
 
@@ -80,12 +95,14 @@ export function useBoard(
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsLive(true)
+          stopPolling()
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current)
             timeoutRef.current = null
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setIsLive(false)
+          startPolling()
         } else if (status === 'CLOSED') {
           setIsLive(false)
         }
@@ -93,6 +110,7 @@ export function useBoard(
 
     return () => {
       supabase.removeChannel(channel)
+      stopPolling()
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
   }, [boardId, refresh])
