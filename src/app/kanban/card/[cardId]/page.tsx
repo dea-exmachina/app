@@ -257,6 +257,23 @@ export default function CardDetailPage() {
         </div>
       )}
 
+      {/* Framework pills */}
+      {card.framework_ids && card.framework_ids.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-terminal-fg-tertiary">
+            Frameworks:
+          </span>
+          {card.framework_ids.map((fwId) => (
+            <span
+              key={fwId}
+              className="font-mono text-[10px] px-2 py-0.5 rounded-sm bg-amber-500/10 text-amber-400 border border-amber-500/25"
+            >
+              {fwId}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Summary */}
       {card.summary && (
         <div className="border border-terminal-border rounded-sm bg-terminal-bg-surface">
