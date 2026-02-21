@@ -200,6 +200,20 @@ export function CanvasEditor({ canvas, onUpdate }: CanvasEditorProps) {
     }
   }, [title]);
 
+  // Import a .excalidrawlib file and merge it into the current library
+  const handleImportLibrary = useCallback(async (file: File) => {
+    const api = excalidrawRef.current?.getAPI();
+    if (!api) return;
+
+    try {
+      // updateLibrary is on ExcalidrawImperativeAPI — merge=true preserves existing items
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (api as any).updateLibrary({ libraryItems: file, merge: true });
+    } catch (error) {
+      console.error('Failed to import library:', error);
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -219,6 +233,7 @@ export function CanvasEditor({ canvas, onUpdate }: CanvasEditorProps) {
         onExportPNG={handleExportPNG}
         onExportSVG={handleExportSVG}
         onExportJSON={handleExportJSON}
+        onImportLibrary={handleImportLibrary}
       />
 
       <div className="flex-1">
