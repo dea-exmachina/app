@@ -1,7 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useHandleLibrary } from '@excalidraw/excalidraw';
+import { canvasLibraryAdapter } from '@/lib/canvas-library-adapter';
 
 // Import Excalidraw CSS
 import '@excalidraw/excalidraw/index.css';
@@ -34,6 +36,8 @@ export interface ExcalidrawAPI {
   updateScene: (scene: any) => void;
   resetScene: () => void;
   scrollToContent: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateLibrary: (opts: any) => Promise<any>;
 }
 
 export interface ExcalidrawWrapperProps {
@@ -68,11 +72,21 @@ export const ExcalidrawWrapper = forwardRef<ExcalidrawWrapperRef, ExcalidrawWrap
     },
     ref
   ) {
-    const apiRef = useRef<ExcalidrawAPI | null>(null);
+    // useHandleLibrary requires excalidrawAPI as reactive state (not just a ref)
+    // so it can detect when the API instance becomes available
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+
+    // Wire up library persistence with localStorage adapter + bundled defaults
+    useHandleLibrary({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      excalidrawAPI: excalidrawAPI as any,
+      adapter: canvasLibraryAdapter,
+    });
 
     useImperativeHandle(ref, () => ({
-      getAPI: () => apiRef.current,
-    }));
+      getAPI: () => excalidrawAPI as ExcalidrawAPI | null,
+    }), [excalidrawAPI]);
 
     const handleChange = useCallback(
       (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
@@ -85,7 +99,7 @@ export const ExcalidrawWrapper = forwardRef<ExcalidrawWrapperRef, ExcalidrawWrap
       <div className={className} style={{ height: '100%', width: '100%' }}>
         <Excalidraw
           excalidrawAPI={(api) => {
-            apiRef.current = api as unknown as ExcalidrawAPI;
+            setExcalidrawAPI(api);
           }}
           initialData={initialData}
           onChange={handleChange}
