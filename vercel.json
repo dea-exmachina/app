@@ -3,10 +3,6 @@
     {
       "path": "/api/nexus/release-queue/cron",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/skills/sync",
-      "schedule": "0 2 * * *"
     }
   ]
 }

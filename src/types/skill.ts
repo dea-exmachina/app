@@ -17,6 +17,7 @@ export interface Skill {
   category: SkillCategory
   workflow: string | null
   status: 'active' | 'deprecated' | 'planned'
+  updated_at?: string
 }
 
 export interface SkillDetail extends Skill {
