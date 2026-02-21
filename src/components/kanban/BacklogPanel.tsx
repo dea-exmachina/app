@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, ArrowUp, Send, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowUp, ArrowUpDown, Send, X } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { moveCard, postComment } from '@/lib/client/api'
 
-type SortField = 'priority' | 'age' | 'project'
+type SortField = 'priority' | 'age' | 'project' | 'updated'
 
 const PRIORITY_ORDER: Record<string, number> = {
   critical: 0,
@@ -25,6 +25,18 @@ const SURFACE_TEMPLATE = `SURFACE:
 
 function isSurfaceGateError(msg: string) {
   return msg.includes('SURFACE gate') || msg.includes('SURFACE comment')
+}
+
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d`
+  return `${Math.floor(days / 7)}w`
 }
 
 interface SurfaceFormProps {
@@ -91,29 +103,41 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
     return stored === null ? true : stored === 'true'
   })
   const [sortField, setSortField] = useState<SortField>('priority')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   // card id → 'surface' | 'error:message' | null
   const [cardState, setCardState] = useState<Record<string, string | null>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
 
+  const handleSortClick = useCallback((f: SortField) => {
+    if (f === sortField) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(f)
+      setSortDir('asc')
+    }
+  }, [sortField])
+
   const sortedCards = [...cards].sort((a, b) => {
+    let cmp = 0
     if (sortField === 'priority') {
       const pa = PRIORITY_ORDER[a.metadata?.Priority?.toLowerCase() ?? 'normal'] ?? 2
       const pb = PRIORITY_ORDER[b.metadata?.Priority?.toLowerCase() ?? 'normal'] ?? 2
-      if (pa !== pb) return pa - pb
-      return a.id.localeCompare(b.id)
-    }
-    if (sortField === 'age') {
+      cmp = pa !== pb ? pa - pb : a.id.localeCompare(b.id)
+    } else if (sortField === 'age') {
       const da = a.createdAt ? new Date(a.createdAt).getTime() : 0
       const db = b.createdAt ? new Date(b.createdAt).getTime() : 0
-      return da - db
-    }
-    if (sortField === 'project') {
+      cmp = da - db
+    } else if (sortField === 'updated') {
+      const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
+      const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
+      cmp = da - db
+    } else if (sortField === 'project') {
       const pa = a.metadata?.Project ?? ''
       const pb = b.metadata?.Project ?? ''
-      return pa.localeCompare(pb) || a.id.localeCompare(b.id)
+      cmp = pa.localeCompare(pb) || a.id.localeCompare(b.id)
     }
-    return 0
+    return sortDir === 'desc' ? -cmp : cmp
   })
 
   const toggleSelect = useCallback((id: string) => {
@@ -190,17 +214,22 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
           </span>
         </div>
         <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-          {(['priority', 'age', 'project'] as SortField[]).map(f => (
+          {(['priority', 'age', 'updated', 'project'] as SortField[]).map(f => (
             <button
               key={f}
-              onClick={() => setSortField(f)}
-              className={`font-mono text-[9px] uppercase transition-colors ${
+              onClick={() => handleSortClick(f)}
+              className={`flex items-center gap-0.5 font-mono text-[9px] uppercase transition-colors ${
                 sortField === f
                   ? 'text-user-accent'
                   : 'text-terminal-fg-tertiary hover:text-terminal-fg-secondary'
               }`}
             >
               {f}
+              {sortField === f ? (
+                <span className="text-[8px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
+              ) : (
+                <ArrowUpDown className="h-2 w-2 opacity-40" />
+              )}
             </button>
           ))}
           {selectedIds.size > 0 && (
@@ -268,6 +297,14 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
                     {/* Title */}
                     <span className="font-mono text-[11px] text-terminal-fg-primary truncate flex-1 min-w-0">
                       {card.title}
+                    </span>
+
+                    {/* Last Updated */}
+                    <span
+                      className="w-[28px] text-right font-mono text-[9px] text-terminal-fg-tertiary shrink-0"
+                      title={card.updatedAt ?? ''}
+                    >
+                      {timeAgo(card.updatedAt)}
                     </span>
 
                     {/* Promote button */}

@@ -97,6 +97,7 @@ function mapToKanbanCard(row: NexusCardRow): KanbanCard {
       : null,
     completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
     readyForProduction: row.ready_for_production ?? false,
     testNotes: row.test_notes ?? null,
   }

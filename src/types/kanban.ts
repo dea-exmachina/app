@@ -12,6 +12,7 @@ export interface KanbanCard {
   startedAt?: string | null
   completedAt?: string | null
   createdAt: string
+  updatedAt?: string | null
   readyForProduction?: boolean
   testNotes?: string | null
   parentCardId?: string | null
