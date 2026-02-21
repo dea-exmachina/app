@@ -68,7 +68,7 @@ export function HistorySearch({ projects }: Props) {
           body: JSON.stringify({
             title: `Bug: ${card?.title ?? 'Issue'}`,
             card_type: 'bug',
-            lane: 'backlog',
+            lane: 'ready',
             ...(card?.projectId ? { project_id: card.projectId } : {}),
           }),
         })
@@ -76,7 +76,7 @@ export function HistorySearch({ projects }: Props) {
         const bugJson = await res.json().catch(() => ({}))
         const bugCardId = (bugJson as { data?: { card_id?: string } }).data?.card_id
         const proj = card?.metadata.Project ?? 'project'
-        setFeedback({ id: cardId, type: 'success', message: bugCardId ? `Bug ${bugCardId} → ${proj} backlog` : `Bug created → ${proj} backlog` })
+        setFeedback({ id: cardId, type: 'success', message: bugCardId ? `Bug ${bugCardId} → ${proj} ready` : `Bug created → ${proj} ready` })
       } else if (action === 'branch') {
         const card = results.find(c => c.id === cardId)
         const res = await fetch('/api/nexus/cards', {
@@ -85,7 +85,7 @@ export function HistorySearch({ projects }: Props) {
           body: JSON.stringify({
             title: `Feature: ${card?.title ?? 'New'}`,
             card_type: 'task',
-            lane: 'backlog',
+            lane: 'ready',
             ...(card?.projectId ? { project_id: card.projectId } : {}),
           }),
         })
@@ -93,7 +93,7 @@ export function HistorySearch({ projects }: Props) {
         const branchJson = await res.json().catch(() => ({}))
         const branchCardId = (branchJson as { data?: { card_id?: string } }).data?.card_id
         const branchProj = card?.metadata.Project ?? 'project'
-        setFeedback({ id: cardId, type: 'success', message: branchCardId ? `Task ${branchCardId} → ${branchProj} backlog` : `Task created → ${branchProj} backlog` })
+        setFeedback({ id: cardId, type: 'success', message: branchCardId ? `Task ${branchCardId} → ${branchProj} ready` : `Task created → ${branchProj} ready` })
       }
     } catch (err) {
       setFeedback({ id: cardId, type: 'error', message: err instanceof Error ? err.message : 'Action failed' })

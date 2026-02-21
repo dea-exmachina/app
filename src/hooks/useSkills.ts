@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Skill } from '@/types/skill'
 import { getSkills } from '@/lib/client/api'
 
@@ -21,5 +21,15 @@ export function useSkills() {
     refresh()
   }, [refresh])
 
-  return { data, loading, error, refresh }
+  // Derive last synced from the most recent updated_at across all skills
+  const lastSynced = useMemo(() => {
+    if (!data || data.length === 0) return null
+    const timestamps = data
+      .map((s) => s.updated_at)
+      .filter((t): t is string => !!t)
+    if (timestamps.length === 0) return null
+    return timestamps.reduce((a, b) => (a > b ? a : b))
+  }, [data])
+
+  return { data, loading, error, refresh, lastSynced }
 }
