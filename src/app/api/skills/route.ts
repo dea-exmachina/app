@@ -8,7 +8,7 @@ export async function GET(): Promise<
 > {
   try {
     const { data, error } = await tables.skills
-      .select('name, description, category, workflow, status')
+      .select('name, description, category, workflow, status, updated_at')
       .order('category')
       .order('name')
 
