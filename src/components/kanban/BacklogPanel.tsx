@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, ArrowUp, ArrowUpDown, Send, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowUp, ArrowUpDown, X } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
-import { moveCard, postComment } from '@/lib/client/api'
+import { moveCard } from '@/lib/client/api'
 
 type SortField = 'priority' | 'age' | 'project' | 'updated'
 
@@ -12,19 +12,6 @@ const PRIORITY_ORDER: Record<string, number> = {
   high: 1,
   normal: 2,
   low: 3,
-}
-
-const SURFACE_TEMPLATE = `SURFACE:
-- DB:
-- API:
-- UI:
-- Types:
-- Tests:
-- Docs:
-- Config: `
-
-function isSurfaceGateError(msg: string) {
-  return msg.includes('SURFACE gate') || msg.includes('SURFACE comment')
 }
 
 function timeAgo(dateStr: string | null | undefined): string {
@@ -37,57 +24,6 @@ function timeAgo(dateStr: string | null | undefined): string {
   const days = Math.floor(hours / 24)
   if (days < 7) return `${days}d`
   return `${Math.floor(days / 7)}w`
-}
-
-interface SurfaceFormProps {
-  cardId: string
-  onSubmit: (cardId: string, content: string) => Promise<void>
-  onCancel: () => void
-  submitting: boolean
-}
-
-function SurfaceForm({ cardId, onSubmit, onCancel, submitting }: SurfaceFormProps) {
-  const [text, setText] = useState(SURFACE_TEMPLATE)
-
-  return (
-    <div
-      className="border-t border-amber-500/20 bg-amber-500/5 px-3 py-2 space-y-2"
-      onClick={e => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-wider text-amber-400">
-          SURFACE map required to promote
-        </span>
-        <button onClick={onCancel} className="text-terminal-fg-tertiary hover:text-terminal-fg-secondary">
-          <X className="h-3 w-3" />
-        </button>
-      </div>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        rows={9}
-        className="w-full font-mono text-[10px] bg-terminal-bg border border-terminal-border rounded-sm px-2 py-1.5 text-terminal-fg-primary resize-none focus:outline-none focus:border-user-accent/40"
-        spellCheck={false}
-        autoFocus
-      />
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={onCancel}
-          className="font-mono text-[9px] px-2 py-0.5 text-terminal-fg-tertiary hover:text-terminal-fg-secondary transition-colors"
-        >
-          cancel
-        </button>
-        <button
-          onClick={() => onSubmit(cardId, text)}
-          disabled={submitting}
-          className="flex items-center gap-1 font-mono text-[9px] px-2 py-0.5 rounded-sm border border-user-accent/40 text-user-accent bg-user-accent/5 hover:bg-user-accent/10 disabled:opacity-40 transition-colors"
-        >
-          <Send className="h-2.5 w-2.5" />
-          {submitting ? 'posting…' : 'POST & PROMOTE'}
-        </button>
-      </div>
-    </div>
-  )
 }
 
 interface BacklogPanelProps {
@@ -105,9 +41,7 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
   const [sortField, setSortField] = useState<SortField>('priority')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  // card id → 'surface' | 'error:message' | null
-  const [cardState, setCardState] = useState<Record<string, string | null>>({})
-  const [submitting, setSubmitting] = useState<string | null>(null)
+  const [cardErrors, setCardErrors] = useState<Record<string, string | null>>({})
 
   const handleSortClick = useCallback((f: SortField) => {
     if (f === sortField) {
@@ -152,42 +86,24 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
   const attemptPromote = useCallback(async (cardId: string) => {
     try {
       await moveCard(cardId, 'ready')
-      setCardState(prev => { const n = { ...prev }; delete n[cardId]; return n })
+      setCardErrors(prev => { const n = { ...prev }; delete n[cardId]; return n })
       onPromote(cardId)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to promote card'
-      if (isSurfaceGateError(msg)) {
-        setCardState(prev => ({ ...prev, [cardId]: 'surface' }))
-      } else {
-        setCardState(prev => ({ ...prev, [cardId]: `error:${msg}` }))
-      }
+      setCardErrors(prev => ({ ...prev, [cardId]: msg }))
     }
   }, [onPromote])
-
-  const handleSurfaceSubmit = useCallback(async (cardId: string, content: string) => {
-    setSubmitting(cardId)
-    try {
-      await postComment(cardId, { author: 'dea', content, comment_type: 'surface' })
-      await attemptPromote(cardId)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to post SURFACE comment'
-      setCardState(prev => ({ ...prev, [cardId]: `error:${msg}` }))
-    } finally {
-      setSubmitting(null)
-    }
-  }, [attemptPromote])
 
   const handleBulkPromote = useCallback(async () => {
     const ids = Array.from(selectedIds)
     await Promise.all(ids.map(id => attemptPromote(id)))
-    // Only clear selection for cards that succeeded (no pending surface forms)
     setSelectedIds(prev => {
       const next = new Set(prev)
-      ids.forEach(id => { if (!cardState[id]) next.delete(id) })
+      ids.forEach(id => { if (!cardErrors[id]) next.delete(id) })
       return next
     })
-    onBulkPromote(ids.filter(id => !cardState[id]))
-  }, [selectedIds, cardState, attemptPromote, onBulkPromote])
+    onBulkPromote(ids.filter(id => !cardErrors[id]))
+  }, [selectedIds, cardErrors, attemptPromote, onBulkPromote])
 
   return (
     <div className="mt-3 border border-terminal-border rounded-sm">
@@ -252,9 +168,7 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
             </div>
           ) : (
             sortedCards.map(card => {
-              const state = cardState[card.id]
-              const showSurface = state === 'surface'
-              const errorMsg = state?.startsWith('error:') ? state.slice(6) : null
+              const errorMsg = cardErrors[card.id]
 
               return (
                 <div key={card.id} className="divide-y divide-terminal-border/30">
@@ -311,45 +225,27 @@ export function BacklogPanel({ cards, onPromote, onBulkPromote }: BacklogPanelPr
                     <button
                       onClick={e => {
                         e.stopPropagation()
-                        if (showSurface) {
-                          setCardState(prev => { const n = { ...prev }; delete n[card.id]; return n })
-                        } else {
-                          attemptPromote(card.id)
-                        }
+                        attemptPromote(card.id)
                       }}
-                      className={`shrink-0 flex items-center gap-1 font-mono text-[9px] px-1.5 py-0.5 rounded-sm border transition-colors ${
-                        showSurface
-                          ? 'border-amber-500/40 text-amber-400 bg-amber-500/5'
-                          : 'border-terminal-border text-terminal-fg-tertiary hover:border-user-accent/40 hover:text-user-accent'
-                      }`}
-                      title={showSurface ? 'Cancel' : 'Promote to Ready'}
+                      className="shrink-0 flex items-center gap-1 font-mono text-[9px] px-1.5 py-0.5 rounded-sm border border-terminal-border text-terminal-fg-tertiary hover:border-user-accent/40 hover:text-user-accent transition-colors"
+                      title="Promote to Ready"
                     >
                       <ArrowUp className="h-2.5 w-2.5" />
-                      {showSurface ? 'CANCEL' : 'READY'}
+                      READY
                     </button>
                   </div>
 
-                  {/* Inline error (non-surface failures) */}
+                  {/* Inline error */}
                   {errorMsg && (
                     <div className="flex items-start gap-2 px-3 py-1.5 bg-status-error/5">
                       <span className="font-mono text-[10px] text-status-error flex-1">{errorMsg}</span>
                       <button
-                        onClick={() => setCardState(prev => { const n = { ...prev }; delete n[card.id]; return n })}
+                        onClick={() => setCardErrors(prev => { const n = { ...prev }; delete n[card.id]; return n })}
                         className="shrink-0 text-status-error/60 hover:text-status-error"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </div>
-                  )}
-
-                  {/* Inline SURFACE form */}
-                  {showSurface && (
-                    <SurfaceForm
-                      cardId={card.id}
-                      onSubmit={handleSurfaceSubmit}
-                      onCancel={() => setCardState(prev => { const n = { ...prev }; delete n[card.id]; return n })}
-                      submitting={submitting === card.id}
-                    />
                   )}
                 </div>
               )
