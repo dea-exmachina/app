@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * CC-128: Fixed stale closure bug — isLiveRef mirrors isLive state so the
+ * setTimeout fallback callback reads the current connection state, not the
+ * stale value captured at effect-run time (which is always false on first render).
+ */
+
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { NexusComment, CommentType } from '@/types/nexus'
@@ -42,6 +48,9 @@ export function useCommentsRealtime(
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const commentIdsRef = useRef<Set<string>>(new Set())
   const cardUuidRef = useRef<string | null>(null)
+  // Ref mirrors isLive state so timeout callbacks read the current value,
+  // not the stale closure value captured at effect-run time.
+  const isLiveRef = useRef(false)
 
   const { cardId, pollInterval = 10000 } = params
   const paramsKey = useMemo(() => cardId, [cardId])
@@ -92,9 +101,11 @@ export function useCommentsRealtime(
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
     )
 
-    // Timeout: fall back to polling if Realtime doesn't connect
+    // Timeout: fall back to polling if Realtime doesn't connect.
+    // Uses isLiveRef (not isLive state) to read the current connection state —
+    // the state value captured at closure creation is always false on first run.
     timeoutRef.current = setTimeout(() => {
-      if (!isLive) {
+      if (!isLiveRef.current) {
         startPolling()
       }
     }, REALTIME_TIMEOUT_MS)
@@ -135,6 +146,7 @@ export function useCommentsRealtime(
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          isLiveRef.current = true
           setIsLive(true)
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current)
@@ -142,14 +154,17 @@ export function useCommentsRealtime(
           }
           stopPolling()
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          isLiveRef.current = false
           setIsLive(false)
           startPolling()
         } else if (status === 'CLOSED') {
+          isLiveRef.current = false
           setIsLive(false)
         }
       })
 
     return () => {
+      isLiveRef.current = false
       supabase.removeChannel(channel)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       stopPolling()
