@@ -2,12 +2,12 @@
 
 ## Overview
 
-Database migrations for the control-center Supabase backend. Two environments:
+Database migrations for the control-center Supabase backend.
 
 | Environment | Project | Project ID |
 |------------|---------|------------|
 | **Production** (kerrigan) | `cpfhgisfkudoiajcoujx.supabase.co` | `cpfhgisfkudoiajcoujx` |
-| **Development** (dev-kerrigan) | `hehldpjqlxhshdqqadng.supabase.co` | `hehldpjqlxhshdqqadng` |
+| ~~**Development** (dev-kerrigan)~~ | ~~`hehldpjqlxhshdqqadng.supabase.co`~~ | **Repurposed 2026-02-24** — now `dea-exmachina-admin` (product platform DB). Dev staging offline during infrastructure separation transition. Migrations go direct-to-prod. See `workflows/public/migration-promote.md`. |
 
 ## Baseline
 
@@ -21,25 +21,23 @@ YYYYMMDDHHMMSS_description_in_snake_case.sql
 
 Example: `20260210180000_add_status_column_to_nexus_cards.sql`
 
-## Dev-First Migration Workflow
+## Migration Workflow (Transition Mode)
 
-All new migrations follow **dev-first, prod-second**:
+> **2026-02-24**: Dev instance offline — `dev-kerrigan` repurposed as product admin DB. During transition, all migrations go **direct-to-production** with extra review diligence.
 
 ```
 1. Create migration file:
    supabase/migrations/YYYYMMDDHHMMSS_description.sql
 
-2. Apply to dev:
-   MCP apply_migration → project_id: hehldpjqlxhshdqqadng
+2. Review carefully (no dev safety net):
+   - Check idempotency (IF NOT EXISTS, IF EXISTS guards)
+   - Verify no destructive changes without rollback path
+   - Confirm RLS policies are correct before applying
 
-3. Test:
-   - Local: npm run dev (auto-uses dev via .env.development.local)
-   - Vercel: push to dev branch → preview deployment uses dev-kerrigan
-
-4. Apply to prod:
+3. Apply to prod:
    MCP apply_migration → project_id: cpfhgisfkudoiajcoujx
 
-5. Commit migration file in card branch
+4. Commit migration file in card branch
 ```
 
 **Process discipline, not CI/CD enforcement.** dea is the only entity running migrations.
@@ -49,11 +47,7 @@ All new migrations follow **dev-first, prod-second**:
 Via Supabase MCP Server (installed project-scoped in dea-exmachina):
 
 ```
-# Dev
-mcp apply_migration(name: "description", query: "<SQL>")
-→ targets dev-kerrigan (default project from .mcp.json)
-
-# Prod (explicit project_id)
+# Prod (always explicit project_id during transition)
 mcp apply_migration(project_id: "cpfhgisfkudoiajcoujx", name: "description", query: "<SQL>")
 ```
 
