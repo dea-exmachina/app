@@ -2,11 +2,9 @@
  * Supabase Database Client
  *
  * Provides typed database access for Control Center v2.
- * Uses service role key for server-side operations.
- *
- * Service role is intentional — single-user internal tool, RLS not needed.
- * No migration to @supabase/ssr planned. See NEXUS-086 for assessment.
- * Trigger to revisit: multi-user feature or public-facing CC capability.
+ * Uses secret key for server-side operations (bypasses RLS intentionally).
+ * Auth-gated RLS on all tables ensures only authenticated users can access data
+ * via the anon/user client. This client is for server-only admin operations.
  *
  * Lazy initialization: client is created on first use, not at module load.
  * This prevents module-scope crashes from killing Vercel's bundled functions.
@@ -25,12 +23,12 @@ export function getDb(): SupabaseClient<Database> {
     if (!process.env.SUPABASE_URL) {
       throw new Error('Missing environment variable: SUPABASE_URL')
     }
-    if (!process.env.SUPABASE_SERVICE_KEY) {
-      throw new Error('Missing environment variable: SUPABASE_SERVICE_KEY')
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      throw new Error('Missing environment variable: SUPABASE_SECRET_KEY')
     }
     _db = createClient<Database>(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY,
+      process.env.SUPABASE_SECRET_KEY,
       {
         auth: {
           autoRefreshToken: false,
