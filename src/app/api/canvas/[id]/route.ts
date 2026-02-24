@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tables } from '@/lib/server/database'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { Canvas, UpdateCanvasInput, CanvasData } from '@/types/canvas'
 
@@ -7,18 +8,25 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 /**
  * GET /api/canvas/[id]
- * Get a single canvas with full data
+ * Get a single canvas with full data (owner only)
  */
 export async function GET(
   _request: NextRequest,
   context: RouteContext
 ): Promise<NextResponse<ApiResponse<Canvas> | ApiError>> {
   try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
+    }
+
     const { id } = await context.params
 
     const { data, error } = await tables.canvases
       .select('*')
       .eq('id', id)
+      .eq('user_id', user.id)
       .single()
 
     if (error) {
@@ -66,6 +74,12 @@ export async function PUT(
   context: RouteContext
 ): Promise<NextResponse<ApiResponse<Canvas> | ApiError>> {
   try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
+    }
+
     const { id } = await context.params
     const body = (await request.json()) as UpdateCanvasInput
 
@@ -91,6 +105,7 @@ export async function PUT(
     const { data, error } = await tables.canvases
       .update(updateData)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select('*')
       .single()
 
@@ -139,11 +154,18 @@ export async function DELETE(
   context: RouteContext
 ): Promise<NextResponse<ApiResponse<{ deleted: true }> | ApiError>> {
   try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
+    }
+
     const { id } = await context.params
 
     const { error } = await tables.canvases
       .delete()
       .eq('id', id)
+      .eq('user_id', user.id)
 
     if (error) {
       throw error

@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tables } from '@/lib/server/database'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { ApiResponse, ApiError } from '@/types/api'
 import type { Canvas, CanvasSummary, CreateCanvasInput, CanvasData } from '@/types/canvas'
 
 /**
  * GET /api/canvas
- * List all canvases (summary view without full data)
+ * List all canvases for the authenticated user (summary view without full data)
  */
 export async function GET(): Promise<
   NextResponse<ApiResponse<CanvasSummary[]> | ApiError>
 > {
   try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
+    }
+
     const { data, error } = await tables.canvases
       .select('id, title, description, thumbnail, project_id, created_at, updated_at, data')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -59,6 +67,12 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<Canvas> | ApiError>> {
   try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
+    }
+
     const body = (await request.json()) as CreateCanvasInput
 
     const { data, error } = await tables.canvases
@@ -67,6 +81,7 @@ export async function POST(
         description: body.description?.trim() || null,
         project_id: body.project_id || null,
         data: body.data || {},
+        user_id: user.id,
       })
       .select('*')
       .single()
