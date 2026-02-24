@@ -7,9 +7,10 @@ import { CardItem } from './CardItem'
 interface LaneColumnProps {
   lane: KanbanLane
   onCardClick?: (card: KanbanCard) => void
-  onCardSelect?: (cardId: string, additive: boolean) => void
+  onCardSelect?: (cardId: string, additive: boolean, shift: boolean) => void
   onCardContextMenu?: (e: MouseEvent, card: KanbanCard) => void
   onCardReview?: (cardId: string) => void
+  onSelectAll?: (laneCardIds: string[]) => void
   selectedCards?: Set<string>
   droppable?: boolean
   unresolvedMap?: Map<string, CardCommentSummary>
@@ -23,6 +24,7 @@ export function LaneColumn({
   onCardSelect,
   onCardContextMenu,
   onCardReview,
+  onSelectAll,
   selectedCards,
   droppable = false,
   unresolvedMap,
@@ -73,6 +75,19 @@ export function LaneColumn({
           <span className="font-mono text-[11px] text-terminal-fg-tertiary">
             {openCount}
           </span>
+          {/* Select All — visible when lane has cards */}
+          {onSelectAll && lane.cards.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectAll(lane.cards.map((c) => c.id))
+              }}
+              className="font-mono text-[9px] text-terminal-fg-tertiary hover:text-user-accent transition-colors uppercase"
+              title="Select all cards in this lane"
+            >
+              ALL
+            </button>
+          )}
         </div>
 
         {/* Sort Controls */}
@@ -128,6 +143,7 @@ export function LaneColumn({
                   onSelect={onCardSelect}
                   onContextMenu={onCardContextMenu}
                   selected={selectedCards?.has(card.id)}
+                  anySelected={(selectedCards?.size ?? 0) > 0}
                   draggable={droppable}
                   unresolvedCount={summary?.unresolved_count}
                   hasQuestions={summary?.has_questions}

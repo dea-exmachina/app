@@ -76,6 +76,8 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
 
   // Multi-select state
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set())
+  // Track the last card ID clicked for shift+click range select
+  const [lastSelectedCardId, setLastSelectedCardId] = useState<string | null>(null)
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -231,24 +233,73 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
 
   // ── Multi-select ──────────────────────────────────────
 
-  const handleCardSelect = useCallback((cardId: string) => {
-    setSelectedCards((prev) => {
-      const next = new Set(prev)
-      if (next.has(cardId)) {
-        next.delete(cardId)
-      } else {
-        next.add(cardId)
+  const handleCardSelect = useCallback(
+    (cardId: string, _additive: boolean, shift: boolean) => {
+      if (shift && lastSelectedCardId) {
+        // Find which lane both cards belong to and select the range
+        for (const lane of displayLanes) {
+          const ids = lane.cards.map((c) => c.id)
+          const lastIdx = ids.indexOf(lastSelectedCardId)
+          const curIdx = ids.indexOf(cardId)
+          if (lastIdx !== -1 && curIdx !== -1) {
+            const [lo, hi] = lastIdx < curIdx ? [lastIdx, curIdx] : [curIdx, lastIdx]
+            const rangeIds = ids.slice(lo, hi + 1)
+            setSelectedCards((prev) => {
+              const next = new Set(prev)
+              for (const id of rangeIds) next.add(id)
+              return next
+            })
+            setLastSelectedCardId(cardId)
+            return
+          }
+        }
       }
-      return next
-    })
-  }, [])
+      // Normal toggle
+      setSelectedCards((prev) => {
+        const next = new Set(prev)
+        if (next.has(cardId)) {
+          next.delete(cardId)
+        } else {
+          next.add(cardId)
+        }
+        return next
+      })
+      setLastSelectedCardId(cardId)
+    },
+    [lastSelectedCardId, displayLanes]
+  )
+
+  // Escape key clears selection
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedCards.size > 0) {
+        setSelectedCards(new Set())
+        setLastSelectedCardId(null)
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [selectedCards.size])
 
   // Clear selection when clicking empty area
   const handleBoardClick = useCallback(() => {
     if (selectedCards.size > 0) {
       setSelectedCards(new Set())
+      setLastSelectedCardId(null)
     }
   }, [selectedCards.size])
+
+  // Select all cards in a lane
+  const handleSelectAll = useCallback((laneCardIds: string[]) => {
+    setSelectedCards((prev) => {
+      const next = new Set(prev)
+      for (const id of laneCardIds) next.add(id)
+      return next
+    })
+    if (laneCardIds.length > 0) {
+      setLastSelectedCardId(laneCardIds[laneCardIds.length - 1])
+    }
+  }, [])
 
   // ── Context Menu ──────────────────────────────────────
 
@@ -285,6 +336,14 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
   const handleContextMenuAction = useCallback(
     async (action: ContextMenuAction) => {
       if (!contextMenu) return
+
+      // Clear selection — no per-card work needed
+      if (action.type === 'clear') {
+        setSelectedCards(new Set())
+        setLastSelectedCardId(null)
+        return
+      }
+
       const cards = contextMenu.cards
 
       for (const card of cards) {
@@ -361,6 +420,7 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
       }
 
       setSelectedCards(new Set())
+      setLastSelectedCardId(null)
     },
     [contextMenu]
   )
@@ -519,6 +579,7 @@ export function BoardView({ board, dateFilter, onDateFilterChange }: BoardViewPr
                 onCardClick={handleCardClick(lane.name)}
                 onCardSelect={handleCardSelect}
                 onCardContextMenu={handleCardContextMenu}
+                onSelectAll={handleSelectAll}
                 onCardReview={(cardId) => {
                   // Optimistically update: mark card reviewed so checkmark appears
                   setLanes(prev => prev.map(l => ({
