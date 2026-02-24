@@ -1,7 +1,7 @@
 import { useCallback, useState, type MouseEvent } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Flag, CheckCircle2 } from 'lucide-react'
+import { Flag, CheckCircle2, Square, CheckSquare } from 'lucide-react'
 import type { KanbanCard } from '@/types/kanban'
 import { CardBadge } from './CardBadge'
 import { StatusDot, statusToType } from '@/components/ui/status-dot'
@@ -9,10 +9,11 @@ import { StatusDot, statusToType } from '@/components/ui/status-dot'
 interface CardItemProps {
   card: KanbanCard
   onClick?: () => void
-  onSelect?: (cardId: string, additive: boolean) => void
+  onSelect?: (cardId: string, additive: boolean, shift: boolean) => void
   onContextMenu?: (e: MouseEvent, card: KanbanCard) => void
   draggable?: boolean
   selected?: boolean
+  anySelected?: boolean
   unresolvedCount?: number
   hasQuestions?: boolean
   isReviewLane?: boolean
@@ -59,6 +60,7 @@ export function CardItem({
   onContextMenu,
   draggable = false,
   selected = false,
+  anySelected = false,
   unresolvedCount,
   hasQuestions,
   isReviewLane = false,
@@ -83,11 +85,18 @@ export function CardItem({
   const handleClick = useCallback(
     (e: MouseEvent) => {
       if (isDragging) return
-      // Ctrl/Cmd+Click = toggle selection
+      // Shift+Click = range select
+      if (e.shiftKey && onSelect) {
+        e.preventDefault()
+        e.stopPropagation()
+        onSelect(card.id, true, true)
+        return
+      }
+      // Ctrl/Cmd+Click = toggle selection (additive)
       if ((e.ctrlKey || e.metaKey) && onSelect) {
         e.preventDefault()
         e.stopPropagation()
-        onSelect(card.id, true)
+        onSelect(card.id, true, false)
         return
       }
       onClick?.()
@@ -135,14 +144,31 @@ export function CardItem({
       {...(draggable ? { ...listeners, ...attributes } : {})}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
-      className={`rounded-sm border p-2 transition-colors cursor-pointer ${
+      className={`group rounded-sm border p-2 transition-colors cursor-pointer ${
         selected
           ? 'border-user-accent ring-1 ring-user-accent/40 bg-user-accent/5'
           : 'border-terminal-border bg-terminal-bg-surface hover:border-terminal-border-strong'
       } ${card.completed ? 'opacity-50' : ''} ${isDragging ? 'opacity-30' : ''} ${draggable ? 'touch-none' : ''}`}
     >
-      {/* Line 1: ID + unresolved badge + tags + project prefix + status dot */}
+      {/* Line 1: checkbox + ID + unresolved badge + tags + project prefix + status dot */}
       <div className="flex items-center gap-1.5 mb-0.5">
+        {/* Checkbox: visible on hover when anySelected, or always when selected */}
+        {onSelect && (
+          <button
+            className={`shrink-0 transition-opacity ${selected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onSelect(card.id, true, false)
+            }}
+            title={selected ? 'Deselect card' : 'Select card'}
+          >
+            {selected
+              ? <CheckSquare className="h-3 w-3 text-user-accent" />
+              : <Square className="h-3 w-3 text-terminal-fg-tertiary" />
+            }
+          </button>
+        )}
         <span className="font-mono text-[10px] font-semibold text-user-accent shrink-0">
           {card.id}
         </span>

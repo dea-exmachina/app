@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Gauge,
   ChevronRight,
+  X,
 } from 'lucide-react'
 
 const LANES = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const
@@ -28,7 +29,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 export interface ContextMenuAction {
-  type: 'flag' | 'unflag' | 'move' | 'priority'
+  type: 'flag' | 'unflag' | 'move' | 'priority' | 'clear'
   value?: string
 }
 
@@ -204,6 +205,16 @@ export function CardContextMenu({
           ))}
         </div>
       </div>
+
+      {/* Divider + Clear selection */}
+      <div className="border-t border-terminal-border my-1" />
+      <button
+        onClick={handleAction({ type: 'clear' })}
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-terminal-fg-tertiary hover:bg-terminal-bg-elevated hover:text-terminal-fg-primary transition-colors"
+      >
+        <X className="h-3 w-3" />
+        Clear Selection
+      </button>
     </div>
   )
 }
