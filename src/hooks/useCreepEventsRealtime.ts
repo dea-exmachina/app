@@ -5,6 +5,9 @@
  *
  * CC-014: Redirected from queen_events (0 rows) to nexus_events (real data).
  * Maps nexus_events to CreepEvent shape for backward-compatible rendering.
+ *
+ * CC-129: Fixed stale closure bug — isLiveRef tracks current subscription state
+ * so the timeout callback reads the real value, not the captured render-time value.
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
@@ -81,6 +84,9 @@ export function useCreepEventsRealtime(
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const eventIdsRef = useRef<Set<string>>(new Set())
+  // Ref mirrors isLive state so timeout callbacks read the current value,
+  // not the stale closure value captured at effect-run time.
+  const isLiveRef = useRef(false)
 
   // Memoize params to prevent unnecessary re-renders
   const paramsKey = useMemo(
@@ -126,9 +132,11 @@ export function useCreepEventsRealtime(
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
     )
 
-    // Set up a timeout - if not connected in 5s, fall back to polling
+    // Set up a timeout - if not connected in 5s, fall back to polling.
+    // Uses isLiveRef (not isLive state) to read the current connection state —
+    // the state value captured at closure creation is always false on first run.
     timeoutRef.current = setTimeout(() => {
-      if (!isLive) {
+      if (!isLiveRef.current) {
         console.warn('[useCreepEventsRealtime] Realtime connection timed out, falling back to polling')
         startPolling()
       }
@@ -172,6 +180,7 @@ export function useCreepEventsRealtime(
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          isLiveRef.current = true
           setIsLive(true)
           // Clear timeout since we connected
           if (timeoutRef.current) {
@@ -181,14 +190,17 @@ export function useCreepEventsRealtime(
           // Stop polling if it was running
           stopPolling()
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          isLiveRef.current = false
           setIsLive(false)
           startPolling()
         } else if (status === 'CLOSED') {
+          isLiveRef.current = false
           setIsLive(false)
         }
       })
 
     return () => {
+      isLiveRef.current = false
       supabase.removeChannel(channel)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       stopPolling()
