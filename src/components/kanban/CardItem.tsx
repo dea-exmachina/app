@@ -206,6 +206,25 @@ export function CardItem({
         {card.title}
       </div>
 
+      {/* Framework pills (below title, only when frameworks data present) */}
+      {card.frameworks && card.frameworks.length > 0 && (
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+          {card.frameworks.slice(0, 3).map((fw) => (
+            <span
+              key={fw}
+              className="font-mono text-[9px] px-1 py-px rounded-sm border border-terminal-border bg-terminal-bg-elevated text-terminal-fg-secondary shrink-0"
+            >
+              {fw}
+            </span>
+          ))}
+          {card.frameworks.length > 3 && (
+            <span className="font-mono text-[9px] text-terminal-fg-tertiary shrink-0">
+              +{card.frameworks.length - 3} more
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Line 3: Assignee + age */}
       {(assignee || age) && (
         <div className="flex items-center justify-between mt-0.5 font-mono text-[10px] text-terminal-fg-tertiary">
