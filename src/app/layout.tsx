@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'dea::control',
-  description: 'Control center for dea-exmachina',
+  title: 'nexus',
+  description: 'Your AI operating system',
 }
 
 export default function RootLayout({
@@ -50,7 +50,7 @@ export default function RootLayout({
                 <div className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 lg:hidden">
                   <MobileSidebar />
                   <span className="ml-4 font-mono text-sm font-semibold tracking-wide text-accent-foreground">
-                    dea<span className="text-muted-foreground">::</span>control
+                    nexus
                   </span>
                 </div>
 

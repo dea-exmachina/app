@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       })
 
       if (response.ok) {
@@ -40,18 +40,18 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6 p-8">
         <div className="text-center">
           <h1 className="font-mono text-2xl font-bold tracking-wide text-foreground">
-            dea<span className="text-muted-foreground">::</span>control
+            nexus
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">authenticate to continue</p>
+          <p className="mt-2 text-sm text-muted-foreground">sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="username"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email"
               className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-foreground focus:outline-none"
               autoFocus
               required
@@ -77,7 +77,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'authenticating...' : 'enter'}
+            {loading ? 'signing in...' : 'sign in'}
           </button>
         </form>
       </div>

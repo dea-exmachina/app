@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
 import { checkRateLimit } from '@/lib/server/rate-limit'
-import { createSessionToken } from '@/lib/server/auth'
+import { createServerClient } from '@supabase/ssr'
 
 const RATE_LIMIT_ATTEMPTS = 5
-const RATE_LIMIT_WINDOW_MS = 60_000 // 60 seconds
+const RATE_LIMIT_WINDOW_MS = 60_000
 
 export async function POST(request: NextRequest) {
-  // Rate limiting — keyed on forwarded IP or connection remote address
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
@@ -31,45 +29,36 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const validUsername = process.env.ADMIN_USERNAME
-  const validPassword = process.env.ADMIN_PASSWORD
-  const authSecret = process.env.AUTH_SECRET
+  const { email, password } = await request.json()
 
-  if (!validUsername || !validPassword || !authSecret) {
-    return NextResponse.json({ error: 'Auth not configured' }, { status: 500 })
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
   }
 
-  const { username, password } = await request.json()
+  const response = NextResponse.json({ success: true })
 
-  // Constant-time comparison to prevent timing attacks.
-  // timingSafeEqual requires equal-length buffers — length difference is itself
-  // constant-time to detect (strings with wrong length always fail).
-  const usernameBytes = Buffer.from(typeof username === 'string' ? username : '')
-  const passwordBytes = Buffer.from(typeof password === 'string' ? password : '')
-  const validUsernameBytes = Buffer.from(validUsername)
-  const validPasswordBytes = Buffer.from(validPassword)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
 
-  const usernameMatch =
-    usernameBytes.length === validUsernameBytes.length &&
-    timingSafeEqual(usernameBytes, validUsernameBytes)
-  const passwordMatch =
-    passwordBytes.length === validPasswordBytes.length &&
-    timingSafeEqual(passwordBytes, validPasswordBytes)
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (usernameMatch && passwordMatch) {
-    // Generate a unique per-session HMAC token — stateless across serverless instances
-    const sessionToken = createSessionToken(authSecret)
-
-    const response = NextResponse.json({ success: true })
-    response.cookies.set('dea-auth', sessionToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    })
-    return response
+  if (error) {
+    return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
   }
 
-  return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+  return response
 }
