@@ -5,6 +5,10 @@
  *
  * CC-013: Added realtime subscription on nexus_cards filtered by project.
  * Pattern: Initial fetch via API + client-side Realtime for INSERT/UPDATE/DELETE.
+ *
+ * CC-127: Fixed stale closure bug — isLiveRef tracks current subscription state
+ * so the timeout callback reads the real value, not the captured render-time value.
+ * Reduced polling fallback from 10s → 5s for better user experience.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -13,7 +17,7 @@ import type { KanbanBoard } from '@/types/kanban'
 import { getBoard } from '@/lib/client/api'
 
 const REALTIME_TIMEOUT_MS = 5000
-const POLLING_INTERVAL_MS = 10_000
+const POLLING_INTERVAL_MS = 5_000
 
 export function useBoard(
   boardId: string,
@@ -25,6 +29,9 @@ export function useBoard(
   const [isLive, setIsLive] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Ref mirrors isLive state so timeout callbacks read the current value,
+  // not the stale closure value captured at effect-run time.
+  const isLiveRef = useRef(false)
 
   // Serialize filter to a stable string to avoid infinite re-fetches
   const filterKey = filter
@@ -67,9 +74,11 @@ export function useBoard(
       }
     }
 
-    // Timeout fallback: if Realtime doesn't connect, start polling
+    // Timeout fallback: if Realtime doesn't connect within the window, start polling.
+    // Uses isLiveRef (not isLive state) to read the current connection state —
+    // the state value captured at closure creation is always false on first run.
     timeoutRef.current = setTimeout(() => {
-      if (!isLive) {
+      if (!isLiveRef.current) {
         console.warn(`[useBoard] Realtime connection timed out for board ${boardId} — starting polling fallback`)
         startPolling()
       }
@@ -94,6 +103,7 @@ export function useBoard(
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          isLiveRef.current = true
           setIsLive(true)
           stopPolling()
           if (timeoutRef.current) {
@@ -101,14 +111,17 @@ export function useBoard(
             timeoutRef.current = null
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          isLiveRef.current = false
           setIsLive(false)
           startPolling()
         } else if (status === 'CLOSED') {
+          isLiveRef.current = false
           setIsLive(false)
         }
       })
 
     return () => {
+      isLiveRef.current = false
       supabase.removeChannel(channel)
       stopPolling()
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
