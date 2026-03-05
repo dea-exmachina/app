@@ -132,6 +132,7 @@ export const tables = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get research_reports() { return (db as any).from('research_reports') as ReturnType<typeof db.from> },
   get nexus_sprints() { return db.from('nexus_sprints') },
+  // Pipeline tables live on dea-nexus-users — see users-database.ts
 }
 
 /**
